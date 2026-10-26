@@ -1,0 +1,437 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Home's widget shelf, in the open space between the header and the dock. WidgetShelf places each
+     card over a dock column at run time; the cards are 4dp larger than they look on every side, for
+     the focus indicator. Colours come from the scheme (WidgetShelf.setPalette). -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widgetShelf"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/widget_shelf_height"
+    android:clipChildren="false"
+    android:clipToPadding="false"
+    android:visibility="gone">
+
+    <com.gathin.tvhome.feature.main.widget.WidgetCard
+        android:id="@+id/widgetClock"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/widget_card_height"
+        android:layout_gravity="center_vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:baselineAligned="false"
+            android:paddingStart="12dp"
+            android:paddingTop="10dp"
+            android:paddingEnd="12dp"
+            android:paddingBottom="10dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="top"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/clockDay"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/sans_medium"
+                    android:letterSpacing="0.01"
+                    android:textAllCaps="true"
+                    android:textColor="#A78BFA"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textSize="11sp" />
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:baselineAligned="false"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextClock
+                        android:id="@+id/clockTime"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/sans_headline"
+                        android:textStyle="bold"
+                        android:format12Hour="h:mm"
+                        android:format24Hour="HH:mm"
+                        android:includeFontPadding="false"
+                        android:textColor="#FFFFFFFF"
+                        android:textSize="34sp" />
+
+                    <TextClock
+                        android:id="@+id/clockAmPm"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:fontFamily="@font/sans_medium"
+                        android:format12Hour="a"
+                        android:format24Hour=""
+                        android:letterSpacing="0.06"
+                        android:textAllCaps="true"
+                        android:textColor="#B3FFFFFF"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/clockDate"
+                    style="@style/WidgetDetail"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textColor="#B0B3BD"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <View
+                android:id="@+id/clockDividerLine"
+                android:layout_width="1dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="4dp"
+                android:background="#1FFFFFFF" />
+
+            <LinearLayout
+                android:id="@+id/calendarRightBlock"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="top"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/calendarMonth"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/sans_medium"
+                    android:letterSpacing="0.06"
+                    android:textAllCaps="true"
+                    android:textColor="#A78BFA"
+                    android:textSize="11sp" />
+
+                <LinearLayout
+                    android:id="@+id/calendarGrid"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:orientation="vertical" />
+            </LinearLayout>
+        </LinearLayout>
+    </com.gathin.tvhome.feature.main.widget.WidgetCard>
+
+    <com.gathin.tvhome.feature.main.widget.WidgetCard
+        android:id="@+id/widgetWeather"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/widget_card_height"
+        android:layout_gravity="center_vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:id="@+id/weatherPlace"
+                style="@style/WidgetLabel"
+                android:text="@string/weather" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:baselineAligned="false"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/weatherTemp"
+                    style="@style/WidgetValue"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:text="–" />
+
+                <com.gathin.tvhome.core.view.ShapeBadge
+                    android:id="@+id/weatherIcon"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/weatherDetail"
+                style="@style/WidgetDetail" />
+        </LinearLayout>
+    </com.gathin.tvhome.feature.main.widget.WidgetCard>
+
+    <com.gathin.tvhome.feature.main.widget.WidgetCard
+        android:id="@+id/widgetHomeAssistant"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/widget_card_height"
+        android:layout_gravity="center_vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:baselineAligned="false"
+            android:paddingStart="12dp"
+            android:paddingTop="10dp"
+            android:paddingEnd="12dp"
+            android:paddingBottom="10dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="top"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/haLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/sans_medium"
+                    android:letterSpacing="0.04"
+                    android:textAllCaps="true"
+                    android:textColor="#A78BFA"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textSize="11sp"
+                    android:text="@string/widget_home_assistant" />
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:baselineAligned="false"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/haStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/sans_headline"
+                        android:textStyle="bold"
+                        android:includeFontPadding="false"
+                        android:textColor="#FFFFFFFF"
+                        android:textSize="34sp"
+                        android:text="@string/home_assistant_online" />
+
+                    <TextView
+                        android:id="@+id/haHumidity"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:fontFamily="@font/sans_medium"
+                        android:includeFontPadding="false"
+                        android:textColor="#38BDF8"
+                        android:textSize="14sp"
+                        android:visibility="gone" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/haDetail"
+                    style="@style/WidgetDetail"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textColor="#B0B3BD"
+                    android:textSize="11sp"
+                    android:text="@string/home_assistant_click_hint" />
+            </LinearLayout>
+
+            <View
+                android:id="@+id/haDividerLine"
+                android:layout_width="1dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="10dp"
+                android:layout_marginEnd="10dp"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="4dp"
+                android:background="#1FFFFFFF" />
+
+            <LinearLayout
+                android:id="@+id/haRightBlock"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="top"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:baselineAligned="false"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/haRightTitle"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/sans_medium"
+                        android:letterSpacing="0.06"
+                        android:textAllCaps="true"
+                        android:textColor="#A78BFA"
+                        android:textSize="11sp"
+                        android:text="THIẾT BỊ HOẠT ĐỘNG" />
+
+                    <com.gathin.tvhome.core.view.ShapeBadge
+                        android:id="@+id/haBadge"
+                        android:layout_width="26dp"
+                        android:layout_height="26dp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:gravity="center_vertical"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/haLightStatus"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/sans_medium"
+                        android:maxLines="1"
+                        android:ellipsize="end"
+                        android:textColor="#FBBF24"
+                        android:textSize="13sp"
+                        android:text="💡 Đèn đang bật" />
+
+                    <TextView
+                        android:id="@+id/haClimateStatus"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:fontFamily="@font/sans_medium"
+                        android:maxLines="1"
+                        android:ellipsize="end"
+                        android:textColor="#94A3B8"
+                        android:textSize="12sp"
+                        android:text="❄️ Điều hòa: Tắt" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/haOnlineStatus"
+                    style="@style/WidgetDetail"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textColor="#34D399"
+                    android:textSize="11sp"
+                    android:text="● Trực tuyến" />
+            </LinearLayout>
+        </LinearLayout>
+    </com.gathin.tvhome.feature.main.widget.WidgetCard>
+
+    <com.gathin.tvhome.feature.main.widget.WidgetCard
+        android:id="@+id/widgetAir"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/widget_card_height"
+        android:layout_gravity="center_vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:id="@+id/airLabel"
+                style="@style/WidgetLabel"
+                android:text="@string/air_quality" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:baselineAligned="false"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/airValue"
+                    style="@style/WidgetValue"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:text="–" />
+
+                <com.gathin.tvhome.core.view.ShapeBadge
+                    android:id="@+id/airBadge"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/airDetail"
+                style="@style/WidgetDetail" />
+        </LinearLayout>
+    </com.gathin.tvhome.feature.main.widget.WidgetCard>
+
+    <com.gathin.tvhome.feature.main.widget.WidgetCard
+        android:id="@+id/widgetCalendar"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/widget_card_height"
+        android:layout_gravity="center_vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:id="@+id/lunarLabel"
+                style="@style/WidgetLabel"
+                android:text="@string/lunar_calendar" />
+
+            <TextView
+                android:id="@+id/lunarDate"
+                style="@style/WidgetValue"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center_vertical" />
+
+            <TextView
+                android:id="@+id/holiday"
+                style="@style/WidgetDetail" />
+        </LinearLayout>
+    </com.gathin.tvhome.feature.main.widget.WidgetCard>
+
+    <com.gathin.tvhome.feature.main.widget.WidgetCard
+        android:id="@+id/widgetAdd"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/widget_card_height"
+        android:layout_gravity="center_vertical"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <ImageView
+                android:id="@+id/widgetAddIcon"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/ic_add" />
+
+            <TextView
+                android:id="@+id/widgetAddLabel"
+                style="@style/WidgetLabel"
+                android:layout_width="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/widget_add" />
+        </LinearLayout>
+    </com.gathin.tvhome.feature.main.widget.WidgetCard>
+</FrameLayout>

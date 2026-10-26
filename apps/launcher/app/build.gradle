@@ -1,0 +1,93 @@
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+}
+
+android {
+    namespace 'com.gathin.tvhome'
+    compileSdk 34
+    testBuildType 'release'
+
+    defaultConfig {
+        applicationId 'com.gathin.tvhome'
+        minSdk 26
+        targetSdk 34
+        testInstrumentationRunner 'com.gathin.tvhome.AgentRenderInstrumentation'
+        versionCode 7
+        // A release sets it from its tag (-PtvVersion=1.1.0); the code stays put, so a local build still installs over it.
+        versionName findProperty('tvVersion') ?: findProperty('launcherVersion') ?: '1.0.2'
+        // English and Vietnamese only: other locales were removed, and this keeps library strings out too.
+        resourceConfigurations += ['en', 'vi']
+    }
+
+    signingConfigs {
+        // GitHub releases are signed with the owner's key from the repo's secrets (release.yml), so a downloaded
+        // APK installs over a local build. Without TV_KEYSTORE, builds keep Android's debug key.
+        def keystorePath = System.getenv('TV_KEYSTORE')
+        if (keystorePath) {
+            release {
+                storeFile file(keystorePath)
+                storePassword System.getenv('TV_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('TV_KEY_ALIAS')
+                keyPassword System.getenv('TV_KEY_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            // R8 strips and optimises the code (AndroidX included): smaller APK, faster start on a slow TV CPU.
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // Sideloaded over ADB, never on a store: the debug key, or the release key when CI has it.
+            def hasKeystore = System.getenv('TV_KEYSTORE')
+            signingConfig hasKeystore ? signingConfigs.release : signingConfigs.debug
+        }
+    }
+
+    applicationVariants.configureEach { variant ->
+        variant.outputs.configureEach {
+            outputFileName = variant.buildType.name == 'release' ? 'tv-launcher.apk' : "tv-launcher-${variant.name}.apk"
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+        freeCompilerArgs += ['-Xno-param-assertions', '-Xno-call-assertions', '-Xno-receiver-assertions']
+    }
+
+    packaging {
+        // Kotlin metadata the libraries carry, read only by kotlin-reflect, which a Java app never loads (~9 KB).
+        resources.excludes += ['kotlin/**', 'META-INF/*.kotlin_module', 'DebugProbesKt.bin']
+    }
+
+    androidResources {
+        ignoreAssetsPattern '!*LICENSE:!*.txt'
+    }
+
+    testOptions {
+        unitTests.returnDefaultValues = true
+    }
+}
+
+dependencies {
+    implementation libs.kotlinx.coroutines.core
+    implementation libs.kotlinx.coroutines.android
+    implementation libs.androidx.recyclerview
+    implementation libs.androidx.dynamicanimation
+    // Material colour utilities (dynamic colour from the wallpaper: QuantizerCelebi, Score, SchemeTonalSpot), the
+    // com.google.android.material.color.utilities classes of material 1.12.0 (Apache 2.0) on their own: the full
+    // library brings AppCompat, its resources and a startup provider for nothing the launcher uses.
+    implementation files('libs/material-color-utilities-1.12.0.jar')
+    // QR code of the phone page (AgentActivity); only the encoder is used, R8 drops the rest.
+    implementation libs.zxing.core
+    // Test only (never in the APK): plain JVM tests for the module card validators, src/test.
+    testImplementation libs.junit
+    testImplementation libs.json
+}

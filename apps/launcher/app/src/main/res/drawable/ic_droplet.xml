@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Material Symbols Rounded "water_drop" (Apache 2.0) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="960"
+    android:viewportHeight="960">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M480,880Q380,880 310,810Q240,740 240,640Q240,560 300,450Q360,340 480,160Q600,340 660,450Q720,560 720,640Q720,740 650,810Q580,880 480,880Z" />
+</vector>

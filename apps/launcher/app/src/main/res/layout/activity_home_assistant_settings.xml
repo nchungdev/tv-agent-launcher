@@ -1,0 +1,495 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/scrim"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#80000000">
+
+    <LinearLayout
+        android:id="@+id/sheet"
+        android:layout_width="460dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_margin="32dp"
+        android:background="@drawable/dark_panel"
+        android:tag="m3:panel"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:id="@+id/headerBlock"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:baselineAligned="false"
+            android:gravity="center_vertical"
+            android:paddingStart="20dp"
+            android:paddingTop="20dp"
+            android:paddingEnd="20dp"
+            android:paddingBottom="12dp">
+
+            <com.gathin.tvhome.core.view.ShapeBadge
+                android:id="@+id/haSettingsBadge"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:importantForAccessibility="no" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="14dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/haSettingsTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Home Assistant"
+                    android:textColor="#FFFFFFFF"
+                    android:textSize="20sp"
+                    android:fontFamily="@font/sans_headline"
+                    android:includeFontPadding="false" />
+
+                <TextView
+                    android:id="@+id/haSettingsSubtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="Đang kết nối…"
+                    android:textColor="#B3FFFFFF"
+                    android:textSize="13sp"
+                    android:fontFamily="@font/sans_regular"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+            </LinearLayout>
+
+            <ImageView
+                android:id="@+id/btnReload"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="8dp"
+                android:padding="8dp"
+                android:background="@drawable/settings_choice_bg"
+                android:src="@drawable/ic_refresh"
+                android:scaleType="fitCenter"
+                android:focusable="true"
+                android:clickable="true"
+                android:visibility="gone"
+                android:contentDescription="Tải lại kết nối" />
+
+            <ImageView
+                android:id="@+id/btnSettings"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="8dp"
+                android:padding="8dp"
+                android:background="@drawable/settings_choice_bg"
+                android:src="@drawable/ic_settings"
+                android:scaleType="fitCenter"
+                android:focusable="true"
+                android:clickable="true"
+                android:visibility="gone"
+                android:contentDescription="Cài đặt kết nối" />
+        </LinearLayout>
+
+        <com.gathin.tvhome.core.motion.FocusScrollView
+            android:id="@+id/haSettingsScroll"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fillViewport="true"
+            android:scrollbars="none"
+            android:overScrollMode="never"
+            android:clipToPadding="false"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:paddingBottom="20dp">
+
+            <LinearLayout
+                android:id="@+id/container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:id="@+id/configSection"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:id="@+id/discoveryContainer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <LinearLayout
+                            android:id="@+id/scanningBanner"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="12dp"
+                            android:background="@drawable/settings_choice_bg"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:paddingStart="14dp"
+                            android:paddingTop="12dp"
+                            android:paddingEnd="14dp"
+                            android:paddingBottom="12dp">
+
+                            <ProgressBar
+                                android:id="@+id/scanProgress"
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:layout_marginEnd="10dp"
+                                android:indeterminate="true" />
+
+                            <TextView
+                                android:id="@+id/scanStatusText"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Đang quét tìm Home Assistant trong mạng…"
+                                android:textColor="#E6FFFFFF"
+                                android:textSize="13sp"
+                                android:fontFamily="@font/sans_regular" />
+
+                            <TextView
+                                android:id="@+id/btnRescan"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Quét lại"
+                                android:textColor="#9A82DB"
+                                android:textSize="13sp"
+                                android:fontFamily="@font/sans_medium"
+                                android:focusable="true"
+                                android:clickable="true" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/serverFoundCard"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/settings_choice_bg"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:paddingStart="14dp"
+                            android:paddingTop="12dp"
+                            android:paddingEnd="14dp"
+                            android:paddingBottom="12dp"
+                            android:layout_marginBottom="12dp"
+                            android:focusable="true"
+                            android:clickable="true"
+                            android:visibility="gone">
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:id="@+id/serverFoundTitle"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Home Assistant"
+                                    android:textColor="#FFFFFFFF"
+                                    android:textSize="14sp"
+                                    android:fontFamily="@font/sans_medium" />
+
+                                <TextView
+                                    android:id="@+id/serverFoundSubtitle"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="2dp"
+                                    android:text="http://192.168.1.50:8123"
+                                    android:textColor="#B3FFFFFF"
+                                    android:textSize="12sp"
+                                    android:fontFamily="@font/sans_regular" />
+                            </LinearLayout>
+
+                            <TextView
+                                android:id="@+id/btnConnectFound"
+                                android:layout_width="wrap_content"
+                                android:layout_height="36dp"
+                                android:background="@drawable/settings_choice_bg"
+                                android:gravity="center"
+                                android:paddingStart="16dp"
+                                android:paddingEnd="16dp"
+                                android:text="Kết nối"
+                                android:textColor="#9A82DB"
+                                android:textSize="13sp"
+                                android:fontFamily="@font/sans_medium"
+                                android:focusable="true"
+                                android:clickable="true" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/noServerFallbackContainer"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:gravity="center_horizontal"
+                            android:layout_marginBottom="12dp"
+                            android:visibility="gone">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Không tìm thấy Home Assistant tự động trong mạng"
+                                android:textColor="#80FFFFFF"
+                                android:textSize="13sp"
+                                android:fontFamily="@font/sans_regular"
+                                android:layout_marginBottom="10dp" />
+
+                            <TextView
+                                android:id="@+id/btnOpenQrManual"
+                                style="@style/SettingsListItem"
+                                android:gravity="center"
+                                android:text="Quét mã QR để thiết lập qua điện thoại" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/discoveryButtonsRow"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="end|center_vertical"
+                            android:layout_marginTop="2dp">
+
+                            <TextView
+                                android:id="@+id/btnCancelDiscovery"
+                                android:layout_width="wrap_content"
+                                android:layout_height="40dp"
+                                android:background="@drawable/settings_choice_bg"
+                                android:gravity="center"
+                                android:paddingStart="18dp"
+                                android:paddingEnd="18dp"
+                                android:text="Hủy"
+                                android:textColor="#B3FFFFFF"
+                                android:textSize="14sp"
+                                android:fontFamily="@font/sans_medium"
+                                android:focusable="true"
+                                android:clickable="true"
+                                android:visibility="gone" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/qrPairingContainer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:gravity="center_horizontal"
+                        android:paddingTop="4dp"
+                        android:paddingBottom="6dp"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:id="@+id/qrServerTargetText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="10dp"
+                            android:text="Máy chủ: http://192.168.1.50:8123"
+                            android:textColor="#9A82DB"
+                            android:textSize="13sp"
+                            android:fontFamily="@font/sans_medium" />
+
+                        <ImageView
+                            android:id="@+id/qrImage"
+                            android:layout_width="150dp"
+                            android:layout_height="150dp"
+                            android:background="#FFFFFFFF"
+                            android:padding="6dp"
+                            android:scaleType="fitCenter" />
+
+                        <TextView
+                            android:id="@+id/qrUrlText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:text="http://192.168.1.50:8791"
+                            android:textColor="#FFFFFFFF"
+                            android:textSize="14sp"
+                            android:fontFamily="@font/sans_medium" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="Quét bằng camera điện thoại để xác thực kết nối"
+                            android:textColor="#B3FFFFFF"
+                            android:textSize="12sp"
+                            android:fontFamily="@font/sans_regular" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center"
+                            android:layout_marginTop="14dp">
+
+                            <TextView
+                                android:id="@+id/btnBackToDiscovery"
+                                android:layout_width="wrap_content"
+                                android:layout_height="40dp"
+                                android:layout_marginEnd="10dp"
+                                android:background="@drawable/settings_choice_bg"
+                                android:gravity="center"
+                                android:paddingStart="16dp"
+                                android:paddingEnd="16dp"
+                                android:text="Quay lại"
+                                android:textColor="#B3FFFFFF"
+                                android:textSize="14sp"
+                                android:fontFamily="@font/sans_medium"
+                                android:focusable="true"
+                                android:clickable="true" />
+
+                            <TextView
+                                android:id="@+id/btnCancelPairing"
+                                android:layout_width="wrap_content"
+                                android:layout_height="40dp"
+                                android:background="@drawable/settings_choice_bg"
+                                android:gravity="center"
+                                android:paddingStart="18dp"
+                                android:paddingEnd="18dp"
+                                android:text="Hủy"
+                                android:textColor="#B3FFFFFF"
+                                android:textSize="14sp"
+                                android:fontFamily="@font/sans_medium"
+                                android:focusable="true"
+                                android:clickable="true" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/connectedSection"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <TextView
+                        style="@style/SettingsSheetLabel"
+                        android:text="Tổng quan thiết bị" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:baselineAligned="false"
+                        android:layout_marginBottom="14dp">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginEnd="6dp"
+                            android:background="@drawable/settings_choice_bg"
+                            android:paddingTop="10dp"
+                            android:paddingBottom="10dp"
+                            android:paddingStart="8dp"
+                            android:paddingEnd="8dp"
+                            android:gravity="center"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/haLightsCount"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="-- Đèn"
+                                android:textColor="#FFFFFFFF"
+                                android:textSize="14sp"
+                                android:fontFamily="@font/sans_medium" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="Chiếu sáng"
+                                android:textColor="#80FFFFFF"
+                                android:textSize="11sp"
+                                android:fontFamily="@font/sans_regular" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginEnd="6dp"
+                            android:background="@drawable/settings_choice_bg"
+                            android:paddingTop="10dp"
+                            android:paddingBottom="10dp"
+                            android:paddingStart="8dp"
+                            android:paddingEnd="8dp"
+                            android:gravity="center"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/haSwitchesCount"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="-- Công tắc"
+                                android:textColor="#FFFFFFFF"
+                                android:textSize="14sp"
+                                android:fontFamily="@font/sans_medium" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="Công tắc &amp; ổ cắm"
+                                android:textColor="#80FFFFFF"
+                                android:textSize="11sp"
+                                android:fontFamily="@font/sans_regular" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:background="@drawable/settings_choice_bg"
+                            android:paddingTop="10dp"
+                            android:paddingBottom="10dp"
+                            android:paddingStart="8dp"
+                            android:paddingEnd="8dp"
+                            android:gravity="center"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/haSensorsCount"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="-- Cảm biến"
+                                android:textColor="#FFFFFFFF"
+                                android:textSize="14sp"
+                                android:fontFamily="@font/sans_medium" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="Cảm biến"
+                                android:textColor="#80FFFFFF"
+                                android:textSize="11sp"
+                                android:fontFamily="@font/sans_regular" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <TextView
+                        style="@style/SettingsSheetLabel"
+                        android:text="Tiện ích &amp; Cảm biến" />
+
+                    <TextView
+                        android:id="@+id/temperatureChoice"
+                        style="@style/SettingsListItem"
+                        android:layout_marginBottom="10dp" />
+
+                    <TextView
+                        android:id="@+id/btnOpenSmartHome"
+                        style="@style/SettingsListItem"
+                        android:text="Mở bảng điều khiển nhà thông minh" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.gathin.tvhome.core.motion.FocusScrollView>
+    </LinearLayout>
+</FrameLayout>

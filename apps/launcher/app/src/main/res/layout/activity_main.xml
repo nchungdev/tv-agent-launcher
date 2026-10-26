@@ -1,0 +1,383 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FF000000">
+
+    <!-- Time-of-day backdrop, drawn once a minute (config.xml sky_intensity; 0 keeps it hidden). -->
+    <com.gathin.tvhome.feature.main.widget.SkyView
+        android:id="@+id/sky"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no" />
+
+    <!-- Ambient glow in the colour of the focused dock app. -->
+    <View
+        android:id="@+id/ambient"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:alpha="0" />
+
+    <!-- Top shelf: the focused dock app's name, positioned above the dock in code. -->
+    <TextView
+        android:id="@+id/heroName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="68dp"
+        android:alpha="0"
+        android:textColor="#FFFFFFFF"
+        android:textSize="45sp"
+        android:fontFamily="@font/sans_headline"
+        android:letterSpacing="-0.02"
+        android:includeFontPadding="false"
+        android:maxLines="1" />
+
+    <!-- The grid starts at the top of the screen: rows scroll up under the header, which floats over it
+         (HomeGrid.underlap keeps tiles at rest below the header). The wrapper clips at the grid's edge; the
+         grid itself must not clip so scaled tiles can overflow their cells. -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginStart="56dp"
+        android:layout_marginEnd="56dp">
+
+        <com.gathin.tvhome.feature.main.widget.HomeGrid
+            android:id="@+id/grid"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:paddingTop="10dp"
+            android:paddingBottom="40dp"
+            android:clipToPadding="false"
+            android:clipChildren="false"
+            android:overScrollMode="never"
+            android:scrollbars="none"
+            android:descendantFocusability="afterDescendants" />
+    </FrameLayout>
+
+    <!-- Behind the header, over the grid: rows scrolled under the header fade into the page colour, more
+         towards the top. MainActivity sizes and paints it, and fades it in once the grid has scrolled. No
+         blur: these TVs' GPUs cannot afford one. -->
+    <View
+        android:id="@+id/headerScrim"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:alpha="0"
+        android:importantForAccessibility="no" />
+
+    <!-- No clipping down to the pills: with advanced effects a focused pill scales up past its row. -->
+    <RelativeLayout
+        android:id="@+id/headerRow"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="56dp"
+        android:paddingEnd="56dp"
+        android:paddingTop="26dp"
+        android:clipChildren="false"
+        android:clipToPadding="false">
+
+        <LinearLayout
+            android:id="@+id/leftBlock"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_toStartOf="@+id/topButtons"
+            android:layout_marginEnd="16dp"
+            android:orientation="vertical">
+
+            <!-- The header texts use gravity left, not start: the launcher lays out left to right
+                 (no supportsRtl), and with start a right-to-left script such as Arabic would move to the
+                 right edge of these full-width lines instead of staying under the clock. -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="78dp"
+                android:gravity="top"
+                android:orientation="horizontal"
+                android:baselineAligned="false">
+
+                <TextClock
+                    android:id="@+id/clock"
+                    android:visibility="gone"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:format12Hour="h:mm"
+                    android:format24Hour="HH:mm"
+                    android:textColor="#FFFFFFFF"
+                    android:textSize="56sp"
+                    android:fontFamily="@font/sans_display"
+                    android:letterSpacing="-0.04"
+                    android:includeFontPadding="false" />
+
+                <TextClock
+                    android:id="@+id/ampm"
+                    android:visibility="gone"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:layout_gravity="bottom"
+                    android:layout_marginBottom="5dp"
+                    android:format12Hour="a"
+                    android:format24Hour=""
+                    android:textColor="#B3FFFFFF"
+                    android:textSize="15sp"
+                    android:fontFamily="@font/sans_medium"
+                    android:letterSpacing="0.08"
+                    android:textAllCaps="true" />
+
+                <!-- Gone: the compact header sets the date beside the clock with only a gap. -->
+                <View
+                    android:id="@+id/clockDivider"
+                    android:visibility="gone"
+                    android:layout_width="1dp"
+                    android:layout_height="26dp"
+                    android:layout_gravity="bottom"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginEnd="16dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="#33FFFFFF" />
+
+                <com.gathin.tvhome.feature.agent.widget.DuinchView
+                    android:id="@+id/duinchBot"
+                    android:layout_width="54dp"
+                    android:layout_height="42dp"
+                    android:layout_gravity="top"
+                    android:layout_marginTop="2dp"
+                    android:padding="2dp"
+                    android:background="@drawable/bot_focus_bg"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:nextFocusDown="@+id/grid" />
+
+                <LinearLayout
+                    android:id="@+id/greetingBlock"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="top"
+                    android:layout_marginStart="12dp"
+                    android:orientation="vertical"
+                    android:clickable="true"
+                    android:focusable="false">
+
+                    <!-- At a Glance: the greeting and the date stacked beside the clock, centred on its
+                         digits (MainActivity.alignHeader). -->
+                    <com.gathin.tvhome.feature.main.widget.TypingGreetingView
+                        android:id="@+id/greeting"
+                        android:gravity="left"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:maxLines="3"
+                        android:textColor="#F1F5F9"
+                        android:textSize="20sp"
+                        android:fontFamily="@font/sans_medium"
+                        android:letterSpacing="0.01" />
+
+                    <TextView
+                        android:id="@+id/botActionHint"
+                        android:gravity="left"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:maxLines="1"
+                        android:text="@string/bot_action_hint"
+                        android:textColor="#FF818CF8"
+                        android:textSize="13sp"
+                        android:fontFamily="@font/sans_medium"
+                        android:includeFontPadding="false"
+                        android:visibility="gone" />
+
+                    <!-- Shamsi date ("27 Mehr 1405"), shown when shamsi_date is on. -->
+                    <TextView
+                        android:id="@+id/shamsiDate"
+                        android:gravity="left"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:maxLines="1"
+                        android:ellipsize="end"
+                        android:textColor="#E6FFFFFF"
+                        android:textSize="17sp"
+                        android:fontFamily="@font/sans_regular"
+                        android:letterSpacing="0.02"
+                        android:includeFontPadding="false"
+                        android:visibility="gone" />
+
+                    <TextClock
+                        android:id="@+id/date"
+                        android:visibility="gone"
+                        android:gravity="left"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:singleLine="@bool/date_single_line"
+                        android:maxLines="2"
+                        android:lineSpacingExtra="6dp"
+                        android:ellipsize="end"
+                        android:format12Hour="@string/date_format_home"
+                        android:format24Hour="@string/date_format_home"
+                        android:textColor="#A6FFFFFF"
+                        android:layout_marginTop="2dp"
+                        android:textSize="16sp"
+                        android:fontFamily="@font/sans_regular"
+                        android:letterSpacing="0.03" />
+                </LinearLayout>
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Shown only when show_stats is on. Outside leftBlock, so the top buttons stay level with the clock
+             row; gone, it takes no space. -->
+        <TextView
+            android:id="@+id/stats"
+            android:layout_width="0dp"
+            android:layout_below="@id/leftBlock"
+            android:layout_alignStart="@id/leftBlock"
+            android:layout_alignEnd="@id/leftBlock"
+            android:gravity="left"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textColor="#D9FFFFFF"
+            android:textSize="14sp"
+            android:fontFamily="@font/sans_medium"
+            android:letterSpacing="0.04"
+            android:focusable="false"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:id="@+id/topButtons"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_alignTop="@id/leftBlock"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:baselineAligned="false"
+            android:orientation="horizontal">
+
+            <com.gathin.tvhome.feature.system.widget.SysInfoView
+                android:id="@+id/btnSysInfo"
+                style="@style/TopButton"
+                android:maxWidth="340dp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:text="@string/sys_info_title"
+                android:nextFocusDown="@+id/grid"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/btnWeather"
+                style="@style/TopButton"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:paddingStart="12dp"
+                android:paddingEnd="14dp"
+                android:drawablePadding="6dp"
+                android:maxWidth="160dp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:visibility="gone"
+                android:nextFocusDown="@+id/grid" />
+
+            <TextView
+                android:id="@+id/btnInputs"
+                style="@style/TopButton"
+                android:text="@string/inputs"
+                android:drawableStart="@drawable/ic_input"
+                android:nextFocusDown="@+id/grid" />
+
+            <TextView
+                android:id="@+id/btnWifi"
+                style="@style/TopButton"
+                android:maxWidth="180dp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:text="@string/wifi"
+                android:drawableStart="@drawable/ic_wifi"
+                android:nextFocusDown="@+id/grid" />
+
+            <TextView
+                android:id="@+id/btnNotifications"
+                style="@style/TopButtonIcon"
+                android:contentDescription="@string/notifications"
+                android:drawableStart="@drawable/ic_notifications"
+                android:nextFocusDown="@+id/grid" />
+
+            <TextView
+                android:id="@+id/btnReorder"
+                style="@style/TopButtonIcon"
+                android:contentDescription="@string/reorder"
+                android:drawableStart="@drawable/ic_swap_vert"
+                android:nextFocusDown="@+id/grid" />
+
+            <TextView
+                android:id="@+id/btnSettings"
+                style="@style/TopButton"
+                android:text="@string/launcher_settings"
+                android:drawableStart="@drawable/ic_settings"
+                android:nextFocusDown="@+id/grid" />
+        </LinearLayout>
+    </RelativeLayout>
+
+    <!-- Edit Home's floating toolbar (M3E): what OK and Back do right now. Not focusable; MainActivity
+         colours it (secondaryContainer) and shows it only while the mode is on. -->
+    <LinearLayout
+        android:id="@+id/editBar"
+        android:layout_width="wrap_content"
+        android:layout_height="56dp"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="24dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="20dp"
+        android:paddingEnd="28dp"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/editBarIcon"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginEnd="14dp"
+            android:src="@drawable/ic_swap_vert_filled" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/editBarTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/sans_medium"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:textSize="16sp" />
+
+            <TextView
+                android:id="@+id/editBarHint"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:fontFamily="@font/sans_regular"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:textSize="12sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- The single floating glass highlight that springs between tiles. -->
+    <com.gathin.tvhome.core.view.GlassView
+        android:id="@+id/glass"
+        android:layout_width="10dp"
+        android:layout_height="10dp"
+        android:alpha="0"
+        android:importantForAccessibility="no" />
+
+    <com.gathin.tvhome.feature.main.widget.BottomDockView
+        android:id="@+id/bottomDock"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="24dp"
+        android:visibility="gone" />
+</FrameLayout>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Material Symbols Rounded "ac_unit" / snowflake (Apache 2.0) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="960"
+    android:viewportHeight="960">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M440,880L440,736L336,840L280,784L440,624L440,520L336,520L176,680L120,624L224,520L80,520L80,440L224,440L120,336L176,280L336,440L440,440L440,336L280,176L336,120L440,224L440,80L520,80L520,224L624,120L680,176L520,336L520,440L624,440L784,280L840,336L736,440L880,440L880,520L736,520L840,624L784,680L624,520L520,520L520,624L680,784L624,840L520,736L520,880L440,880Z" />
+</vector>

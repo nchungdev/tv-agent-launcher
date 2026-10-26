@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/dreamRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FF000000">
+
+    <View
+        android:id="@+id/dreamAmbient"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
+    <com.gathin.tvhome.feature.system.widget.SleepingRobotScreensaverView
+        android:id="@+id/sleepingSaver"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <LinearLayout
+        android:id="@+id/dreamContent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <com.gathin.tvhome.feature.agent.widget.DuinchView
+            android:id="@+id/dreamBot"
+            android:layout_width="86dp"
+            android:layout_height="68dp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/dreamNoticeCard"
+        android:layout_width="wrap_content"
+        android:maxWidth="720dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:background="@drawable/glass_panel"
+        android:paddingStart="40dp"
+        android:paddingEnd="40dp"
+        android:paddingTop="32dp"
+        android:paddingBottom="36dp"
+        android:alpha="0"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/dreamNoticeBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#D0BCFF"
+            android:textSize="14sp"
+            android:fontFamily="@font/sans_medium"
+            android:letterSpacing="0.12"
+            android:textAllCaps="true"
+            android:layout_marginBottom="10dp" />
+
+        <TextView
+            android:id="@+id/dreamNoticeTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#FFFFFFFF"
+            android:textSize="28sp"
+            android:fontFamily="@font/sans_display"
+            android:letterSpacing="-0.02"
+            android:layout_marginBottom="12dp" />
+
+        <TextView
+            android:id="@+id/dreamNoticeMessage"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#D8E2EC"
+            android:textSize="20sp"
+            android:fontFamily="@font/sans_regular"
+            android:lineSpacingExtra="6dp" />
+    </LinearLayout>
+</FrameLayout>

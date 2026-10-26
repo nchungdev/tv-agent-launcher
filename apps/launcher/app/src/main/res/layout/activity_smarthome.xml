@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/scrim"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#99000000">
+
+    <LinearLayout
+        android:id="@+id/sheet"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_margin="16dp"
+        android:background="@drawable/dark_panel"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:id="@+id/headerBlock"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="20dp"
+            android:paddingTop="16dp"
+            android:paddingEnd="20dp"
+            android:paddingBottom="12dp">
+
+            <com.gathin.tvhome.core.view.ShapeBadge
+                android:id="@+id/smarthomeBadge"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:importantForAccessibility="no" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="14dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/smarthomeTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/smarthome_title"
+                    android:textColor="#FFFFFFFF"
+                    android:textSize="20sp"
+                    android:fontFamily="@font/sans_headline"
+                    android:includeFontPadding="false" />
+
+                <TextView
+                    android:id="@+id/smarthomeHeaderSubtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="@string/smarthome_subtitle"
+                    android:textColor="#B3FFFFFF"
+                    android:textSize="13sp"
+                    android:fontFamily="@font/sans_regular" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/btnEdit"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:layout_marginStart="8dp"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:gravity="center"
+                android:orientation="horizontal"
+                android:background="@drawable/settings_choice_bg"
+                android:focusable="true"
+                android:clickable="true"
+                android:contentDescription="Chỉnh sửa hiển thị">
+
+                <ImageView
+                    android:id="@+id/btnEditIcon"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:src="@drawable/ic_edit"
+                    android:scaleType="fitCenter" />
+
+                <TextView
+                    android:id="@+id/btnEditText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:text="Chỉnh sửa"
+                    android:textColor="#FFFFFFFF"
+                    android:textSize="13sp"
+                    android:fontFamily="@font/sans_medium" />
+            </LinearLayout>
+
+            <ImageView
+                android:id="@+id/btnRefresh"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="8dp"
+                android:padding="8dp"
+                android:background="@drawable/settings_choice_bg"
+                android:src="@drawable/ic_refresh"
+                android:scaleType="fitCenter"
+                android:focusable="true"
+                android:clickable="true"
+                android:contentDescription="Làm mới trạng thái" />
+
+            <ImageView
+                android:id="@+id/btnConfigure"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="8dp"
+                android:padding="8dp"
+                android:background="@drawable/settings_choice_bg"
+                android:src="@drawable/ic_settings"
+                android:scaleType="fitCenter"
+                android:focusable="true"
+                android:clickable="true"
+                android:contentDescription="Cấu hình Home Assistant" />
+        </LinearLayout>
+
+        <com.gathin.tvhome.core.motion.FocusScrollView
+            android:id="@+id/smarthomeScroll"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:fillViewport="true"
+            android:scrollbars="none"
+            android:overScrollMode="never"
+            android:clipToPadding="false"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="24dp">
+
+            <LinearLayout
+                android:id="@+id/sectionsContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </com.gathin.tvhome.core.motion.FocusScrollView>
+    </LinearLayout>
+</FrameLayout>

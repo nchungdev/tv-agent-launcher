@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Material Symbols Rounded "auto_mode" / A icon (Apache 2.0) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="960"
+    android:viewportHeight="960">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M480,880Q313,880 196.5,763.5Q80,647 80,480Q80,313 196.5,196.5Q313,80 480,80Q647,80 763.5,196.5Q880,313 880,480Q880,647 763.5,763.5Q647,880 480,880ZM480,800Q613,800 706.5,706.5Q800,613 800,480Q800,347 706.5,253.5Q613,160 480,160Q347,160 253.5,253.5Q160,347 160,480Q160,613 253.5,706.5Q347,800 480,800ZM440,640L520,640L500,560L460,560L440,640ZM430,360L530,360L570,680L510,680L490,600L470,600L450,680L390,680L430,360Z" />
+</vector>
