@@ -119,12 +119,13 @@ class AgentSettingsSheet(
         val rescan = View.OnClickListener { startDiscovery() }
         v.findViewById<View>(R.id.scanningBanner).setOnClickListener(rescan)
         v.findViewById<View>(R.id.btnRescan).setOnClickListener(rescan)
-        val target = foundUrl ?: agentConfig.agentUrl.ifBlank { AgentClient.baseUrl(activity) }
-        val pairAction = View.OnClickListener { openQrPairing(target) }
+        val pairAction = View.OnClickListener {
+            openQrPairing(foundUrl ?: agentConfig.agentUrl)
+        }
         v.findViewById<View>(R.id.serverFoundCard).setOnClickListener(pairAction)
         v.findViewById<View>(R.id.btnConnectFound).setOnClickListener(pairAction)
         v.findViewById<View>(R.id.btnOpenQrManual).setOnClickListener {
-            openQrPairing(agentConfig.agentUrl.ifBlank { AgentClient.baseUrl(activity) })
+            openQrPairing(foundUrl ?: agentConfig.agentUrl)
         }
         val cancelPair = View.OnClickListener {
             stopPairing()
@@ -183,16 +184,20 @@ class AgentSettingsSheet(
         setScanState(View.VISIBLE, "Đang quét tìm máy chủ Agent trong mạng…", "Đang quét…")
 
         worker.execute {
-            AgentClient.discover(activity)
-            val detected = AgentClient.baseUrl(activity)
-            if (detected.isNotEmpty()) {
-                main.post { if (dialog.isShowing) onServerFound(detected) }
+            val detected = AgentClient.discover(activity)
+            if (!detected.isNullOrEmpty()) {
+                main.post {
+                    if (dialog.isShowing && foundUrl == null) {
+                        onServerFound(detected)
+                    }
+                }
             }
         }
         nsdHelper.start()
     }
 
     private fun onServerFound(url: String) {
+        nsdHelper.stop()
         foundUrl = url
         setScanState(View.GONE, "Đã tìm thấy máy chủ trong mạng", "Quét lại")
         sheetRoot.findViewById<TextView>(R.id.serverFoundSubtitle).text = url

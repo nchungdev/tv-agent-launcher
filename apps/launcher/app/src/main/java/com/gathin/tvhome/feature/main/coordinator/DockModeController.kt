@@ -26,7 +26,7 @@ class DockModeController(
     private val grid: HomeGrid,
     private val heroName: View,
     private val adapter: AppAdapter,
-    private val widgets: WidgetShelf,
+    private val widgets: WidgetShelf? = null,
     private val host: Host
 ) : BottomDockView.Listener {
 
@@ -42,6 +42,7 @@ class DockModeController(
     private var currentMode = Config.LAYOUT_GRID
     private var configuredDockApps: List<String> = emptyList()
     private var currentColumns = 4
+    private var runningPackages: Set<String> = emptySet()
 
     fun setMotion(animations: Boolean, reducedMotion: Boolean) {
         dockView.setMotion(animations, reducedMotion)
@@ -49,6 +50,11 @@ class DockModeController(
 
     fun setPalette(palette: Palette) {
         dockView.setPalette(palette)
+    }
+
+    fun updateRunningApps(running: Set<String>) {
+        runningPackages = running
+        dockView.updateRunningApps(running)
     }
 
     fun isDockMode(): Boolean = currentMode == Config.LAYOUT_DOCK
@@ -78,13 +84,15 @@ class DockModeController(
     fun alignShelf(columns: Int) {
         currentColumns = maxOf(1, columns)
         val dockTop = if (isDockMode()) {
-            val parentHeight = (grid.parent as? View)?.height
+            val parentHeight = (grid.parent as? View)?.height?.takeIf { it > 0 }
                 ?: activity.resources.displayMetrics.heightPixels
-            parentHeight - Math.round(DOCK_CLEARANCE_DP * density)
+            dockView.top.takeIf { it > 0 }
+                ?: (parentHeight - Math.round(DOCK_CLEARANCE_DP * density))
         } else {
-            grid.top + grid.paddingTop - Math.round(DockDecoration.PADDING_DP * density)
+            val gridTop = if (grid.top > 0) grid.top else Math.round(92 * density)
+            gridTop + grid.paddingTop - Math.round(DockDecoration.PADDING_DP * density)
         }
-        widgets.align(grid, currentColumns, dockTop)
+        widgets?.align(grid, currentColumns, dockTop)
     }
 
     fun reloadDockItems() {
@@ -130,6 +138,8 @@ class DockModeController(
     }
 
     override fun onAppClicked(item: BottomDockView.DockItem) {
+        runningPackages = runningPackages + item.packageName
+        dockView.updateRunningApps(runningPackages)
         val pos = adapter.positionOf(item.key)
         if (pos >= 0) adapter.launchAt(pos)
     }
@@ -194,7 +204,7 @@ class DockModeController(
     override fun onNavigateUp(index: Int): Boolean {
         val slots = maxOf(1, dockView.slotCount())
         val column = (index * currentColumns) / slots
-        if (widgets.enabled() && widgets.focusFromDock(column)) {
+        if (widgets?.enabled() == true && widgets.focusFromDock(column)) {
             if (SoundEffects.isEnabled(activity)) {
                 dockView.playSoundEffect(SoundEffectConstants.NAVIGATION_UP)
             }

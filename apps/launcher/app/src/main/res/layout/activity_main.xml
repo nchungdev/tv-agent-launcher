@@ -46,7 +46,7 @@
             android:id="@+id/grid"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:paddingTop="10dp"
+            android:paddingTop="92dp"
             android:paddingBottom="40dp"
             android:clipToPadding="false"
             android:clipChildren="false"
@@ -246,74 +246,69 @@
         <LinearLayout
             android:id="@+id/topButtons"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="40dp"
             android:layout_alignParentEnd="true"
             android:layout_alignTop="@id/leftBlock"
+            android:background="@drawable/top_bar_capsule_bg"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
             android:clipChildren="false"
             android:clipToPadding="false"
-            android:baselineAligned="false"
+            android:gravity="center_vertical"
             android:orientation="horizontal">
 
             <com.gathin.tvhome.feature.system.widget.SysInfoView
                 android:id="@+id/btnSysInfo"
-                style="@style/TopButton"
-                android:maxWidth="340dp"
-                android:maxLines="1"
-                android:ellipsize="end"
-                android:text="@string/sys_info_title"
+                style="@style/TopBarIcon"
+                android:layout_width="wrap_content"
+                android:paddingStart="6dp"
+                android:paddingEnd="6dp"
                 android:nextFocusDown="@+id/grid"
                 android:visibility="gone" />
 
             <TextView
                 android:id="@+id/btnWeather"
-                style="@style/TopButton"
+                style="@style/TopBarIcon"
                 android:layout_width="wrap_content"
-                android:layout_height="40dp"
-                android:paddingStart="12dp"
-                android:paddingEnd="14dp"
-                android:drawablePadding="6dp"
-                android:maxWidth="160dp"
-                android:maxLines="1"
-                android:ellipsize="end"
+                android:paddingStart="6dp"
+                android:paddingEnd="6dp"
                 android:visibility="gone"
                 android:nextFocusDown="@+id/grid" />
 
             <TextView
                 android:id="@+id/btnInputs"
-                style="@style/TopButton"
-                android:text="@string/inputs"
+                style="@style/TopBarIcon"
                 android:drawableStart="@drawable/ic_input"
+                android:contentDescription="@string/inputs"
                 android:nextFocusDown="@+id/grid" />
 
             <TextView
                 android:id="@+id/btnWifi"
-                style="@style/TopButton"
-                android:maxWidth="180dp"
-                android:maxLines="1"
-                android:ellipsize="end"
-                android:text="@string/wifi"
+                style="@style/TopBarIcon"
                 android:drawableStart="@drawable/ic_wifi"
+                android:contentDescription="@string/wifi"
                 android:nextFocusDown="@+id/grid" />
 
             <TextView
                 android:id="@+id/btnNotifications"
-                style="@style/TopButtonIcon"
-                android:contentDescription="@string/notifications"
+                style="@style/TopBarIcon"
                 android:drawableStart="@drawable/ic_notifications"
+                android:contentDescription="@string/notifications"
                 android:nextFocusDown="@+id/grid" />
 
             <TextView
                 android:id="@+id/btnReorder"
-                style="@style/TopButtonIcon"
-                android:contentDescription="@string/reorder"
+                style="@style/TopBarIcon"
                 android:drawableStart="@drawable/ic_swap_vert"
+                android:contentDescription="@string/reorder"
+                android:visibility="gone"
                 android:nextFocusDown="@+id/grid" />
 
             <TextView
                 android:id="@+id/btnSettings"
-                style="@style/TopButton"
-                android:text="@string/launcher_settings"
+                style="@style/TopBarIcon"
                 android:drawableStart="@drawable/ic_settings"
+                android:contentDescription="@string/launcher_settings"
                 android:nextFocusDown="@+id/grid" />
         </LinearLayout>
     </RelativeLayout>
@@ -372,6 +367,8 @@
         android:layout_height="10dp"
         android:alpha="0"
         android:importantForAccessibility="no" />
+
+    <include layout="@layout/widget_shelf" />
 
     <com.gathin.tvhome.feature.main.widget.BottomDockView
         android:id="@+id/bottomDock"

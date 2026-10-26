@@ -90,8 +90,9 @@ object AgentClient {
         if (raw.endsWith("/")) raw.substring(0, raw.length - 1) else raw
 
     @JvmStatic
-    fun discover(@Suppress("UNUSED_PARAMETER") context: Context? = null) {
-        try {
+    fun discover(@Suppress("UNUSED_PARAMETER") context: Context? = null): String? {
+        discoveredBaseUrl = null
+        return try {
             DatagramSocket().use { socket ->
                 socket.broadcast = true
                 socket.soTimeout = DISCOVERY_TIMEOUT_MS
@@ -108,9 +109,12 @@ object AgentClient {
                 val json = JSONObject(text)
                 val port = json.optInt("port", 8788)
                 val host = reply.address.hostAddress
-                discoveredBaseUrl = "http://$host:$port"
+                val url = "http://$host:$port"
+                discoveredBaseUrl = url
+                url
             }
         } catch (_: Exception) {
+            null
         }
     }
 
@@ -141,21 +145,25 @@ object AgentClient {
 
     @JvmStatic
     fun phoneUrl(context: Context): String? {
-        val tok = token(context)
-        return if (tok == null) null else baseUrl(context) + "/#" + tok
+        val tok = token(context) ?: return null
+        val base = baseUrl(context)
+        return if (base.isEmpty()) null else "$base/#$tok"
     }
 
     @JvmStatic
     fun ping(context: Context): Int {
         val tok = token(context) ?: return NO_TOKEN
 
-        if (discoveredBaseUrl == null && fileUrl(context) == null) {
+        if (discoveredBaseUrl == null && fileUrl(context) == null && AgentHomeConfig(context).agentUrl.isEmpty()) {
             discover(context)
         }
 
+        val base = baseUrl(context)
+        if (base.isEmpty()) return OFFLINE
+
         var connection: HttpURLConnection? = null
         return try {
-            connection = open(baseUrl(context) + "/health", tok)
+            connection = open(base + "/health", tok)
             connection.connectTimeout = PING_TIMEOUT_MS
             connection.readTimeout = PING_TIMEOUT_MS
             val code = connection.responseCode
@@ -260,7 +268,11 @@ object AgentClient {
             R.string.agent_token_missing,
             "no token"
         )
-        val connection = open(baseUrl(context) + "/v2/ask", tok)
+        val base = baseUrl(context)
+        if (base.isEmpty()) {
+            throw AgentException(R.string.agent_status_offline, "no server url")
+        }
+        val connection = open(base + "/v2/ask", tok)
         request.attach(connection)
         try {
             connection.requestMethod = "POST"

@@ -244,7 +244,16 @@ class WidgetShelf(
                 paintWeather()
             }
         }
-        cards[2].setOnClickListener { host.openSmartHome() }
+        cards[2].setOnClickListener {
+            val connection = com.gathin.tvhome.feature.settings.data.AgentHomeConfig(activity)
+            val configured = connection.homeAssistantUrl.isNotBlank() &&
+                connection.homeAssistantToken.isNotBlank()
+            if (configured) {
+                host.openSmartHome()
+            } else {
+                host.openHomeAssistant()
+            }
+        }
         cards[3].setOnClickListener {
             cards[3].turn {
                 airTomorrow = !airTomorrow
@@ -607,16 +616,20 @@ class WidgetShelf(
     }
 
     private fun measureFallback(columns: Int): Boolean {
-        val parentWidth = (shelf.parent as? View)?.width ?: 0
+        val parent = shelf.parent as? View
+        val parentWidth = if (parent != null && parent.width > 0) parent.width
+            else activity.resources.displayMetrics.widthPixels
         if (parentWidth <= 0) return false
         val safeCols = maxOf(1, columns)
         val pitch = parentWidth / safeCols
         val gap = Math.round(16 * density)
         val cells = slotsLimit()
-        cellWidth = Math.round(180 * density)
+        val maxCell = Math.round(180 * density)
+        val availableWidth = parentWidth - Math.round(32 * density) - gap * (cells - 1)
+        cellWidth = minOf(maxCell, maxOf(Math.round(80 * density), availableWidth / cells))
         cellPitch = cellWidth + gap
         val rowWidth = cells * cellWidth + (cells - 1) * gap
-        cellOrigin = parentWidth / 2 - rowWidth / 2
+        cellOrigin = maxOf(Math.round(16 * density), parentWidth / 2 - rowWidth / 2)
         tilePitch = pitch
         dockLeft = cellOrigin
         dockTiles = safeCols
@@ -999,10 +1012,19 @@ class WidgetShelf(
             columnIndex += cardSpan
         }
         if (moved) shelf.post { for (card in slots) highlight.follow(card) }
-        headerUnderlap = if (grid is HomeGrid) grid.underlap() else 0
+        val headerRow = (shelf.parent as? View)?.findViewById<View>(R.id.headerRow)
+        val minHeader = Math.round(92 * density)
+        val gridUnderlap = if (grid is HomeGrid && grid.visibility == View.VISIBLE) {
+            grid.underlap()
+        } else 0
+        headerUnderlap = maxOf(gridUnderlap, headerRow?.bottom ?: minHeader, minHeader)
         val slp = shelf.layoutParams as ViewGroup.MarginLayoutParams
-        val available = maxOf(0, dockTop - headerUnderlap - slp.height)
-        val top = headerUnderlap + (available * 0.65f).toInt()
+        val available = dockTop - headerUnderlap - slp.height
+        val top = if (available > 0) {
+            headerUnderlap + (available * 0.5f).toInt()
+        } else {
+            headerUnderlap + Math.round(8 * density)
+        }
         if (slp.topMargin != top) {
             slp.topMargin = top
             shelf.layoutParams = slp

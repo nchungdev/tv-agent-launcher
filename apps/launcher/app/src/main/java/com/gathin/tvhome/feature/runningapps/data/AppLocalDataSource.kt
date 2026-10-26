@@ -1,5 +1,6 @@
 package com.gathin.tvhome.feature.runningapps.data
 
+import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -23,7 +24,11 @@ class AppLocalDataSource(private val context: Context) {
             cachedLaunchable = queryLaunchablePackages()
         }
         val allowed = cachedLaunchable ?: emptySet()
-        val rawApps = BackgroundApps.list(adb) { allowed.contains(it) }
+        val rawApps = try {
+            BackgroundApps.list(adb) { allowed.contains(it) }
+        } catch (_: Exception) {
+            getRunningAppsFromActivityManager(allowed)
+        }
         val packageManager = context.packageManager
 
         rawApps.mapNotNull { raw ->
@@ -63,6 +68,22 @@ class AppLocalDataSource(private val context: Context) {
     suspend fun forceStopAll(packages: List<String>): Unit = withContext(Dispatchers.IO) {
         val targets = packages.filter { it != myPackage }
         BackgroundApps.stop(adb, targets)
+    }
+
+    private fun getRunningAppsFromActivityManager(allowed: Set<String>): List<BackgroundApps.App> {
+        val am = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+            ?: return emptyList()
+        val procs = am.runningAppProcesses ?: return emptyList()
+        val result = ArrayList<BackgroundApps.App>()
+        val seen = HashSet<String>()
+        for (proc in procs) {
+            for (pkg in proc.pkgList ?: emptyArray()) {
+                if (allowed.contains(pkg) && seen.add(pkg)) {
+                    result.add(BackgroundApps.App(pkg, 0L, 0))
+                }
+            }
+        }
+        return result
     }
 
     private fun queryLaunchablePackages(): Set<String> {

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">TV Launcher</string>
+    <string name="wallpaper_label">Hình nền</string>
     <string name="inputs">Nguồn vào</string>
     <string name="wifi">Wi-Fi</string>
     <string name="settings">Cài đặt</string>

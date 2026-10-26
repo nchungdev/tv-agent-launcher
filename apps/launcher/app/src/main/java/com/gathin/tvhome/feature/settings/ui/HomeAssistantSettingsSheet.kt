@@ -123,12 +123,15 @@ class HomeAssistantSettingsSheet(
         v.findViewById<View>(R.id.scanningBanner).setOnClickListener(rescan)
         v.findViewById<View>(R.id.btnRescan).setOnClickListener(rescan)
 
-        val target = foundUrl ?: agentConfig.homeAssistantUrl.ifBlank { DEFAULT_URL }
-        val pairAction = View.OnClickListener { openQrPairing(target) }
+        val pairAction = View.OnClickListener {
+            val target = foundUrl ?: agentConfig.homeAssistantUrl
+            openQrPairing(target)
+        }
         v.findViewById<View>(R.id.serverFoundCard).setOnClickListener(pairAction)
         v.findViewById<View>(R.id.btnConnectFound).setOnClickListener(pairAction)
         v.findViewById<View>(R.id.btnOpenQrManual).setOnClickListener {
-            openQrPairing(agentConfig.homeAssistantUrl.ifBlank { DEFAULT_URL })
+            val target = foundUrl ?: agentConfig.homeAssistantUrl
+            openQrPairing(target)
         }
         v.findViewById<View>(R.id.btnCancelDiscovery).setOnClickListener {
             nsdHelper.stop()
@@ -180,6 +183,7 @@ class HomeAssistantSettingsSheet(
     }
 
     private fun onServerFound(url: String) {
+        nsdHelper.stop()
         foundUrl = url
         sheetRoot.findViewById<View>(R.id.scanProgress).visibility = View.GONE
         sheetRoot.findViewById<TextView>(R.id.scanStatusText).text =
@@ -272,10 +276,11 @@ class HomeAssistantSettingsSheet(
     }
 
     private fun chooseTemperature() {
-        val u = agentConfig.homeAssistantUrl.ifBlank { DEFAULT_URL }
-        val secret = agentConfig.homeAssistantToken
+        val u = agentConfig.homeAssistantUrl.trim()
+        val secret = agentConfig.homeAssistantToken.trim()
+        if (u.isBlank() || secret.isBlank()) return
         dialog.dialogScope.launch {
-            HomeAssistantSettingsHelper.chooseTemperature(activity, u, secret) { chosenId ->
+            HomeAssistantSettingsHelper.chooseTemperature(activity, u, secret) { chosenId: String ->
                 agentConfig.homeAssistantTemperatureEntity = chosenId
                 agentConfig.clearHaTemperature()
                 val sel = agentConfig.homeAssistantTemperatureEntity
@@ -287,9 +292,5 @@ class HomeAssistantSettingsSheet(
     private fun cleanup() {
         nsdHelper.stop()
         stopPairing()
-    }
-
-    companion object {
-        const val DEFAULT_URL = "http://192.168.1.50:8123"
     }
 }

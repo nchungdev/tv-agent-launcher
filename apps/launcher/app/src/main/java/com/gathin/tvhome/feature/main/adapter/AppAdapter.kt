@@ -118,7 +118,7 @@ open class AppAdapter(
             var cached = art[artKey]
             if (cached == null) {
                 val b = loadBanner(pm, ri)
-                val ic = if (b == null) ri.loadIcon(pm) else null
+                val ic = try { ri.loadIcon(pm) } catch (_: Exception) { null }
                 cached = arrayOf(b, ic)
                 art[artKey] = cached
             }
@@ -217,10 +217,14 @@ open class AppAdapter(
 
         val v = LayoutInflater.from(parent.context).inflate(R.layout.item_app, parent, false)
         val density = parent.resources.displayMetrics.density
+        val dm = parent.resources.displayMetrics
         val width = if (parent.width > 0) parent.width else parent.measuredWidth
-        val inner = width - parent.paddingLeft - parent.paddingRight
+        val fallbackInner = dm.widthPixels - Math.round(112 * density)
+        val inner = if (width > 0) width - parent.paddingLeft - parent.paddingRight else fallbackInner
         val height = if (parent is HomeGrid) parent.roomBelowHeader() else parent.height
-        val w = tileWidthPx(inner, height, dockSize, rowsBelowDock, dockTitle, dockRow, density)
+        val safeHeight = if (height > 0) height else dm.heightPixels
+        val effectiveDock = if (dockSize > 0) dockSize else 4
+        val w = tileWidthPx(inner, safeHeight, effectiveDock, rowsBelowDock, dockTitle, dockRow, density)
         val h = tileHeightPx(w)
 
         val card = v.findViewById<View>(R.id.card)
@@ -360,7 +364,19 @@ open class AppAdapter(
 
     fun labelAt(position: Int): String = if (position in 0 until items.size) items[position].label else ""
 
-    fun iconAt(position: Int): Drawable? = if (position in 0 until items.size) items[position].icon else null
+    fun iconAt(position: Int): Drawable? {
+        if (position !in 0 until items.size) return null
+        val entry = items[position]
+        if (entry.icon != null) return entry.icon
+        if (entry.component != null) {
+            return try {
+                ctx.packageManager.getActivityIcon(entry.component)
+            } catch (_: Exception) {
+                entry.banner
+            }
+        }
+        return entry.banner
+    }
 
     fun launchAt(position: Int) {
         if (position in 0 until items.size) launch(items[position])
@@ -428,9 +444,10 @@ open class AppAdapter(
 
         @JvmStatic
         fun tileWidthPx(innerWidthPx: Int, columns: Int, density: Float): Int {
+            val safeCols = if (columns > 0) columns else 4
             val design = Math.round(DESIGN_W_DP * density)
-            if (innerWidthPx <= 0 || columns <= 0) return design
-            val cell = innerWidthPx / columns
+            if (innerWidthPx <= 0) return design
+            val cell = innerWidthPx / safeCols
             val fit = ((cell - 12 * density) / FOCUS_SCALE).toInt()
             return Math.max(Math.round(80 * density), Math.min(design, fit))
         }

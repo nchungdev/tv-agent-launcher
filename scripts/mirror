@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-TV_HOST="${TV_HOST:-192.168.1.50}"
+: "${TV_HOST:?set TV_HOST to the TV IP address, e.g. export TV_HOST=<tv-ip>}"
 if [[ "$TV_HOST" != *:* ]]; then
     TV_TARGET="${TV_HOST}:5555"
 else

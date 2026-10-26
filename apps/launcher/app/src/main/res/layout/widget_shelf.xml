@@ -3,6 +3,7 @@
      card over a dock column at run time; the cards are 4dp larger than they look on every side, for
      the focus indicator. Colours come from the scheme (WidgetShelf.setPalette). -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/widgetShelf"
     android:layout_width="match_parent"
     android:layout_height="@dimen/widget_shelf_height"
@@ -222,7 +223,8 @@
                         android:includeFontPadding="false"
                         android:textColor="#FFFFFFFF"
                         android:textSize="34sp"
-                        android:text="@string/home_assistant_online" />
+                        android:text="—"
+                        tools:text="@string/home_assistant_online" />
 
                     <TextView
                         android:id="@+id/haHumidity"
@@ -305,7 +307,7 @@
                         android:ellipsize="end"
                         android:textColor="#FBBF24"
                         android:textSize="13sp"
-                        android:text="💡 Đèn đang bật" />
+                        tools:text="💡 Đèn đang bật" />
 
                     <TextView
                         android:id="@+id/haClimateStatus"
@@ -317,7 +319,7 @@
                         android:ellipsize="end"
                         android:textColor="#94A3B8"
                         android:textSize="12sp"
-                        android:text="❄️ Điều hòa: Tắt" />
+                        tools:text="❄️ Điều hòa: Tắt" />
                 </LinearLayout>
 
                 <TextView
@@ -327,7 +329,7 @@
                     android:ellipsize="end"
                     android:textColor="#34D399"
                     android:textSize="11sp"
-                    android:text="● Trực tuyến" />
+                    tools:text="● Trực tuyến" />
             </LinearLayout>
         </LinearLayout>
     </com.gathin.tvhome.feature.main.widget.WidgetCard>

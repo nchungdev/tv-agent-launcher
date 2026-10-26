@@ -27,23 +27,24 @@ class HomeHeaderCoordinator(
         object FocusGridFromHeader : HeaderAction
     }
 
+    private var btnSysInfo: View? = null
+    private var btnWeather: View? = null
     private var btnInputs: View? = null
     private var btnWifi: View? = null
-    private var btnWeather: View? = null
-    private var btnSysInfo: View? = null
     private var btnNotifications: TextView? = null
     private var btnReorder: View? = null
     private var btnSettings: View? = null
 
     fun setup(root: View, cfg: Config) {
+        btnSysInfo = root.findViewById(R.id.btnSysInfo)
+        btnWeather = root.findViewById(R.id.btnWeather)
         btnInputs = root.findViewById(R.id.btnInputs)
         btnWifi = root.findViewById(R.id.btnWifi)
-        btnWeather = root.findViewById(R.id.btnWeather)
-        btnSysInfo = root.findViewById(R.id.btnSysInfo)
         btnNotifications = root.findViewById(R.id.btnNotifications)
         btnReorder = root.findViewById(R.id.btnReorder)
         btnSettings = root.findViewById(R.id.btnSettings)
 
+        btnSysInfo?.setOnClickListener { onAction(HeaderAction.OpenRunningApps) }
         btnWeather?.setOnClickListener {
             val report = Weather.cached(activity)
             if (report != null) {
@@ -57,15 +58,14 @@ class HomeHeaderCoordinator(
             onAction(HeaderAction.ShowNetworkMenu)
             true
         }
-        btnSysInfo?.setOnClickListener { onAction(HeaderAction.OpenRunningApps) }
         btnNotifications?.setOnClickListener { onAction(HeaderAction.OpenNotifications) }
+        btnReorder?.setOnClickListener { onAction(HeaderAction.ToggleReorder) }
+        btnReorder?.visibility = if (cfg.reorderButton) View.VISIBLE else View.GONE
         btnSettings?.setOnClickListener { onAction(HeaderAction.OpenSettings) }
         btnSettings?.setOnLongClickListener {
             onAction(HeaderAction.ShowSettingsMenu)
             true
         }
-        btnReorder?.setOnClickListener { onAction(HeaderAction.ToggleReorder) }
-        btnReorder?.visibility = if (cfg.reorderButton) View.VISIBLE else View.GONE
 
         setupKeyNavigation()
     }
@@ -80,24 +80,26 @@ class HomeHeaderCoordinator(
             }
             false
         }
+        btnSysInfo?.setOnKeyListener(pillKeys)
         btnWeather?.setOnKeyListener(pillKeys)
         btnInputs?.setOnKeyListener(pillKeys)
         btnWifi?.setOnKeyListener(pillKeys)
         btnNotifications?.setOnKeyListener(pillKeys)
-        btnSysInfo?.setOnKeyListener(pillKeys)
-        btnSettings?.setOnKeyListener(pillKeys)
         btnReorder?.setOnKeyListener(pillKeys)
+        btnSettings?.setOnKeyListener(pillKeys)
+    }
+
+    fun focusDefault() {
+        val target = btnInputs ?: btnWifi ?: btnSettings
+        target?.requestFocus()
     }
 
     fun updateNotificationBadge(count: Int) {
         btnNotifications?.let { badge ->
-            if (count > 0) {
-                badge.text = count.toString()
-                badge.visibility = View.VISIBLE
-            } else {
-                badge.text = ""
-                badge.visibility = View.GONE
-            }
+            val iconRes = if (count > 0) R.drawable.ic_notifications_dot else R.drawable.ic_notifications
+            badge.setCompoundDrawablesWithIntrinsicBounds(
+                activity.getDrawable(iconRes), null, null, null
+            )
         }
     }
 

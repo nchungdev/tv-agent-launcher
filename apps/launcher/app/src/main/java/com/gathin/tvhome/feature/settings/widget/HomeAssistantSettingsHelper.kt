@@ -26,7 +26,10 @@ object HomeAssistantSettingsHelper {
         secret: String,
         tempId: String
     ): Result<HaPingResult> = withContext(Dispatchers.IO) {
-        val u = HassClient.normalize(url.ifBlank { HomeAssistantSettingsSheet.DEFAULT_URL })
+        if (url.isBlank()) {
+            return@withContext Result.failure(IllegalArgumentException("URL trống"))
+        }
+        val u = HassClient.normalize(url)
         runCatching {
             val client = HassClient(u, secret)
             val entities = client.use {
@@ -47,8 +50,8 @@ object HomeAssistantSettingsHelper {
         secret: String,
         onChosen: (chosenId: String) -> Unit
     ) {
-        val u = url.ifBlank { HomeAssistantSettingsSheet.DEFAULT_URL }
-        if (secret.isBlank()) return
+        if (url.isBlank() || secret.isBlank()) return
+        val u = url.trim()
         val sensors = withContext(Dispatchers.IO) {
             runCatching {
                 val client = HassClient(u, secret)

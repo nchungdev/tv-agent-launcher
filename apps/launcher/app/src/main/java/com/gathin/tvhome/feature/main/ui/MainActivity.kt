@@ -1,7 +1,9 @@
 package com.gathin.tvhome.feature.main.ui
 
 import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
+import android.provider.Settings
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
@@ -20,8 +22,11 @@ import com.gathin.tvhome.feature.notification.ui.NotificationSheet
 import com.gathin.tvhome.feature.settings.ui.QuickSettingsSheet
 import com.gathin.tvhome.feature.runningapps.ui.RunningAppsSheet
 import com.gathin.tvhome.feature.smarthome.ui.SmartHomeSheet
+import com.gathin.tvhome.feature.settings.ui.HomeAssistantSettingsSheet
+import com.gathin.tvhome.feature.settings.data.AgentHomeConfig
 import com.gathin.tvhome.core.design.Fonts
 import com.gathin.tvhome.core.design.Palette
+import com.gathin.tvhome.feature.main.coordinator.DockModeController
 import com.gathin.tvhome.feature.main.coordinator.HomeAgentCoordinator
 import com.gathin.tvhome.feature.main.coordinator.HomeAppCoordinator
 import com.gathin.tvhome.feature.main.coordinator.HomeCardsCoordinator
@@ -34,6 +39,9 @@ import com.gathin.tvhome.feature.main.presenter.MainEffect
 import com.gathin.tvhome.feature.main.presenter.MainIntent
 import com.gathin.tvhome.feature.main.presenter.MainPresenter
 import com.gathin.tvhome.feature.main.presenter.MainState
+import com.gathin.tvhome.feature.main.widget.BottomDockView
+import com.gathin.tvhome.feature.main.widget.HomeGrid
+import com.gathin.tvhome.feature.main.widget.WidgetShelf
 import com.gathin.tvhome.core.util.activityScope
 import kotlinx.coroutines.launch
 
@@ -45,6 +53,8 @@ class MainActivity : Activity(), AppAdapter.TileListener {
     private lateinit var presenter: MainPresenter
     private lateinit var appAdapter: AppAdapter
 
+    private lateinit var appRepo: AppRepositoryImpl
+    private val sessionRunningPackages = HashSet<String>()
     private lateinit var networkManager: HomeNetworkManager
     private lateinit var metricsMonitor: HomeMetricsMonitor
     private lateinit var keyHandler: HomeKeyHandler
@@ -56,6 +66,8 @@ class MainActivity : Activity(), AppAdapter.TileListener {
     private lateinit var cardsCoordinator: HomeCardsCoordinator
     private lateinit var appCoordinator: HomeAppCoordinator
     private lateinit var gridCoordinator: HomeGridCoordinator
+    private lateinit var dockModeController: DockModeController
+    private lateinit var widgetShelf: WidgetShelf
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -75,7 +87,7 @@ class MainActivity : Activity(), AppAdapter.TileListener {
     }
 
     private fun initPresentersAndRepositories() {
-        val appRepo = AppRepositoryImpl(AppLocalDataSource(this))
+        appRepo = AppRepositoryImpl(AppLocalDataSource(this))
         val notifRepo = NotificationRepositoryImpl.getInstance()
         presenter = MainPresenter(activityScope, appRepo, notifRepo)
     }
@@ -105,14 +117,74 @@ class MainActivity : Activity(), AppAdapter.TileListener {
         cardsCoordinator = HomeCardsCoordinator(this) { _, _ -> }
         appCoordinator = HomeAppCoordinator(this, AppRepositoryImpl(AppLocalDataSource(this)))
 
-        appAdapter = AppAdapter(this, this, 0, cfg)
+        val cols = if (cfg.columns > 0) cfg.columns else 4
+        appAdapter = AppAdapter(this, this, cols, cfg)
         gridCoordinator = HomeGridCoordinator(
-            this,
+            activity = this,
+            columns = cols,
             onTileFocused = { entry, pos ->
                 presenter.processIntent(MainIntent.TileFocused(entry, pos))
             },
             onTileClicked = { entry, pos ->
                 presenter.processIntent(MainIntent.TileClicked(entry, pos))
+            }
+        )
+
+        val dockView = root.findViewById<BottomDockView>(R.id.bottomDock)
+        val heroName = root.findViewById<View>(R.id.heroName)
+        val homeGrid = root.findViewById<HomeGrid>(R.id.grid)
+        val shelfView = root.findViewById<View>(R.id.widgetShelf)
+
+        widgetShelf = WidgetShelf(
+            activity = this,
+            shelf = shelfView,
+            animations = cfg.animations,
+            reducedMotion = cfg.reducedMotion,
+            advancedEffects = cfg.advancedEffects,
+            host = object : WidgetShelf.Host {
+                override fun showMenu(anchor: View, items: List<WidgetShelf.MenuItem>) {}
+                override fun slotsChanged() {}
+                override fun carryChanged() {}
+                override fun startEditing(): Boolean = false
+                override fun openSmartHome() {
+                    val connection = AgentHomeConfig(this@MainActivity)
+                    val configured = connection.homeAssistantUrl.isNotBlank() &&
+                        connection.homeAssistantToken.isNotBlank()
+                    if (configured) {
+                        presenter.processIntent(MainIntent.OpenSmartHome)
+                    } else {
+                        openHomeAssistant()
+                    }
+                }
+                override fun openHomeAssistant() {
+                    HomeAssistantSettingsSheet(this@MainActivity, homeConfig).show()
+                }
+            }
+        )
+
+        dockModeController = DockModeController(
+            activity = this,
+            dockView = dockView,
+            grid = homeGrid,
+            heroName = heroName,
+            adapter = appAdapter,
+            widgets = widgetShelf,
+            host = object : DockModeController.Host {
+                override fun openLibrary() {
+                    presenter.processIntent(MainIntent.OpenAppLibrary)
+                }
+
+                override fun showContextMenu(anchor: View, items: List<WidgetShelf.MenuItem>) {}
+                override fun focusTopHeader() {
+                    val anchor = findViewById<View>(R.id.btnSettings)
+                    anchor?.requestFocus()
+                }
+
+                override fun onAppsChanged() {
+                    reloadAllApps(homeConfig)
+                }
+
+                override fun hideGridChrome() {}
             }
         )
 
@@ -134,6 +206,8 @@ class MainActivity : Activity(), AppAdapter.TileListener {
     private fun render(state: MainState) {
         themeCoordinator.applyTheme(state.palette, root)
         headerCoordinator.updateNotificationBadge(state.unreadNotificationCount)
+        dockModeController.setPalette(state.palette)
+        widgetShelf.setPalette(state.palette)
         if (state.greetingText.isNotEmpty()) {
             agentCoordinator.updateGreetingText(state.greetingText)
         }
@@ -142,14 +216,18 @@ class MainActivity : Activity(), AppAdapter.TileListener {
     private fun handleEffect(effect: MainEffect) {
         when (effect) {
             is MainEffect.LaunchEntry -> launchAppEntry(effect.entry)
-            is MainEffect.ShowSettings -> LauncherSettingsSheet(this, homeConfig).show()
+            is MainEffect.ShowSettings -> LauncherSettingsSheet(this, homeConfig) {
+                if (it) recreate()
+            }.show()
             is MainEffect.ShowInputs -> {
                 val anchor = findViewById<View>(R.id.btnInputs)
                 tvInputCoordinator.showInputs(anchor, root)
             }
             is MainEffect.ShowNotifications -> NotificationSheet(this, homeConfig).show()
             is MainEffect.ShowRunningApps -> RunningAppsSheet(this, homeConfig).show()
-            is MainEffect.ShowSmartHome -> SmartHomeSheet(this, homeConfig, {}).show()
+            is MainEffect.ShowSmartHome -> SmartHomeSheet(this, homeConfig, {
+                HomeAssistantSettingsSheet(this, homeConfig).show()
+            }).show()
             is MainEffect.ShowAppLibrary -> { /* Library dialog */ }
             is MainEffect.ScrollToPosition -> gridCoordinator.focusTile(effect.position)
         }
@@ -161,7 +239,21 @@ class MainActivity : Activity(), AppAdapter.TileListener {
                 presenter.processIntent(MainIntent.OpenInputs)
             }
             is HomeHeaderCoordinator.HeaderAction.OpenNetwork -> {
-                QuickSettingsSheet(this, homeConfig).show()
+                val intent = Intent(Settings.ACTION_WIFI_SETTINGS).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                try {
+                    startActivity(intent)
+                } catch (_: Exception) {
+                    try {
+                        startActivity(
+                            Intent(Settings.ACTION_WIRELESS_SETTINGS)
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        )
+                    } catch (_: Exception) {
+                        QuickSettingsSheet(this, homeConfig).show()
+                    }
+                }
             }
             is HomeHeaderCoordinator.HeaderAction.ShowNetworkMenu -> {
                 QuickSettingsSheet(this, homeConfig).show()
@@ -176,25 +268,59 @@ class MainActivity : Activity(), AppAdapter.TileListener {
                 presenter.processIntent(MainIntent.OpenSettings)
             }
             is HomeHeaderCoordinator.HeaderAction.ShowSettingsMenu -> {
-                LauncherSettingsSheet(this, homeConfig).show()
+                LauncherSettingsSheet(this, homeConfig) {
+                    if (it) recreate()
+                }.show()
             }
             is HomeHeaderCoordinator.HeaderAction.ToggleReorder -> {
                 presenter.processIntent(MainIntent.EndReorder)
             }
             is HomeHeaderCoordinator.HeaderAction.FocusGridFirst -> {
-                gridCoordinator.focusDefault()
+                if (dockModeController.isDockMode()) {
+                    dockModeController.focusDefault()
+                } else {
+                    gridCoordinator.focusDefault()
+                }
             }
             is HomeHeaderCoordinator.HeaderAction.FocusGridFromHeader -> {
-                gridCoordinator.focusDefault()
+                if (dockModeController.isDockMode()) {
+                    dockModeController.focusDefault()
+                } else {
+                    gridCoordinator.focusDefault()
+                }
             }
         }
     }
 
     private fun reloadAllApps(cfg: Config) {
         appCoordinator.loadTiles(appAdapter, emptySet(), cfg.moduleCards)
+        dockModeController.applyMode(
+            mode = cfg.layoutMode,
+            dockApps = cfg.dockApps,
+            columns = cfg.columns,
+            dockTitleEnabled = cfg.dockTitle
+        )
+        refreshRunningApps()
+        root.post {
+            dockModeController.alignShelf(cfg.columns)
+        }
+    }
+
+    private fun refreshRunningApps() {
+        activityScope.launch {
+            val detected = try {
+                appRepo.getRunningApps().getOrNull()?.map { it.pkg }?.toSet() ?: emptySet()
+            } catch (_: Exception) {
+                emptySet()
+            }
+            val combined = sessionRunningPackages + detected
+            dockModeController.updateRunningApps(combined)
+        }
     }
 
     private fun launchAppEntry(entry: Entry) {
+        sessionRunningPackages.add(entry.pkg)
+        dockModeController.updateRunningApps(sessionRunningPackages)
         val launchIntent = packageManager.getLaunchIntentForPackage(entry.pkg)
         if (launchIntent != null) {
             startActivity(launchIntent)
@@ -244,6 +370,14 @@ class MainActivity : Activity(), AppAdapter.TileListener {
         isHomeResumed = true
         networkManager.start()
         metricsMonitor.start()
+        widgetShelf.start()
+        refreshRunningApps()
+
+        val fresh = Config.load(this)
+        if (fresh.layoutMode != homeConfig.layoutMode || fresh.columns != homeConfig.columns) {
+            homeConfig = fresh
+            recreate()
+        }
     }
 
     override fun onPause() {
@@ -251,6 +385,7 @@ class MainActivity : Activity(), AppAdapter.TileListener {
         isHomeResumed = false
         networkManager.stop()
         metricsMonitor.stop()
+        widgetShelf.stop()
     }
 
     override fun onBackPressed() {

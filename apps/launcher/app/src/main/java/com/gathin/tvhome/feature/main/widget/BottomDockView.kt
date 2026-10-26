@@ -46,7 +46,10 @@ class BottomDockView @JvmOverloads constructor(
     }
 
     private data class SlotStyle(
-        val bg: GradientDrawable, val border: GradientDrawable, val allApps: Boolean, val edgeColor: Int
+        val bg: GradientDrawable,
+        val border: GradientDrawable,
+        val allApps: Boolean,
+        val edgeColor: Int
     )
 
     private val density = resources.displayMetrics.density
@@ -56,6 +59,9 @@ class BottomDockView @JvmOverloads constructor(
     private val tooltipBackground = GradientDrawable()
     private val slotViews = ArrayList<View>()
     private val slotStyles = ArrayList<SlotStyle>()
+    private val boundItems = ArrayList<DockItem>()
+    private val runningDots = ArrayList<View>()
+    private var runningPackages: Set<String> = emptySet()
     private var dividerView: View? = null
     private var allAppsIcon: ImageView? = null
     private var palette = Palette.currentOrBaseline()
@@ -105,9 +111,12 @@ class BottomDockView @JvmOverloads constructor(
 
     fun bindItems(items: List<DockItem>, dockListener: Listener) {
         listener = dockListener
+        boundItems.clear()
+        boundItems.addAll(items)
         dockBar.removeAllViews()
         slotViews.clear()
         slotStyles.clear()
+        runningDots.clear()
         dividerView = null
         allAppsIcon = null
 
@@ -123,7 +132,8 @@ class BottomDockView @JvmOverloads constructor(
                 marginStart = dp(10)
                 marginEnd = dp(10)
             }
-            dividerView = View(context).apply { layoutParams = divParams }.also { dockBar.addView(it) }
+            dividerView = View(context).apply { layoutParams = divParams }
+                .also { dockBar.addView(it) }
         }
 
         for (index in items.indices) {
@@ -134,6 +144,21 @@ class BottomDockView @JvmOverloads constructor(
             slotViews.add(appSlot)
         }
         applyColors()
+        applyRunningState()
+    }
+
+    fun updateRunningApps(running: Set<String>) {
+        runningPackages = running
+        applyRunningState()
+    }
+
+    private fun applyRunningState() {
+        for (index in boundItems.indices) {
+            val item = boundItems[index]
+            val isRunning = runningPackages.contains(item.packageName)
+            val dot = runningDots.getOrNull(index + 1)
+            dot?.visibility = if (isRunning) View.VISIBLE else View.GONE
+        }
     }
 
     fun slotCount(): Int = slotViews.size
@@ -147,7 +172,7 @@ class BottomDockView @JvmOverloads constructor(
         index: Int, label: String, iconDrawable: Drawable?, allApps: Boolean, dockItem: DockItem?
     ): View {
         val sizePx = dp(58)
-        val radiusPx = dp(15).toFloat()
+        val radiusPx = dp(16).toFloat()
         val norm = if (allApps) null else DockIconNormalizer.normalize(resources, iconDrawable)
         val fullBleed = norm?.fullBleed == true
         val edgeColor = if (fullBleed) norm?.edgeColor ?: Color.TRANSPARENT else Color.TRANSPARENT
@@ -174,14 +199,49 @@ class BottomDockView @JvmOverloads constructor(
             clipToOutline = true
         }
 
+        val iconSize = if (allApps) dp(28) else if (fullBleed) dp(50) else dp(38)
+        val iconRadius = if (fullBleed) dp(13).toFloat() else dp(10).toFloat()
+        val iconCard = FrameLayout(context).apply {
+            layoutParams = LayoutParams(iconSize, iconSize, Gravity.CENTER)
+            if (fullBleed && edgeColor != Color.TRANSPARENT) {
+                background = GradientDrawable().apply {
+                    cornerRadius = iconRadius
+                    setColor(edgeColor)
+                }
+            }
+            outlineProvider = object : ViewOutlineProvider() {
+                override fun getOutline(view: View, outline: Outline) {
+                    outline.setRoundRect(0, 0, view.width, view.height, iconRadius)
+                }
+            }
+            clipToOutline = true
+        }
+
         val shownIcon = norm?.drawable ?: iconDrawable ?: context.getDrawable(R.drawable.ic_apps)
         val image = ImageView(context).apply {
-            scaleType = if (fullBleed) ImageView.ScaleType.CENTER_CROP else ImageView.ScaleType.FIT_CENTER
+            scaleType = if (fullBleed) ImageView.ScaleType.CENTER_CROP
+                else ImageView.ScaleType.FIT_CENTER
             setImageDrawable(shownIcon)
         }
-        val iconSize = if (allApps) dp(28) else if (fullBleed) LayoutParams.MATCH_PARENT else dp(38)
-        slot.addView(image, LayoutParams(iconSize, iconSize, Gravity.CENTER))
+        iconCard.addView(image, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+        slot.addView(iconCard)
+
         if (allApps) allAppsIcon = image
+
+        val dot = View(context).apply {
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(0xFF22C55E.toInt())
+                setStroke(dp(1), 0xCC000000.toInt())
+            }
+            visibility = View.GONE
+        }
+        val dotParams = LayoutParams(dp(8), dp(8), Gravity.TOP or Gravity.END).apply {
+            topMargin = dp(4)
+            marginEnd = dp(4)
+        }
+        slot.addView(dot, dotParams)
+        runningDots.add(dot)
 
         attachSlotFocus(slot, style, index, label, dockItem)
         slot.setOnClickListener {
@@ -256,7 +316,8 @@ class BottomDockView @JvmOverloads constructor(
         tooltipView.measure(MeasureSpec.UNSPECIFIED, MeasureSpec.UNSPECIFIED)
         val slotCenter = dockBar.left + slot.left + slot.width / 2f
         val maxLeft = maxOf(0f, (width - tooltipView.measuredWidth).toFloat())
-        tooltipView.translationX = (slotCenter - tooltipView.measuredWidth / 2f).coerceIn(0f, maxLeft)
+        val targetX = slotCenter - tooltipView.measuredWidth / 2f
+        tooltipView.translationX = targetX.coerceIn(0f, maxLeft)
         fadeTooltip(1f, 140L)
     }
 
@@ -282,11 +343,12 @@ class BottomDockView @JvmOverloads constructor(
 
     private fun updateSlotStyle(style: SlotStyle, focused: Boolean) {
         val fill = if (style.allApps) palette.secondaryContainer
-        else if (style.edgeColor != Color.TRANSPARENT) style.edgeColor
-        else palette.surfaceContainerHighest
+        else if (style.edgeColor != Color.TRANSPARENT) {
+            Palette.alpha(palette.surfaceContainerHighest, 0x55)
+        } else palette.surfaceContainerHighest
         style.bg.setColor(fill)
         val stroke = if (focused) palette.primary else Palette.alpha(palette.outlineVariant, 0x45)
-        style.border.setStroke(if (focused) dp(3) else dp(1), stroke)
+        style.border.setStroke(if (focused) dp(2.5f) else dp(1), stroke)
         if (style.allApps) {
             val iconColor = if (focused) palette.primary else palette.onSecondaryContainer
             allAppsIcon?.imageTintList = ColorStateList.valueOf(iconColor)
@@ -294,6 +356,7 @@ class BottomDockView @JvmOverloads constructor(
     }
 
     private fun dp(value: Int): Int = Math.round(value * density)
+    private fun dp(value: Float): Int = Math.round(value * density)
 }
 
 private const val FOCUS_SCALE = 1.15f

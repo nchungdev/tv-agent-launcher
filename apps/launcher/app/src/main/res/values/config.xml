@@ -164,8 +164,8 @@
     <bool name="widgets">true</bool>
     <!-- The weather widget's city, e.g. "Hanoi". Empty: wherever the TV's IP address is (approximate;
          two services can disagree by a whole city, so set this when it matters). -->
-    <string name="weather_city" translatable="false">Ho Chi Minh City</string>
+    <string name="weather_city" translatable="false"></string>
     <!-- AI Agent card: the agent server (services/agent/agent_server.py), on any machine. Keep res/xml/network_security.xml
          in step with its host. The token is pushed to the TV, see services/agent/README.md. -->
-    <string name="agent_url" translatable="false">http://192.168.1.50:8788</string>
+    <string name="agent_url" translatable="false"></string>
 </resources>

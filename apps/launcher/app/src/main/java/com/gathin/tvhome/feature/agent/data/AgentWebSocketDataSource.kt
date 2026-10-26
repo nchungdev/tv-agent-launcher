@@ -36,6 +36,10 @@ class AgentWebSocketDataSource(private val context: Context) {
                 var connected = false
                 try {
                     val base = AgentClient.baseUrl(appContext)
+                    if (base.isBlank()) {
+                        delay(backoffMs)
+                        continue
+                    }
                     val parsed = URI.create(base)
                     val host = parsed.host ?: run {
                         delay(backoffMs)

@@ -53,9 +53,9 @@ class SmartHomeSheet(
 
     private val remoteDataSource by lazy {
         HomeAssistantRemoteDataSourceImpl {
-            val url = settings.homeAssistantUrl.ifBlank { "http://192.168.1.50:8123" }
-            val token = settings.homeAssistantToken
-            if (token.isNotBlank()) runCatching { HassClient(url, token) }.getOrNull() else null
+            val url = settings.homeAssistantUrl.trim()
+            val token = settings.homeAssistantToken.trim()
+            if (url.isNotBlank() && token.isNotBlank()) runCatching { HassClient(url, token) }.getOrNull() else null
         }
     }
     private val repository by lazy { SmartHomeRepositoryImpl(remoteDataSource) }
@@ -166,7 +166,7 @@ class SmartHomeSheet(
         }
 
         val rows = state.devices
-        val rawUrl = settings.homeAssistantUrl.ifBlank { "http://192.168.1.50:8123" }
+        val rawUrl = settings.homeAssistantUrl
         val host = SmartHomeHelper.serverHost(rawUrl)
 
         if (state.isEditMode) {
