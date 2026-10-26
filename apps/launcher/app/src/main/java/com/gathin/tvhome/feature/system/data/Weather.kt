@@ -17,6 +17,8 @@ object Weather {
     enum class Sky { CLEAR, PARTLY, CLOUDY, FOG, RAIN, SNOW, THUNDER }
 
     const val STALE_MS = 30 * 60_000L
+    private const val DAY_FROM_MINUTE = 360
+    private const val DAY_UNTIL_MINUTE = 1110
     private const val PLACE_MS = 24 * 60 * 60_000L
     private const val TIMEOUT_MS = 8000
     private const val PREFS = "weather"
@@ -58,6 +60,12 @@ object Weather {
     }
 
     @JvmStatic
+    fun isDaytime(): Boolean {
+        val now = java.util.Calendar.getInstance()
+        val minute = now.get(java.util.Calendar.HOUR_OF_DAY) * 60 + now.get(java.util.Calendar.MINUTE)
+        return minute in DAY_FROM_MINUTE until DAY_UNTIL_MINUTE
+    }
+
     fun icon(sky: Sky, day: Boolean): Int = when (sky) {
         Sky.CLEAR -> if (day) R.drawable.ic_w_sunny else R.drawable.ic_w_clear_night
         Sky.PARTLY -> if (day) R.drawable.ic_w_partly_day else R.drawable.ic_w_partly_night

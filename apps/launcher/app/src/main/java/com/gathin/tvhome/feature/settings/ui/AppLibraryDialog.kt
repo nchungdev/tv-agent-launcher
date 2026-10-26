@@ -1,4 +1,5 @@
 package com.gathin.tvhome.feature.settings.ui
+import com.gathin.tvhome.core.design.Fonts
 import com.gathin.tvhome.feature.settings.data.*
 import com.gathin.tvhome.feature.settings.widget.*
 
@@ -232,7 +233,7 @@ class AppLibraryDialog(
             setPadding(dp(12), dp(4), dp(8), dp(4))
         }
         val title = text(activity.getString(R.string.app_library), 24, colors.onSurface).apply {
-            typeface = activity.resources.getFont(R.font.sans_headline)
+            typeface = Fonts.REGULAR
             gravity = Gravity.CENTER_VERTICAL
             isSingleLine = true
             ellipsize = TextUtils.TruncateAt.END
@@ -476,7 +477,7 @@ class AppLibraryDialog(
             text = value
             textSize = size.toFloat()
             setTextColor(color)
-            typeface = activity.resources.getFont(R.font.sans_medium)
+            typeface = Fonts.MEDIUM
             letterSpacing = 0.01f
             includeFontPadding = false
         }

@@ -28,7 +28,7 @@
         android:alpha="0"
         android:textColor="#FFFFFFFF"
         android:textSize="45sp"
-        android:fontFamily="@font/sans_headline"
+        android:fontFamily="sans-serif"
         android:letterSpacing="-0.02"
         android:includeFontPadding="false"
         android:maxLines="1" />
@@ -104,7 +104,7 @@
                     android:format24Hour="HH:mm"
                     android:textColor="#FFFFFFFF"
                     android:textSize="56sp"
-                    android:fontFamily="@font/sans_display"
+                    android:fontFamily="sans-serif-medium"
                     android:letterSpacing="-0.04"
                     android:includeFontPadding="false" />
 
@@ -120,7 +120,7 @@
                     android:format24Hour=""
                     android:textColor="#B3FFFFFF"
                     android:textSize="15sp"
-                    android:fontFamily="@font/sans_medium"
+                    android:fontFamily="sans-serif-medium"
                     android:letterSpacing="0.08"
                     android:textAllCaps="true" />
 
@@ -169,7 +169,7 @@
                         android:maxLines="3"
                         android:textColor="#F1F5F9"
                         android:textSize="20sp"
-                        android:fontFamily="@font/sans_medium"
+                        android:fontFamily="sans-serif-medium"
                         android:letterSpacing="0.01" />
 
                     <TextView
@@ -182,7 +182,7 @@
                         android:text="@string/bot_action_hint"
                         android:textColor="#FF818CF8"
                         android:textSize="13sp"
-                        android:fontFamily="@font/sans_medium"
+                        android:fontFamily="sans-serif-medium"
                         android:includeFontPadding="false"
                         android:visibility="gone" />
 
@@ -196,7 +196,7 @@
                         android:ellipsize="end"
                         android:textColor="#E6FFFFFF"
                         android:textSize="17sp"
-                        android:fontFamily="@font/sans_regular"
+                        android:fontFamily="sans-serif"
                         android:letterSpacing="0.02"
                         android:includeFontPadding="false"
                         android:visibility="gone" />
@@ -216,7 +216,7 @@
                         android:textColor="#A6FFFFFF"
                         android:layout_marginTop="2dp"
                         android:textSize="16sp"
-                        android:fontFamily="@font/sans_regular"
+                        android:fontFamily="sans-serif"
                         android:letterSpacing="0.03" />
                 </LinearLayout>
             </LinearLayout>
@@ -238,7 +238,7 @@
             android:ellipsize="end"
             android:textColor="#D9FFFFFF"
             android:textSize="14sp"
-            android:fontFamily="@font/sans_medium"
+            android:fontFamily="sans-serif-medium"
             android:letterSpacing="0.04"
             android:focusable="false"
             android:visibility="gone" />
@@ -261,10 +261,9 @@
                 android:id="@+id/btnSysInfo"
                 style="@style/TopBarIcon"
                 android:layout_width="wrap_content"
-                android:paddingStart="6dp"
-                android:paddingEnd="6dp"
-                android:nextFocusDown="@+id/grid"
-                android:visibility="gone" />
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:nextFocusDown="@+id/grid" />
 
             <TextView
                 android:id="@+id/btnWeather"
@@ -272,7 +271,7 @@
                 android:layout_width="wrap_content"
                 android:paddingStart="6dp"
                 android:paddingEnd="6dp"
-                android:visibility="gone"
+                android:drawablePadding="3dp"
                 android:nextFocusDown="@+id/grid" />
 
             <TextView
@@ -343,7 +342,7 @@
                 android:id="@+id/editBarTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:fontFamily="@font/sans_medium"
+                android:fontFamily="sans-serif-medium"
                 android:includeFontPadding="false"
                 android:maxLines="1"
                 android:textSize="16sp" />
@@ -353,7 +352,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="3dp"
-                android:fontFamily="@font/sans_regular"
+                android:fontFamily="sans-serif"
                 android:includeFontPadding="false"
                 android:maxLines="1"
                 android:textSize="12sp" />

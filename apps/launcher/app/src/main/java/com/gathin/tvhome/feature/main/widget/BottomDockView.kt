@@ -1,5 +1,6 @@
 package com.gathin.tvhome.feature.main.widget
 
+import com.gathin.tvhome.core.design.Fonts
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Color
@@ -78,7 +79,7 @@ class BottomDockView @JvmOverloads constructor(
         tooltipBackground.cornerRadius = dp(14).toFloat()
         tooltipView.background = tooltipBackground
         tooltipView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-        tooltipView.typeface = resources.getFont(R.font.sans_medium)
+        tooltipView.typeface = Fonts.MEDIUM
         tooltipView.maxLines = 1
         tooltipView.ellipsize = TextUtils.TruncateAt.END
         tooltipView.setPadding(dp(12), dp(5), dp(12), dp(5))

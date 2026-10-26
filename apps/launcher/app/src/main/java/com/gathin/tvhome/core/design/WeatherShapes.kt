@@ -123,8 +123,8 @@ class WeatherShapes {
             floatArrayOf(0.86f, 0.24f), floatArrayOf(0.95f, 0.08f), floatArrayOf(0.18f, 0.60f),
             floatArrayOf(0.47f, 0.63f), floatArrayOf(0.72f, 0.58f), floatArrayOf(0.05f, 0.95f), floatArrayOf(0.62f, 0.96f)
         )
-        private const val SUN_X = 0.62f
-        private const val SUN_Y = 0.12f
-        private const val SUN_R = 0.10f
+        private const val SUN_X = 0.54f
+        private const val SUN_Y = 0.11f
+        private const val SUN_R = 0.08f
     }
 }

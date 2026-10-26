@@ -8,6 +8,7 @@ import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
 import com.gathin.tvhome.R
+import com.gathin.tvhome.feature.agent.ui.AgentOverlay
 import com.gathin.tvhome.feature.settings.data.Config
 import com.gathin.tvhome.feature.runningapps.data.AppLocalDataSource
 import com.gathin.tvhome.feature.runningapps.data.AppRepositoryImpl
@@ -15,8 +16,11 @@ import com.gathin.tvhome.feature.notification.data.NotificationRepositoryImpl
 import com.gathin.tvhome.feature.main.adapter.AppAdapter
 import com.gathin.tvhome.feature.main.adapter.Entry
 import com.gathin.tvhome.feature.system.coordinator.HomeKeyHandler
+import com.gathin.tvhome.feature.system.coordinator.HomeMenuHandler
 import com.gathin.tvhome.feature.system.coordinator.HomeMetricsMonitor
 import com.gathin.tvhome.feature.system.coordinator.HomeNetworkManager
+import com.gathin.tvhome.feature.system.data.Weather
+import com.gathin.tvhome.feature.settings.ui.AppLibraryDialog
 import com.gathin.tvhome.feature.settings.ui.LauncherSettingsSheet
 import com.gathin.tvhome.feature.notification.ui.NotificationSheet
 import com.gathin.tvhome.feature.settings.ui.QuickSettingsSheet
@@ -55,6 +59,7 @@ class MainActivity : Activity(), AppAdapter.TileListener {
 
     private lateinit var appRepo: AppRepositoryImpl
     private val sessionRunningPackages = HashSet<String>()
+    private lateinit var menuHandler: HomeMenuHandler
     private lateinit var networkManager: HomeNetworkManager
     private lateinit var metricsMonitor: HomeMetricsMonitor
     private lateinit var keyHandler: HomeKeyHandler
@@ -68,14 +73,15 @@ class MainActivity : Activity(), AppAdapter.TileListener {
     private lateinit var gridCoordinator: HomeGridCoordinator
     private lateinit var dockModeController: DockModeController
     private lateinit var widgetShelf: WidgetShelf
+    private lateinit var agentOverlay: AgentOverlay
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Palette.loadDarkMode(this)
-        Fonts.preload(this)
         setContentView(R.layout.activity_main)
 
         root = findViewById(R.id.root)
+        agentOverlay = AgentOverlay(this, root)
         homeConfig = Config.load(this)
 
         initPresentersAndRepositories()
@@ -93,8 +99,22 @@ class MainActivity : Activity(), AppAdapter.TileListener {
     }
 
     private fun initCoordinators(cfg: Config) {
+        menuHandler = HomeMenuHandler(this, cfg)
+        headerCoordinator = HomeHeaderCoordinator(this) { action ->
+            handleHeaderAction(action)
+        }
         networkManager = HomeNetworkManager(this) {}
-        metricsMonitor = HomeMetricsMonitor(this, activityScope, {}, {})
+        metricsMonitor = HomeMetricsMonitor(
+            context = this,
+            scope = activityScope,
+            onMinuteTick = {
+                val rep = Weather.cached(this)
+                headerCoordinator.updateWeather(rep)
+            },
+            onSysInfoSample = { cpu ->
+                headerCoordinator.updateSysInfo(cpu)
+            }
+        )
         keyHandler = HomeKeyHandler(
             settingsKeycodes = cfg.settingsKeycodes,
             settingsKeyPanel = cfg.settingsKeyPanel,
@@ -103,9 +123,6 @@ class MainActivity : Activity(), AppAdapter.TileListener {
             onWakeBackdrop = {},
             onDuinchLook = {}
         )
-        headerCoordinator = HomeHeaderCoordinator(this) { action ->
-            handleHeaderAction(action)
-        }
         themeCoordinator = HomeThemeCoordinator(this)
         tvInputCoordinator = HomeTvInputCoordinator(this) { intent ->
             startActivity(intent)
@@ -142,7 +159,9 @@ class MainActivity : Activity(), AppAdapter.TileListener {
             reducedMotion = cfg.reducedMotion,
             advancedEffects = cfg.advancedEffects,
             host = object : WidgetShelf.Host {
-                override fun showMenu(anchor: View, items: List<WidgetShelf.MenuItem>) {}
+                override fun showMenu(anchor: View, items: List<WidgetShelf.MenuItem>) {
+                    menuHandler.showContextMenu(anchor, items)
+                }
                 override fun slotsChanged() {}
                 override fun carryChanged() {}
                 override fun startEditing(): Boolean = false
@@ -174,7 +193,9 @@ class MainActivity : Activity(), AppAdapter.TileListener {
                     presenter.processIntent(MainIntent.OpenAppLibrary)
                 }
 
-                override fun showContextMenu(anchor: View, items: List<WidgetShelf.MenuItem>) {}
+                override fun showContextMenu(anchor: View, items: List<WidgetShelf.MenuItem>) {
+                    menuHandler.showContextMenu(anchor, items)
+                }
                 override fun focusTopHeader() {
                     val anchor = findViewById<View>(R.id.btnSettings)
                     anchor?.requestFocus()
@@ -228,7 +249,16 @@ class MainActivity : Activity(), AppAdapter.TileListener {
             is MainEffect.ShowSmartHome -> SmartHomeSheet(this, homeConfig, {
                 HomeAssistantSettingsSheet(this, homeConfig).show()
             }).show()
-            is MainEffect.ShowAppLibrary -> { /* Library dialog */ }
+            is MainEffect.ShowAppLibrary -> {
+                AppLibraryDialog(
+                    activity = this,
+                    animations = homeConfig.animations,
+                    reducedMotion = homeConfig.reducedMotion,
+                    onHome = { pkg -> appAdapter.containsPackage(pkg) },
+                    changed = { reloadAllApps(homeConfig) },
+                    dismissed = {}
+                ).show()
+            }
             is MainEffect.ScrollToPosition -> gridCoordinator.focusTile(effect.position)
         }
     }
@@ -359,17 +389,23 @@ class MainActivity : Activity(), AppAdapter.TileListener {
     override fun onLibraryUp() {}
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (agentOverlay.isOpen) return super.dispatchKeyEvent(event)
         if (keyHandler.handleKeyEvent(event)) return true
         return super.dispatchKeyEvent(event)
     }
 
-    fun updateTopWeather() {}
+    fun updateTopWeather() {
+        headerCoordinator.updateWeather(Weather.cached(this))
+    }
 
     override fun onResume() {
         super.onResume()
         isHomeResumed = true
+        agentOverlay.onResume()
         networkManager.start()
         metricsMonitor.start()
+        headerCoordinator.updateWeather(Weather.cached(this))
+        headerCoordinator.updateSysInfo(0)
         widgetShelf.start()
         refreshRunningApps()
 
@@ -383,9 +419,18 @@ class MainActivity : Activity(), AppAdapter.TileListener {
     override fun onPause() {
         super.onPause()
         isHomeResumed = false
+        agentOverlay.onPause()
         networkManager.stop()
         metricsMonitor.stop()
         widgetShelf.stop()
+    }
+
+    override fun onRequestPermissionsResult(
+        code: Int,
+        permissions: Array<out String>,
+        results: IntArray
+    ) {
+        agentOverlay.onPermissionResult(code, results)
     }
 
     override fun onBackPressed() {

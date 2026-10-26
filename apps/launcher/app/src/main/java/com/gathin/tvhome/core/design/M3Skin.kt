@@ -127,7 +127,7 @@ class M3Skin private constructor(
         val lp = v.layoutParams
         lp.height = (40 * density).toInt()
         v.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
-        v.typeface = font(R.font.sans_medium)
+        v.typeface = Fonts.MEDIUM
         val pad = (16 * density).toInt()
         v.setPadding(pad, 0, pad, 0)
         e.update()
@@ -187,7 +187,7 @@ class M3Skin private constructor(
         val tf = t.typeface
         if (tf == null || tf == Typeface.DEFAULT || tf == Typeface.DEFAULT_BOLD) {
             val sp = t.textSize / context.resources.displayMetrics.scaledDensity
-            t.typeface = font(if (sp >= 28) R.font.sans_headline else if (sp >= 18) R.font.sans_medium else R.font.sans_regular)
+            t.typeface = if (sp >= 18) Fonts.MEDIUM else Fonts.REGULAR
         }
         if (Build.VERSION.SDK_INT >= 28 && t.isAllCaps) {
             t.isAllCaps = false
@@ -206,14 +206,6 @@ class M3Skin private constructor(
         d.setColor(color)
         d.cornerRadius = radiusDp * density
         return d
-    }
-
-    private fun font(res: Int): Typeface {
-        return try {
-            context.resources.getFont(res)
-        } catch (_: RuntimeException) {
-            Typeface.DEFAULT
-        }
     }
 
     companion object {

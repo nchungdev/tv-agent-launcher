@@ -29,7 +29,7 @@
         android:textColor="@drawable/pill_text"
         android:duplicateParentState="true"
         android:textSize="15sp"
-        android:fontFamily="@font/sans_medium"
+        android:fontFamily="sans-serif-medium"
         android:maxLines="1" />
 
     <View
@@ -46,6 +46,6 @@
         android:textColor="@drawable/pill_text_dim"
         android:duplicateParentState="true"
         android:textSize="11sp"
-        android:fontFamily="@font/sans_regular"
+        android:fontFamily="sans-serif"
         android:letterSpacing="0.04" />
 </LinearLayout>

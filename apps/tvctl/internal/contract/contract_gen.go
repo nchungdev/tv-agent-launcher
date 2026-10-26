@@ -4,7 +4,7 @@ package contract
 
 const (
 	LauncherPackage    = "com.gathin.tvhome"
-	MainActivity       = ".ui.activity.MainActivity"
+	MainActivity       = ".feature.main.ui.MainActivity"
 	InputKeyService    = ".service.InputKeyService"
 	HomeKeyService     = ".service.HomeKeyService"
 	NowPlayingListener = ".NowPlayingListener"

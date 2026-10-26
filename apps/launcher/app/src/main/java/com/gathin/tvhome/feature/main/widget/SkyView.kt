@@ -109,7 +109,7 @@ open class SkyView @JvmOverloads constructor(
         val now = System.currentTimeMillis()
         val known = report != null && now - report.fetchedAt < WEATHER_KEPT_MS
         val nowWeather = if (known && report != null) Weather.sky(report.code) else Weather.Sky.CLEAR
-        val nowDay = if (known && report != null && !report.stale(now)) report.day else minute in DAY_FROM until DAY_UNTIL
+        val nowDay = Weather.isDaytime()
         if (nowWeather == weather && nowDay == day) return
         weather = nowWeather
         day = nowDay
@@ -139,8 +139,6 @@ open class SkyView @JvmOverloads constructor(
         private const val TEX_W = 480
         private const val TEX_H = 270
         private const val WEATHER_KEPT_MS = 3 * 60 * 60_000L
-        private const val DAY_FROM = 360
-        private const val DAY_UNTIL = 1110
 
         private fun fill(color: Int): Paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = color }
 

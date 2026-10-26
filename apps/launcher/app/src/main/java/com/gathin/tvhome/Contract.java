@@ -5,7 +5,7 @@ public final class Contract {
     private Contract() {}
 
     public static final String LAUNCHER_PACKAGE = "com.gathin.tvhome";
-    public static final String MAIN_ACTIVITY = ".ui.activity.MainActivity";
+    public static final String MAIN_ACTIVITY = ".feature.main.ui.MainActivity";
     public static final String INPUT_KEY_SERVICE = ".service.InputKeyService";
     public static final String HOME_KEY_SERVICE = ".service.HomeKeyService";
     public static final String NOW_PLAYING_LISTENER = ".NowPlayingListener";

@@ -50,7 +50,7 @@
             android:layout_height="wrap_content"
             android:textColor="#D0BCFF"
             android:textSize="14sp"
-            android:fontFamily="@font/sans_medium"
+            android:fontFamily="sans-serif-medium"
             android:letterSpacing="0.12"
             android:textAllCaps="true"
             android:layout_marginBottom="10dp" />
@@ -61,7 +61,7 @@
             android:layout_height="wrap_content"
             android:textColor="#FFFFFFFF"
             android:textSize="28sp"
-            android:fontFamily="@font/sans_display"
+            android:fontFamily="sans-serif-medium"
             android:letterSpacing="-0.02"
             android:layout_marginBottom="12dp" />
 
@@ -71,7 +71,7 @@
             android:layout_height="wrap_content"
             android:textColor="#D8E2EC"
             android:textSize="20sp"
-            android:fontFamily="@font/sans_regular"
+            android:fontFamily="sans-serif"
             android:lineSpacingExtra="6dp" />
     </LinearLayout>
 </FrameLayout>

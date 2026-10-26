@@ -61,7 +61,7 @@
                         android:text="@string/launcher_settings"
                         android:textColor="#FFFFFFFF"
                         android:textSize="20sp"
-                        android:fontFamily="@font/sans_headline" />
+                        android:fontFamily="sans-serif" />
                 </LinearLayout>
 
                 <TextView style="@style/SettingsSheetLabel" android:text="@string/settings_group_home" />

@@ -1,4 +1,5 @@
 package com.gathin.tvhome.feature.system.widget
+import com.gathin.tvhome.core.design.Fonts
 import com.gathin.tvhome.feature.system.data.*
 import com.gathin.tvhome.feature.system.coordinator.*
 
@@ -13,7 +14,6 @@ import android.os.SystemClock
 import android.text.format.DateFormat
 import android.util.AttributeSet
 import android.view.View
-import androidx.core.content.res.ResourcesCompat
 import com.gathin.tvhome.R
 import com.gathin.tvhome.feature.system.data.Weather
 import com.gathin.tvhome.feature.notification.data.NotificationRepositoryImpl
@@ -37,10 +37,10 @@ class SleepingRobotScreensaverView @JvmOverloads constructor(
     private val bubbleRect = RectF()
 
     private val displayFont: Typeface by lazy {
-        ResourcesCompat.getFont(context, R.font.sans_display) ?: Typeface.DEFAULT_BOLD
+        Fonts.MEDIUM
     }
     private val regularFont: Typeface by lazy {
-        ResourcesCompat.getFont(context, R.font.sans_regular) ?: Typeface.DEFAULT
+        Fonts.REGULAR
     }
 
     private val calendar = Calendar.getInstance()

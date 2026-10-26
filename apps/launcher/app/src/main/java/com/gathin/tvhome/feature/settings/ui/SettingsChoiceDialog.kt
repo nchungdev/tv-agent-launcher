@@ -1,4 +1,5 @@
 package com.gathin.tvhome.feature.settings.ui
+import com.gathin.tvhome.core.design.Fonts
 import com.gathin.tvhome.feature.settings.data.*
 import com.gathin.tvhome.feature.settings.widget.*
 
@@ -219,7 +220,7 @@ object SettingsChoiceDialog {
             setText(titleRes)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f)
             setTextColor(p.onSurface)
-            typeface = context.resources.getFont(R.font.sans_medium)
+            typeface = Fonts.MEDIUM
         }
         panel.addView(
             title,
@@ -288,7 +289,7 @@ object SettingsChoiceDialog {
                 RelativeSizeSpan(0.78f), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
             )
             val tf = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                TypefaceSpan(activity.resources.getFont(R.font.sans_regular))
+                TypefaceSpan(Fonts.REGULAR)
             } else {
                 TypefaceSpan("sans-serif")
             }

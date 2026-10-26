@@ -8,6 +8,7 @@ import android.widget.Toast
 import com.gathin.tvhome.R
 import com.gathin.tvhome.feature.settings.data.Config
 import com.gathin.tvhome.feature.system.data.Weather
+import com.gathin.tvhome.feature.system.widget.SysInfoView
 
 
 class HomeHeaderCoordinator(
@@ -27,8 +28,8 @@ class HomeHeaderCoordinator(
         object FocusGridFromHeader : HeaderAction
     }
 
-    private var btnSysInfo: View? = null
-    private var btnWeather: View? = null
+    private var btnSysInfo: SysInfoView? = null
+    private var btnWeather: TextView? = null
     private var btnInputs: View? = null
     private var btnWifi: View? = null
     private var btnNotifications: TextView? = null
@@ -44,13 +45,22 @@ class HomeHeaderCoordinator(
         btnReorder = root.findViewById(R.id.btnReorder)
         btnSettings = root.findViewById(R.id.btnSettings)
 
+        btnSysInfo?.init(cfg.animations, cfg.reducedMotion)
+        btnSysInfo?.visibility = View.VISIBLE
         btnSysInfo?.setOnClickListener { onAction(HeaderAction.OpenRunningApps) }
+        updateWeather(Weather.cached(activity))
+
         btnWeather?.setOnClickListener {
             val report = Weather.cached(activity)
             if (report != null) {
-                val detail = "${report.place}: ${report.temp.toInt()}°C"
+                val sky = Weather.sky(report.code)
+                val status = activity.getString(Weather.label(sky))
+                val detail = "${report.place}: ${report.temp.toInt()}°C • $status"
                 Toast.makeText(activity, detail, Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(activity, "Đang nạp thời tiết…", Toast.LENGTH_SHORT).show()
             }
+            Thread { Weather.fetch(activity, "") }.start()
         }
         btnInputs?.setOnClickListener { onAction(HeaderAction.OpenInputs) }
         btnWifi?.setOnClickListener { onAction(HeaderAction.OpenNetwork) }
@@ -68,6 +78,36 @@ class HomeHeaderCoordinator(
         }
 
         setupKeyNavigation()
+    }
+
+    fun updateSysInfo(cpuPercent: Int) {
+        btnSysInfo?.updateStats(cpuPercent)
+    }
+
+    fun updateWeather(report: Weather.Report?) {
+        val tv = btnWeather ?: return
+        if (report != null) {
+            tv.visibility = View.VISIBLE
+            tv.text = "${report.temp.toInt()}°"
+            val iconRes = Weather.icon(Weather.sky(report.code), Weather.isDaytime())
+            val d = activity.getDrawable(iconRes)?.mutate()
+            if (d != null) {
+                val size = (16 * activity.resources.displayMetrics.density).toInt()
+                d.setBounds(0, 0, size, size)
+                d.setTint(tv.currentTextColor)
+                tv.setCompoundDrawables(d, null, null, null)
+            }
+        } else {
+            tv.visibility = View.VISIBLE
+            tv.text = "--°"
+            val d = activity.getDrawable(R.drawable.ic_w_partly_day)?.mutate()
+            if (d != null) {
+                val size = (16 * activity.resources.displayMetrics.density).toInt()
+                d.setBounds(0, 0, size, size)
+                d.setTint(tv.currentTextColor)
+                tv.setCompoundDrawables(d, null, null, null)
+            }
+        }
     }
 
     private fun setupKeyNavigation() {

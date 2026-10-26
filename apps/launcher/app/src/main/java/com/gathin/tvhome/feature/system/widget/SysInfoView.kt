@@ -246,7 +246,7 @@ class SysInfoView @JvmOverloads constructor(
         val topY = scrollY + (height - barHeight) / 2f
         val bottomY = topY + barHeight
 
-        val palette = Palette.currentOrBaseline()
+        val palette = Palette.dark(Palette.currentOrBaseline())
         val isRtl = layoutDirection == LAYOUT_DIRECTION_RTL
         val usages = floatArrayOf(ramUsage, cpuUsage, storageUsage)
         val barColors = intArrayOf(palette.primary, palette.tertiary, palette.secondary)
@@ -257,14 +257,14 @@ class SysInfoView @JvmOverloads constructor(
             val barRight = barLeft + barWidth
             val color = barColors[barIndex]
 
-            trackPaint.color = Palette.alpha(color, Math.round(0x33 * barAlpha))
+            trackPaint.color = Palette.alpha(color, Math.round(0x66 * barAlpha))
             barBounds.set(barLeft, topY, barRight, bottomY)
             canvas.drawRoundRect(barBounds, cornerRadius, cornerRadius, trackPaint)
 
             val usage = usages[barIndex]
             if (usage > 0f) {
                 val fillHeight = (barHeight * usage).coerceIn(barWidth, barHeight)
-                progressPaint.color = Palette.alpha(color, Math.round(0xEE * barAlpha))
+                progressPaint.color = Palette.alpha(color, Math.round(0xFF * barAlpha))
                 barBounds.set(barLeft, bottomY - fillHeight, barRight, bottomY)
                 canvas.drawRoundRect(barBounds, cornerRadius, cornerRadius, progressPaint)
             }

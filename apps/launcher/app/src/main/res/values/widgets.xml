@@ -9,7 +9,7 @@
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:textSize">13sp</item>
-        <item name="android:fontFamily">@font/sans_medium</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
         <item name="android:singleLine">true</item>
         <item name="android:ellipsize">end</item>
         <item name="android:includeFontPadding">false</item>
@@ -19,7 +19,7 @@
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:textSize">34sp</item>
-        <item name="android:fontFamily">@font/sans_display</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
         <item name="android:singleLine">true</item>
         <item name="android:includeFontPadding">false</item>
     </style>
@@ -28,7 +28,7 @@
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:textSize">15sp</item>
-        <item name="android:fontFamily">@font/sans_medium</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
         <item name="android:maxLines">2</item>
         <item name="android:ellipsize">end</item>
         <item name="android:includeFontPadding">false</item>
@@ -39,7 +39,7 @@
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_marginTop">2dp</item>
         <item name="android:textSize">12sp</item>
-        <item name="android:fontFamily">@font/sans_regular</item>
+        <item name="android:fontFamily">sans-serif</item>
         <item name="android:singleLine">true</item>
         <item name="android:ellipsize">end</item>
         <item name="android:includeFontPadding">false</item>
@@ -63,7 +63,7 @@
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_weight">1</item>
         <item name="android:textSize">12sp</item>
-        <item name="android:fontFamily">@font/sans_medium</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
         <item name="android:singleLine">true</item>
         <item name="android:includeFontPadding">false</item>
     </style>
@@ -73,7 +73,7 @@
         <item name="android:layout_marginStart">6dp</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:textSize">12sp</item>
-        <item name="android:fontFamily">@font/sans_regular</item>
+        <item name="android:fontFamily">sans-serif</item>
         <item name="android:fontFeatureSettings">tnum</item>
         <item name="android:singleLine">true</item>
         <item name="android:includeFontPadding">false</item>

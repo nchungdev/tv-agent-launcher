@@ -44,7 +44,7 @@
                     android:text="@string/smarthome_title"
                     android:textColor="#FFFFFFFF"
                     android:textSize="20sp"
-                    android:fontFamily="@font/sans_headline"
+                    android:fontFamily="sans-serif"
                     android:includeFontPadding="false" />
 
                 <TextView
@@ -55,7 +55,7 @@
                     android:text="@string/smarthome_subtitle"
                     android:textColor="#B3FFFFFF"
                     android:textSize="13sp"
-                    android:fontFamily="@font/sans_regular" />
+                    android:fontFamily="sans-serif" />
             </LinearLayout>
 
             <LinearLayout
@@ -87,7 +87,7 @@
                     android:text="Chỉnh sửa"
                     android:textColor="#FFFFFFFF"
                     android:textSize="13sp"
-                    android:fontFamily="@font/sans_medium" />
+                    android:fontFamily="sans-serif-medium" />
             </LinearLayout>
 
             <ImageView

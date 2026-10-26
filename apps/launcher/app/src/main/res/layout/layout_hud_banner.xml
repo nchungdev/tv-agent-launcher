@@ -27,7 +27,7 @@
             android:layout_height="wrap_content"
             android:textColor="#38BDF8"
             android:textSize="12sp"
-            android:fontFamily="@font/sans_medium"
+            android:fontFamily="sans-serif-medium"
             android:letterSpacing="0.04"
             android:singleLine="true"
             android:ellipsize="end" />
@@ -39,7 +39,7 @@
             android:layout_marginTop="2dp"
             android:textColor="#F8FAFC"
             android:textSize="15sp"
-            android:fontFamily="@font/sans_regular"
+            android:fontFamily="sans-serif"
             android:maxLines="2"
             android:ellipsize="end" />
     </LinearLayout>

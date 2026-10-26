@@ -24,7 +24,7 @@ class AgentAssistantShortcut(private val context: Context) {
     fun onKeyEvent(event: KeyEvent): Boolean {
         if (com.gathin.tvhome.service.ClockDream.isDreaming) return false
         val key = event.keyCode
-        if (key != KeyEvent.KEYCODE_ASSIST && key != KeyEvent.KEYCODE_VOICE_ASSIST && key != KeyEvent.KEYCODE_MENU) return false
+        if (!ASSISTANT_KEYS.contains(key)) return false
         if (closed) return false
 
         if (event.action == KeyEvent.ACTION_DOWN) {
@@ -51,6 +51,8 @@ class AgentAssistantShortcut(private val context: Context) {
     }
 
     private fun openAgent(): Boolean {
+        if (AgentOverlay.openIfHomeVisible()) return true
+
         val agent = Intent(context, AgentActivity::class.java)
         val opened = open(agent)
         if (opened) Log.i(TAG, "Opened Duinch AI Agent")
@@ -92,9 +94,16 @@ class AgentAssistantShortcut(private val context: Context) {
         const val TARGET_SYSTEM = 1
         const val TARGET_COUNT = 2
 
-        private const val KATNISS_SERVICE = "com.google.android.katniss/.search.serviceapi.KatnissVoiceInteractionService"
+        private const val KATNISS_SERVICE = "com.google.android.katniss/" +
+            ".search.serviceapi.KatnissVoiceInteractionService"
+        private val ASSISTANT_KEYS = intArrayOf(
+            KeyEvent.KEYCODE_ASSIST,
+            KeyEvent.KEYCODE_VOICE_ASSIST,
+            KeyEvent.KEYCODE_MENU
+        )
         private const val KATNISS_PKG = "com.google.android.katniss"
-        private const val KATNISS_TRAMPOLINE = "com.google.android.apps.tvsearch.app.launch.trampoline.SearchActivityTrampoline"
+        private const val KATNISS_TRAMPOLINE = "com.google.android.apps.tvsearch.app.launch" +
+            ".trampoline.SearchActivityTrampoline"
 
         @JvmStatic
         fun target(context: Context): Int {
@@ -129,7 +138,12 @@ class AgentAssistantShortcut(private val context: Context) {
 
         @JvmStatic
         fun targetLabel(context: Context, target: Int): String {
-            return context.getString(if (target == TARGET_SYSTEM) R.string.assistant_target_system else R.string.assistant_target_duinch)
+            val label = if (target == TARGET_SYSTEM) {
+                R.string.assistant_target_system
+            } else {
+                R.string.assistant_target_duinch
+            }
+            return context.getString(label)
         }
     }
 }

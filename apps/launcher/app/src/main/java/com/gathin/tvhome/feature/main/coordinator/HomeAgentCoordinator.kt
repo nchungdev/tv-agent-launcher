@@ -25,6 +25,7 @@ class HomeAgentCoordinator(
 
         val bot = duinchBot ?: return
         val greeting = greetingView
+        greeting?.maxWidth = greetingMaxWidth()
 
         greeting?.setBot(bot)
         bot.setSleepListener { isSleeping ->
@@ -63,5 +64,14 @@ class HomeAgentCoordinator(
 
     fun updateGreetingText(text: String) {
         greetingView?.showMessage(text, animate = true, simulateThinking = false)
+    }
+
+    private fun greetingMaxWidth(): Int {
+        val screenWidth = activity.resources.displayMetrics.widthPixels
+        return (screenWidth * GREETING_WIDTH_RATIO).toInt()
+    }
+
+    companion object {
+        private const val GREETING_WIDTH_RATIO = 0.42f
     }
 }

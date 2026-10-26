@@ -587,53 +587,25 @@ class WidgetShelf(
     }
 
     private fun measureDock(grid: RecyclerView, columns: Int): Boolean {
-        val itemCount = grid.adapter?.itemCount ?: 0
-        val lastColumn = (columns.coerceAtMost(itemCount) - 1).coerceAtLeast(0)
-        val first = if (grid.visibility == View.VISIBLE) tileBounds(grid, 0) else null
-        val second = if (grid.visibility == View.VISIBLE && lastColumn > 0) tileBounds(grid, 1) else null
-        val last = if (grid.visibility == View.VISIBLE) tileBounds(grid, lastColumn) else null
-        if (first == null || last == null || (lastColumn > 0 && second == null)) {
-            return measureFallback(columns)
-        }
-
-        val tileWidth = first.width()
-        val pitch = if (second != null) Math.abs(second.left - first.left)
-        else (grid.width - grid.paddingLeft - grid.paddingRight) / maxOf(1, columns)
-        val gap = minOf(pitch - tileWidth, Math.round(16 * density))
-        val tilesLeft = minOf(first.left, last.left)
-        val centre = (tilesLeft + maxOf(first.right, last.right)) / 2
-        val maxRowWidth = (columns - 1) * pitch + tileWidth
-        val cells = slotsLimit()
-        val maxCell = Math.round(180 * density)
-        cellWidth = minOf(maxCell, (maxRowWidth - gap * (cells - 1)) / cells)
-        cellPitch = cellWidth + gap
-        val compactRow = cells * cellWidth + (cells - 1) * gap
-        cellOrigin = centre - compactRow / 2
-        tilePitch = pitch
-        dockLeft = tilesLeft
-        dockTiles = lastColumn + 1
-        return true
-    }
-
-    private fun measureFallback(columns: Int): Boolean {
         val parent = shelf.parent as? View
         val parentWidth = if (parent != null && parent.width > 0) parent.width
             else activity.resources.displayMetrics.widthPixels
         if (parentWidth <= 0) return false
-        val safeCols = maxOf(1, columns)
-        val pitch = parentWidth / safeCols
-        val gap = Math.round(16 * density)
+        val sideMargin = Math.round(56 * density)
+        val availableWidth = parentWidth - 2 * sideMargin
         val cells = slotsLimit()
-        val maxCell = Math.round(180 * density)
-        val availableWidth = parentWidth - Math.round(32 * density) - gap * (cells - 1)
-        cellWidth = minOf(maxCell, maxOf(Math.round(80 * density), availableWidth / cells))
+        val gap = Math.round(16 * density)
+        cellWidth = (availableWidth - gap * (cells - 1)) / cells
         cellPitch = cellWidth + gap
-        val rowWidth = cells * cellWidth + (cells - 1) * gap
-        cellOrigin = maxOf(Math.round(16 * density), parentWidth / 2 - rowWidth / 2)
-        tilePitch = pitch
-        dockLeft = cellOrigin
-        dockTiles = safeCols
+        cellOrigin = sideMargin
+        tilePitch = availableWidth / maxOf(1, columns)
+        dockLeft = sideMargin
+        dockTiles = maxOf(1, columns)
         return true
+    }
+
+    private fun measureFallback(columns: Int): Boolean {
+        return measureDock(lastGrid ?: return false, columns)
     }
 
     private fun tileBounds(grid: RecyclerView, position: Int): Rect? {
@@ -805,7 +777,9 @@ class WidgetShelf(
         haLabel.text = "NHÀ THÔNG MINH"
         haLabel.setTextColor(palette.primary)
         haRightTitle.setTextColor(palette.primary)
-        haStatus.text = temperature ?: (if (configured) "Sẵn sàng" else "—")
+        val statusText = temperature ?: (if (configured) "Sẵn sàng" else "—")
+        haStatus.text = statusText
+        haStatus.textSize = if (statusText.length > 5) 20f else 32f
 
         if (!humidity.isNullOrBlank()) {
             haHumidity.text = "💧 $humidity"
@@ -815,7 +789,7 @@ class WidgetShelf(
             haHumidity.visibility = View.GONE
         }
 
-        haDetail.text = if (sensorName != null && temperature != null) {
+        haDetail.text = if (sensorName != null && temperature != null && temperature != "—") {
             "$sensorName · Bấm OK để mở"
         } else if (configured) {
             "Phòng khách · Bấm OK để mở"
@@ -881,16 +855,35 @@ class WidgetShelf(
                     val target = if (entityId.isNotBlank()) {
                         states.find { it.id == entityId }
                     } else {
-                        states.find { it.indoorSensor } ?: states.find { it.id.startsWith("climate.") }
+                        states.find {
+                            it.indoorSensor && it.state != "unavailable" && it.state != "unknown"
+                        } ?: states.find {
+                            it.id.startsWith("climate.") && it.state != "unavailable" &&
+                                it.state != "unknown"
+                        } ?: states.find { it.indoorSensor }
+                        ?: states.find { it.id.startsWith("climate.") }
                     }
                     if (target != null) {
                         val temp = target.currentTemperature ?: target.temperature
-                        val display = if (temp != null) "${temp.toInt()}°C"
-                            else if (target.state.toDoubleOrNull() != null) {
-                                "${target.state.toDouble().toInt()}°C"
-                            } else target.state
+                        val display = if (temp != null) {
+                            "${temp.toInt()}°C"
+                        } else if (target.state.toDoubleOrNull() != null) {
+                            "${target.state.toDouble().toInt()}°C"
+                        } else if (target.state.equals("unavailable", true) ||
+                            target.state.equals("unknown", true)
+                        ) {
+                            "—"
+                        } else {
+                            target.state
+                        }
                         connection.saveHaTemperature(display)
-                        connection.saveHaSensorName(target.name)
+                        val rawName = if (target.name.isNotBlank()) target.name else target.id
+                        val cleanName = if (rawName.startsWith("climate.", ignoreCase = true)) {
+                            "Điều hòa"
+                        } else {
+                            rawName
+                        }
+                        connection.saveHaSensorName(cleanName)
                     }
 
                     val humidity = states.find {
@@ -1130,7 +1123,7 @@ class WidgetShelf(
                 degrees(rep.low)
             )
         }
-        weatherIcon.setIcon(activity.getDrawable(Weather.icon(sky, weatherPage == 2 || rep.day)))
+        weatherIcon.setIcon(activity.getDrawable(Weather.icon(sky, weatherPage == 2 || Weather.isDaytime())))
     }
 
     private fun degrees(celsius: Double): Int = Math.round(if (fahrenheit()) celsius * 9 / 5 + 32 else celsius).toInt()

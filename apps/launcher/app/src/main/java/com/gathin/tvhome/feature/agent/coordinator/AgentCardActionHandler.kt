@@ -1,4 +1,5 @@
 package com.gathin.tvhome.feature.agent.coordinator
+import com.gathin.tvhome.core.design.Fonts
 import com.gathin.tvhome.feature.agent.data.*
 import com.gathin.tvhome.feature.agent.ui.*
 import com.gathin.tvhome.feature.agent.widget.*
@@ -70,7 +71,7 @@ object AgentCardActionHandler {
             text = title
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
             setTextColor(palette.onSurface)
-            typeface = context.resources.getFont(R.font.sans_medium)
+            typeface = Fonts.MEDIUM
         }
         panel.addView(titleView)
 
@@ -78,7 +79,7 @@ object AgentCardActionHandler {
             text = "Phim/series này đang trong hàng đợi tải về trên NAS."
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             setTextColor(palette.onSurfaceVariant)
-            typeface = context.resources.getFont(R.font.sans_regular)
+            typeface = Fonts.REGULAR
             setLineSpacing(0f, 1.25f)
             layoutParams = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -154,7 +155,7 @@ object AgentCardActionHandler {
             text = "Thêm vào thư viện"
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
             setTextColor(palette.onSurface)
-            typeface = context.resources.getFont(R.font.sans_medium)
+            typeface = Fonts.MEDIUM
         }
         panel.addView(titleView)
 
@@ -162,7 +163,7 @@ object AgentCardActionHandler {
             text = prompt
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             setTextColor(palette.onSurfaceVariant)
-            typeface = context.resources.getFont(R.font.sans_regular)
+            typeface = Fonts.REGULAR
             setLineSpacing(0f, 1.25f)
             layoutParams = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,

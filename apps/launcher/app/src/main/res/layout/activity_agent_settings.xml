@@ -48,7 +48,7 @@
                     android:text="Duinch Agent"
                     android:textColor="#FFFFFFFF"
                     android:textSize="20sp"
-                    android:fontFamily="@font/sans_headline"
+                    android:fontFamily="sans-serif"
                     android:includeFontPadding="false" />
 
                 <TextView
@@ -59,7 +59,7 @@
                     android:text="Đang kết nối…"
                     android:textColor="#B3FFFFFF"
                     android:textSize="13sp"
-                    android:fontFamily="@font/sans_regular"
+                    android:fontFamily="sans-serif"
                     android:maxLines="1"
                     android:ellipsize="end" />
             </LinearLayout>
@@ -151,7 +151,7 @@
                                 android:text="Đang quét tìm Duinch Agent trong mạng…"
                                 android:textColor="#E6FFFFFF"
                                 android:textSize="13sp"
-                                android:fontFamily="@font/sans_regular" />
+                                android:fontFamily="sans-serif" />
 
                             <TextView
                                 android:id="@+id/btnRescan"
@@ -160,7 +160,7 @@
                                 android:text="Quét lại"
                                 android:textColor="#9A82DB"
                                 android:textSize="13sp"
-                                android:fontFamily="@font/sans_medium"
+                                android:fontFamily="sans-serif-medium"
                                 android:focusable="true"
                                 android:clickable="true" />
                         </LinearLayout>
@@ -194,7 +194,7 @@
                                     android:text="Duinch Agent"
                                     android:textColor="#FFFFFFFF"
                                     android:textSize="14sp"
-                                    android:fontFamily="@font/sans_medium" />
+                                    android:fontFamily="sans-serif-medium" />
 
                                 <TextView
                                     android:id="@+id/serverFoundSubtitle"
@@ -204,7 +204,7 @@
                                     tools:text="http://192.168.1.50:8788"
                                     android:textColor="#B3FFFFFF"
                                     android:textSize="12sp"
-                                    android:fontFamily="@font/sans_regular" />
+                                    android:fontFamily="sans-serif" />
                             </LinearLayout>
 
                             <TextView
@@ -218,7 +218,7 @@
                                 android:text="Kết nối"
                                 android:textColor="#9A82DB"
                                 android:textSize="13sp"
-                                android:fontFamily="@font/sans_medium"
+                                android:fontFamily="sans-serif-medium"
                                 android:focusable="true"
                                 android:clickable="true" />
                         </LinearLayout>
@@ -238,7 +238,7 @@
                                 android:text="Không tìm thấy Agent tự động trong mạng"
                                 android:textColor="#80FFFFFF"
                                 android:textSize="13sp"
-                                android:fontFamily="@font/sans_regular"
+                                android:fontFamily="sans-serif"
                                 android:layout_marginBottom="10dp" />
 
                             <TextView
@@ -267,7 +267,7 @@
                                 android:text="Hủy"
                                 android:textColor="#B3FFFFFF"
                                 android:textSize="14sp"
-                                android:fontFamily="@font/sans_medium"
+                                android:fontFamily="sans-serif-medium"
                                 android:focusable="true"
                                 android:clickable="true"
                                 android:visibility="gone" />
@@ -292,7 +292,7 @@
                             tools:text="Máy chủ: http://192.168.1.50:8788"
                             android:textColor="#9A82DB"
                             android:textSize="13sp"
-                            android:fontFamily="@font/sans_medium" />
+                            android:fontFamily="sans-serif-medium" />
 
                         <ImageView
                             android:id="@+id/qrImage"
@@ -310,7 +310,7 @@
                             tools:text="http://192.168.1.50:8791"
                             android:textColor="#FFFFFFFF"
                             android:textSize="14sp"
-                            android:fontFamily="@font/sans_medium" />
+                            android:fontFamily="sans-serif-medium" />
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -319,7 +319,7 @@
                             android:text="Quét bằng camera điện thoại để xác thực kết nối"
                             android:textColor="#B3FFFFFF"
                             android:textSize="12sp"
-                            android:fontFamily="@font/sans_regular" />
+                            android:fontFamily="sans-serif" />
 
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -340,7 +340,7 @@
                                 android:text="Quay lại"
                                 android:textColor="#B3FFFFFF"
                                 android:textSize="14sp"
-                                android:fontFamily="@font/sans_medium"
+                                android:fontFamily="sans-serif-medium"
                                 android:focusable="true"
                                 android:clickable="true" />
 
@@ -355,7 +355,7 @@
                                 android:text="Hủy"
                                 android:textColor="#B3FFFFFF"
                                 android:textSize="14sp"
-                                android:fontFamily="@font/sans_medium"
+                                android:fontFamily="sans-serif-medium"
                                 android:focusable="true"
                                 android:clickable="true" />
                         </LinearLayout>
