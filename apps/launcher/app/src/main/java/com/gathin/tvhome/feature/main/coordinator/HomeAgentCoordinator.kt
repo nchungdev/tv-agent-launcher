@@ -62,6 +62,11 @@ class HomeAgentCoordinator(
         }
     }
 
+    fun showPushedGreeting(text: String, mood: Int) {
+        duinchBot?.pulsePlayful(mood, PUSH_MOOD_MS)
+        updateGreetingText(text)
+    }
+
     fun updateGreetingText(text: String) {
         greetingView?.showMessage(text, animate = true, simulateThinking = false)
     }
@@ -73,5 +78,6 @@ class HomeAgentCoordinator(
 
     companion object {
         private const val GREETING_WIDTH_RATIO = 0.42f
+        private const val PUSH_MOOD_MS = 2000L
     }
 }

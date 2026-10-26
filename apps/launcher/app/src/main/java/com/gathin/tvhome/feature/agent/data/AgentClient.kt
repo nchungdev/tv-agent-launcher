@@ -213,7 +213,8 @@ object AgentClient {
         session: String,
         text: String,
         listener: Listener,
-        request: Request
+        request: Request,
+        onPresentation: ((PresentationResponse) -> Unit)? = null
     ) {
         val event = InputEvent(
             requestId = "req-" + System.currentTimeMillis(),
@@ -227,6 +228,7 @@ object AgentClient {
                 if (presentation.speechText.isNotEmpty()) {
                     listener.onChunk(presentation.speechText)
                 }
+                onPresentation?.invoke(presentation)
             }
 
             override fun onClientAction(action: Map<String, Any?>) {
@@ -264,6 +266,18 @@ object AgentClient {
         listener: V2StreamListener,
         request: Request = Request()
     ) {
+        stream(context, "/v2/ask", event.toJson(), listener, request)
+    }
+
+    @JvmStatic
+    @Throws(Exception::class)
+    internal fun stream(
+        context: Context,
+        path: String,
+        payload: JSONObject,
+        listener: V2StreamListener,
+        request: Request = Request()
+    ) {
         val tok = token(context) ?: throw AgentException(
             R.string.agent_token_missing,
             "no token"
@@ -272,7 +286,7 @@ object AgentClient {
         if (base.isEmpty()) {
             throw AgentException(R.string.agent_status_offline, "no server url")
         }
-        val connection = open(base + "/v2/ask", tok)
+        val connection = open(base + path, tok)
         request.attach(connection)
         try {
             connection.requestMethod = "POST"
@@ -283,7 +297,7 @@ object AgentClient {
                 "Content-Type",
                 "application/json; charset=utf-8"
             )
-            val body = event.toJson().toString()
+            val body = payload.toString()
             connection.outputStream.use { out ->
                 out.write(body.toByteArray(StandardCharsets.UTF_8))
             }

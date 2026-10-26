@@ -58,6 +58,7 @@ Detailed walkthrough of each vertical feature slice inside `apps/launcher/app/sr
   Direct Home Assistant integration via [`HassClient`](file:///Users/lap16792/Personal/tv-agent/tv-agent-launcher/apps/launcher/app/src/main/java/com/gathin/tvhome/feature/smarthome/datasource/HassClient.kt), `SmartHomeSheet`, room grouping, and device controls (climate, fan, light, switch).
 - 🤖 **[AI Agent Module](modules/agent.md)**:
   Duinch animated companion bot ([`DuinchView`](file:///Users/lap16792/Personal/tv-agent/tv-agent-launcher/apps/launcher/app/src/main/java/com/gathin/tvhome/feature/agent/ui/DuinchView.kt)), WebSocket streaming protocol, speech recognition, and TV remote shortcut bindings.
+- 🔌 **[Agent protocol (launcher ↔ NAS)](modules/agent-protocol.md)**: JSON contract for the NAS server.
 - 🔔 **[Notification Module](modules/notification.md)**:
   [`TvNotification`](file:///Users/lap16792/Personal/tv-agent/tv-agent-launcher/apps/launcher/app/src/main/java/com/gathin/tvhome/feature/notification/model/TvNotification.kt) Clean Architecture repository, in-window history sheet, topbar unread dot, and floating heads-up display ([`NotificationHudOverlay`](file:///Users/lap16792/Personal/tv-agent/tv-agent-launcher/apps/launcher/app/src/main/java/com/gathin/tvhome/feature/notification/ui/NotificationHudOverlay.kt)).
 - ⚡ **[Running Apps Module](modules/runningapps.md)**:

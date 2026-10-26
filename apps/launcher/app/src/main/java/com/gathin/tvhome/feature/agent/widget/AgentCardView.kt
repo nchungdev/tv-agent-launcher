@@ -110,18 +110,21 @@ class AgentCardView(context: Context, private val card: AgentCardData) : LinearL
             meta.addView(subView)
         }
 
+        val requested = card.status.equals(AgentCardData.STATUS_REQUESTED, ignoreCase = true)
+        val downloading = card.status.equals(AgentCardData.STATUS_DOWNLOADING, ignoreCase = true)
+        val isPlex = card.isPlex()
         val badgeText = when {
-            card.status.equals("plex", ignoreCase = true) -> "PLEX"
-            card.status.equals("downloading", ignoreCase = true) -> "ĐANG TẢI"
+            isPlex -> "PLEX"
+            downloading -> "ĐANG TẢI"
+            requested -> "ĐÃ YÊU CẦU"
             else -> "THƯ VIỆN"
         }
         val badgeColor = when {
-            card.status.equals("plex", ignoreCase = true) -> 0xFFE5A00D.toInt()
-            card.status.equals("downloading", ignoreCase = true) -> palette.tertiary
+            isPlex -> 0xFFE5A00D.toInt()
+            downloading || requested -> palette.tertiary
             else -> palette.primary
         }
 
-        val isPlex = card.status.equals("plex", ignoreCase = true)
         val badge = TextView(context).apply {
             text = badgeText
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)

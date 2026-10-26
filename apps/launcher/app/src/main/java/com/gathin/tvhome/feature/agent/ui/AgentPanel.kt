@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import com.gathin.tvhome.R
+import com.gathin.tvhome.core.view.AgentCardData
 import com.gathin.tvhome.feature.agent.coordinator.DuinchBrain
 import com.gathin.tvhome.feature.agent.widget.DuinchView
 
@@ -96,7 +97,7 @@ class AgentPanel(private val activity: Activity, private val host: Host) :
         voiceReply?.stop()
         speech.cancel()
         views.resetLine()
-        views.answer.setText("")
+        views.answer.clear()
         views.hideInput()
         views.chips.visibility = View.VISIBLE
         setState(IDLE)
@@ -131,16 +132,11 @@ class AgentPanel(private val activity: Activity, private val host: Host) :
         if (state == THINKING || state == SPEAKING) return
 
         voiceReply?.stop()
-        when (speech.start()) {
-            AgentSpeechInput.Start.NEEDS_PERMISSION -> return
-            AgentSpeechInput.Start.UNAVAILABLE -> {
-                showIdle(activity.getString(R.string.agent_voice_unavailable))
-                return
-            }
-            AgentSpeechInput.Start.STARTED -> Unit
-        }
+        val started = speech.start()
+        if (started == AgentSpeechInput.Start.NEEDS_PERMISSION) return
+        if (started == AgentSpeechInput.Start.UNAVAILABLE) return onFailureIdle()
         heardSpeech = false
-        views.answer.setText("")
+        views.answer.clear()
         val listening = activity.getString(R.string.agent_listening_steady)
         views.showLine(listening, AgentPanelViews.BOT_ACCENT)
         setState(LISTENING)
@@ -156,6 +152,7 @@ class AgentPanel(private val activity: Activity, private val host: Host) :
         requestDone = false
         setState(THINKING)
         views.showLine(request, AgentPanelViews.TEXT_COLOR)
+        views.answer.clear()
         views.answer.showLoading(DuinchBrain.thinkingLine(activity))
         runner.send(request)
     }
@@ -164,6 +161,11 @@ class AgentPanel(private val activity: Activity, private val host: Host) :
         if (released || !active) return
         views.answer.setText(soFar)
         speakIfEnabled(soFar, false)
+    }
+
+    override fun onCards(cards: List<AgentCardData>) {
+        if (released || !active) return
+        views.answer.setCards(cards)
     }
 
     override fun onFinished(error: String?, answer: String) {
@@ -223,8 +225,10 @@ class AgentPanel(private val activity: Activity, private val host: Host) :
     }
 
     override fun onFailure() {
-        if (state == LISTENING) showIdle(activity.getString(R.string.agent_voice_unavailable))
+        if (state == LISTENING) onFailureIdle()
     }
+
+    private fun onFailureIdle() = showIdle(activity.getString(R.string.agent_voice_unavailable))
 
     override fun typeRequested() {
         speech.cancel()
@@ -234,7 +238,6 @@ class AgentPanel(private val activity: Activity, private val host: Host) :
     }
 
     override fun speakRequested() = startListening()
-
     override fun voiceToggled() {
         val enabled = !replyPreference.speakReplies
         replyPreference.speakReplies = enabled
@@ -254,7 +257,6 @@ class AgentPanel(private val activity: Activity, private val host: Host) :
     }
 
     override fun suggestionChosen(text: String) = send(text)
-
     override fun typed(text: String) = send(text)
 
     private fun keyTarget() = object : AgentPanelKeys.Target {
@@ -264,19 +266,17 @@ class AgentPanel(private val activity: Activity, private val host: Host) :
         override fun hasHeardSpeech() = heardSpeech
         override fun closePanel() = host.closePanel()
         override fun closeInput() = views.leaveInput()
-        override fun glanceAway() = glance()
-        override fun stopSpeaking() = silenceVoice()
+        override fun glanceAway() {
+            speech.cancel()
+            showIdle(DuinchBrain.agentGreeting(activity))
+        }
+
+        override fun stopSpeaking() {
+            voiceReply?.stop()
+            setState(IDLE)
+        }
+
         override fun finishListening() = finishHearing()
-    }
-
-    private fun glance() {
-        speech.cancel()
-        showIdle(DuinchBrain.agentGreeting(activity))
-    }
-
-    private fun silenceVoice() {
-        voiceReply?.stop()
-        setState(IDLE)
     }
 
     private fun finishHearing() {

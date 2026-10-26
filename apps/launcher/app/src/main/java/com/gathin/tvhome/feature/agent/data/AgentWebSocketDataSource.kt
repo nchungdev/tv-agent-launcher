@@ -58,7 +58,7 @@ class AgentWebSocketDataSource(private val context: Context) {
                     val input = BufferedInputStream(socket.getInputStream(), SOCKET_RX_BYTES)
                     val output = socket.getOutputStream()
 
-                    sendHandshake(output, host, port)
+                    sendHandshake(output, host, port, AgentClient.token(appContext))
                     if (readHandshakeResponse(input)) {
                         connected = true
                         backoffMs = RECONNECT_DELAY_MS
@@ -89,7 +89,7 @@ class AgentWebSocketDataSource(private val context: Context) {
         }
     }
 
-    private fun sendHandshake(output: OutputStream, host: String, port: Int) {
+    private fun sendHandshake(output: OutputStream, host: String, port: Int, token: String?) {
         val nonce = ByteArray(16)
         SecureRandom().nextBytes(nonce)
         val secKey = Base64.encodeToString(nonce, Base64.NO_WRAP)
@@ -98,9 +98,14 @@ class AgentWebSocketDataSource(private val context: Context) {
             "Upgrade: websocket\r\n" +
             "Connection: Upgrade\r\n" +
             "Sec-WebSocket-Key: $secKey\r\n" +
-            "Sec-WebSocket-Version: 13\r\n\r\n"
+            "Sec-WebSocket-Version: 13\r\n" +
+            authorizationHeader(token) + "\r\n"
         output.write(request.toByteArray(StandardCharsets.US_ASCII))
         output.flush()
+    }
+
+    private fun authorizationHeader(token: String?): String {
+        return if (token.isNullOrEmpty()) "" else "Authorization: Bearer $token\r\n"
     }
 
     private fun readHandshakeResponse(input: InputStream): Boolean {

@@ -4,7 +4,10 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import com.gathin.tvhome.core.view.AgentCards
+import com.gathin.tvhome.core.view.AgentCardData
 import com.gathin.tvhome.feature.agent.data.AgentClient
+import com.gathin.tvhome.feature.agent.data.PresentationResponse
 import java.util.UUID
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -13,6 +16,7 @@ class AgentRequestRunner(context: Context, private val callbacks: Callbacks) {
 
     interface Callbacks {
         fun onPartialAnswer(soFar: String)
+        fun onCards(cards: List<AgentCardData>)
         fun onFinished(error: String?, answer: String)
     }
 
@@ -67,7 +71,7 @@ class AgentRequestRunner(context: Context, private val callbacks: Callbacks) {
                 }
                 received.append(piece)
                 deliverSnapshot(received, lastDelivery, requestGeneration)
-            }, connection)
+            }, connection) { presentation -> deliverCards(presentation, requestGeneration) }
         } catch (e: AgentClient.AgentException) {
             failure = appContext.getString(e.messageRes)
         } catch (e: Exception) {
@@ -80,6 +84,15 @@ class AgentRequestRunner(context: Context, private val callbacks: Callbacks) {
             main.removeCallbacks(renderPending)
             pendingAnswer = null
             callbacks.onFinished(failure, finalAnswer)
+        }
+    }
+
+    private fun deliverCards(presentation: PresentationResponse, requestGeneration: Int) {
+        if (presentation.cards.isEmpty()) return
+
+        val cards = AgentCards.fromMaps(presentation.cards)
+        main.post {
+            if (requestGeneration == generation) callbacks.onCards(cards)
         }
     }
 

@@ -8,6 +8,7 @@ import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
 import com.gathin.tvhome.R
+import com.gathin.tvhome.feature.agent.data.AgentEventHub
 import com.gathin.tvhome.feature.agent.ui.AgentOverlay
 import com.gathin.tvhome.feature.settings.data.Config
 import com.gathin.tvhome.feature.runningapps.data.AppLocalDataSource
@@ -74,6 +75,9 @@ class MainActivity : Activity(), AppAdapter.TileListener {
     private lateinit var dockModeController: DockModeController
     private lateinit var widgetShelf: WidgetShelf
     private lateinit var agentOverlay: AgentOverlay
+    private val unreadListener: (Int) -> Unit = { count ->
+        runOnUiThread { presenter.processIntent(MainIntent.UpdateNotificationCount(count)) }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -96,6 +100,8 @@ class MainActivity : Activity(), AppAdapter.TileListener {
         appRepo = AppRepositoryImpl(AppLocalDataSource(this))
         val notifRepo = NotificationRepositoryImpl.getInstance()
         presenter = MainPresenter(activityScope, appRepo, notifRepo)
+        notifRepo.addListener(unreadListener)
+        Thread({ notifRepo.init(applicationContext) }, "notifications-init").start()
     }
 
     private fun initCoordinators(cfg: Config) {
@@ -402,6 +408,10 @@ class MainActivity : Activity(), AppAdapter.TileListener {
         super.onResume()
         isHomeResumed = true
         agentOverlay.onResume()
+        AgentEventHub.greetingListener = { text, mood ->
+            agentCoordinator.showPushedGreeting(text, mood)
+        }
+        AgentEventHub.ensureStarted(this)
         networkManager.start()
         metricsMonitor.start()
         headerCoordinator.updateWeather(Weather.cached(this))
@@ -420,9 +430,15 @@ class MainActivity : Activity(), AppAdapter.TileListener {
         super.onPause()
         isHomeResumed = false
         agentOverlay.onPause()
+        AgentEventHub.greetingListener = null
         networkManager.stop()
         metricsMonitor.stop()
         widgetShelf.stop()
+    }
+
+    override fun onDestroy() {
+        NotificationRepositoryImpl.getInstance().removeListener(unreadListener)
+        super.onDestroy()
     }
 
     override fun onRequestPermissionsResult(

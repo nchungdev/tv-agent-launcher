@@ -3,6 +3,7 @@ import com.gathin.tvhome.feature.agent.data.*
 import com.gathin.tvhome.feature.agent.coordinator.*
 import com.gathin.tvhome.feature.agent.ui.*
 
+import com.gathin.tvhome.core.view.AgentCardData
 import com.gathin.tvhome.core.view.NativeMarkdown
 import android.content.Context
 import android.graphics.Color
@@ -22,6 +23,8 @@ class AgentAnswerView(context: Context) : FrameLayout(context) {
     private val plainText: TextView
     private val cardsContainer: LinearLayout
     private var destroyed = false
+    private var structuredCards: List<AgentCardData> = emptyList()
+    private var lastText = ""
 
     init {
         setBackgroundColor(Color.rgb(8, 11, 16))
@@ -61,20 +64,37 @@ class AgentAnswerView(context: Context) : FrameLayout(context) {
         addView(scroll, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
     }
 
+    fun setCards(cards: List<AgentCardData>) {
+        if (destroyed) return
+        structuredCards = cards
+        render()
+    }
+
     fun setText(text: String) {
         if (destroyed) return
-        if (text.isBlank()) {
+        lastText = text
+        render()
+    }
+
+    fun clear() {
+        if (destroyed) return
+        lastText = ""
+        structuredCards = emptyList()
+        render()
+    }
+
+    private fun render() {
+        cardsContainer.removeAllViews()
+        if (lastText.isBlank() && structuredCards.isEmpty()) {
             plainText.text = ""
-            cardsContainer.removeAllViews()
             return
         }
 
-        val result = NativeMarkdown.parse(text)
+        val result = NativeMarkdown.parse(lastText)
         plainText.text = result.formattedText
-        cardsContainer.removeAllViews()
 
         val density = context.resources.displayMetrics.density
-        for (card in result.cards) {
+        for (card in result.cards + structuredCards) {
             val cardView = AgentCardView(context, card).apply {
                 layoutParams = LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,

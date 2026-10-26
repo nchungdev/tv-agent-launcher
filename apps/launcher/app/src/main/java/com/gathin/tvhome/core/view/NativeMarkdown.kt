@@ -11,15 +11,6 @@ import android.text.style.TypefaceSpan
 import android.text.style.URLSpan
 import java.util.regex.Pattern
 
-data class AgentCardData(
-    val status: String,
-    val title: String,
-    val type: String,
-    val year: String,
-    val link: String,
-    val posterUrl: String = ""
-)
-
 data class MarkdownParseResult(
     val formattedText: CharSequence,
     val cards: List<AgentCardData>
