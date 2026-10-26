@@ -1,0 +1,45 @@
+#!/bin/sh
+set -e
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+MAX_LINE_LENGTH=100
+MAX_FILE_LINES=300
+cd "$ROOT"
+
+unformatted="$(gofmt -l apps/tvctl packages/contract)"
+if [ -n "$unformatted" ]; then
+  echo "gofmt needed:" >&2
+  echo "$unformatted" >&2
+  exit 1
+fi
+
+checked_files() {
+  find apps/tvctl packages/contract -name '*.go' ! -name '*_gen.go'
+  find scripts .github -type f ! -path "*/ISSUE_TEMPLATE/*"
+  echo Makefile apps/launcher/build-and-install.sh apps/launcher/build-and-install.ps1
+}
+
+checked_files | xargs awk -v max="$MAX_LINE_LENGTH" -v max_lines="$MAX_FILE_LINES" '
+  FNR == 1 && NR > 1 {
+    if (prev_lines >= max_lines && prev_file !~ /_test\.go$/) {
+      printf "%s: %d lines (max %d)\n", prev_file, prev_lines, max_lines - 1
+      failed = 1
+    }
+  }
+  {
+    line = $0
+    gsub(/\t/, "    ", line)
+    prev_file = FILENAME
+    prev_lines = FNR
+  }
+  length(line) > max {
+    printf "%s:%d: %d characters (max %d)\n", FILENAME, FNR, length(line), max
+    failed = 1
+  }
+  END {
+    if (prev_lines >= max_lines && prev_file !~ /_test\.go$/) {
+      printf "%s: %d lines (max %d)\n", prev_file, prev_lines, max_lines - 1
+      failed = 1
+    }
+    exit failed
+  }
+'

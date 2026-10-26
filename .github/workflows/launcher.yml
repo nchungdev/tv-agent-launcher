@@ -1,0 +1,72 @@
+name: Launcher
+
+on:
+  workflow_call:
+    inputs:
+      changed: { type: boolean, required: true }
+      # Set by release.yml: the tag's version, and sign with the owner's key from the secrets.
+      version: { type: string, default: "" }
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate
+    if: inputs.changed
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
+    defaults:
+      run:
+        working-directory: apps/launcher
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-android
+
+      - run: chmod +x gradlew && ./gradlew --no-daemon testReleaseUnitTest lintRelease
+
+  build:
+    name: Build
+    needs: validate
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
+    defaults:
+      run:
+        working-directory: apps/launcher
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-android
+
+      - name: Release key
+        if: inputs.version != ''
+        env:
+          KEYSTORE_BASE64: ${{ secrets.TV_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            # The runner's own debug key would not install over the APK already on a TV.
+            echo "::error::TV_KEYSTORE_BASE64 is not set"
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+          echo "TV_KEYSTORE=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
+
+      - env:
+          TV_KEYSTORE_PASSWORD: ${{ secrets.TV_KEYSTORE_PASSWORD }}
+          TV_KEY_ALIAS: ${{ secrets.TV_KEY_ALIAS }}
+          TV_KEY_PASSWORD: ${{ secrets.TV_KEY_PASSWORD }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleRelease \
+            ${VERSION:+-PtvVersion=${VERSION#v}}
+
+      - name: APK size
+        run: |
+          size=$(stat -c %s app/build/outputs/apk/release/tv-launcher.apk)
+          echo "release APK: $((size / 1024)) KB"
+          test "$size" -lt 716800
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: tv-launcher
+          path: apps/launcher/app/build/outputs/apk/release/tv-launcher.apk
+          if-no-files-found: error
+          retention-days: 7

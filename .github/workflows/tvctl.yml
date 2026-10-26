@@ -1,0 +1,68 @@
+name: tvctl
+
+on:
+  workflow_call:
+    inputs:
+      changed: { type: boolean, required: true }
+
+permissions:
+  contents: read
+
+env:
+  GENERATED: >-
+    apps/tvctl/internal/contract
+    apps/launcher/app/src/main/java/com/gathin/tvhome/Contract.java
+
+jobs:
+  validate:
+    name: Validate
+    if: inputs.changed
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-go
+
+      - name: Style
+        run: scripts/check-style
+
+      - name: Generated contract matches contract.json
+        run: |
+          (cd packages/contract && go run ./cmd/generate)
+          git diff --exit-code -- $GENERATED
+
+      - name: Vet and test
+        working-directory: apps/tvctl
+        run: go vet ./... && go test ./...
+
+  build:
+    name: Build
+    needs: validate
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
+    strategy:
+      matrix:
+        target:
+          - darwin/arm64
+          - darwin/amd64
+          - linux/amd64
+          - linux/arm64
+          - windows/amd64
+          - windows/arm64
+    defaults:
+      run:
+        working-directory: apps/tvctl
+    env:
+      CGO_ENABLED: "0"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-go
+
+      - name: Cross-compile
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          os=${TARGET%/*}
+          arch=${TARGET#*/}
+          extension=""
+          [ "$os" = windows ] && extension=.exe
+          GOOS=$os GOARCH=$arch go build -trimpath -ldflags="-s -w" \
+            -o "dist/tvctl-$os-$arch$extension" ./cmd/tvctl

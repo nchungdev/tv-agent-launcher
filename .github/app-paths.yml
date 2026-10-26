@@ -1,0 +1,14 @@
+shared: &shared
+  - .github/**
+  - Makefile
+
+tvctl:
+  - *shared
+  - apps/tvctl/**
+  - packages/**
+  - scripts/**
+
+launcher:
+  - *shared
+  - apps/launcher/**
+  - packages/contract/**

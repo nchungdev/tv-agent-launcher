@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+TV_HOST="${TV_HOST:-192.168.1.50}"
+if [[ "$TV_HOST" != *:* ]]; then
+    TV_TARGET="${TV_HOST}:5555"
+else
+    TV_TARGET="${TV_HOST}"
+fi
+
+if ! command -v scrcpy >/dev/null 2>&1; then
+    echo "scrcpy not found. Install it with: brew install scrcpy" >&2
+    exit 1
+fi
+
+adb connect "$TV_TARGET" >/dev/null 2>&1 || true
+
+exec scrcpy -s "$TV_TARGET" \
+    --window-title="TV Launcher ($TV_TARGET)" \
+    --max-size=1280 \
+    --video-bit-rate=8M \
+    --max-fps=60 \
+    --stay-awake \
+    "$@"
