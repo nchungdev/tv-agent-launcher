@@ -125,6 +125,7 @@ open class SkyView @JvmOverloads constructor(
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
+        if (intensity == 0) return
         canvas.drawPath(shapes.fog, fogPaint)
         canvas.drawPath(shapes.stars, starPaint)
         canvas.drawPath(shapes.sun, sunPaint)

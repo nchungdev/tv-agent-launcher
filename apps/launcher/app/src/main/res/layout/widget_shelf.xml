@@ -20,108 +20,195 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:orientation="horizontal"
-            android:baselineAligned="false"
-            android:paddingStart="12dp"
-            android:paddingTop="10dp"
-            android:paddingEnd="12dp"
-            android:paddingBottom="10dp">
+            android:orientation="vertical"
+            android:paddingStart="4dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="4dp"
+            android:paddingBottom="8dp">
 
             <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="top"
-                android:orientation="vertical">
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:baselineAligned="false"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
-                <TextView
-                    android:id="@+id/clockDay"
-                    android:layout_width="match_parent"
+                <TextClock
+                    android:id="@+id/clockTime"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif"
+                    android:textStyle="bold"
+                    android:format12Hour="h:mm"
+                    android:format24Hour="HH:mm"
+                    android:includeFontPadding="false"
+                    android:textColor="#FFFFFFFF"
+                    android:textSize="56sp" />
+
+                <TextClock
+                    android:id="@+id/clockAmPm"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
                     android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="0.01"
+                    android:format12Hour="a"
+                    android:format24Hour=""
+                    android:letterSpacing="0.06"
                     android:textAllCaps="true"
-                    android:textColor="#A78BFA"
-                    android:maxLines="1"
-                    android:ellipsize="end"
-                    android:textSize="11sp" />
+                    android:textColor="#B3FFFFFF"
+                    android:textSize="14sp" />
 
                 <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="0dp"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:baselineAligned="false"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
+                    android:layout_marginStart="24dp"
+                    android:gravity="end"
+                    android:orientation="vertical">
 
-                    <TextClock
-                        android:id="@+id/clockTime"
+                    <TextView
+                        android:id="@+id/clockDay"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:fontFamily="sans-serif"
-                        android:textStyle="bold"
-                        android:format12Hour="h:mm"
-                        android:format24Hour="HH:mm"
-                        android:includeFontPadding="false"
-                        android:textColor="#FFFFFFFF"
-                        android:textSize="34sp" />
-
-                    <TextClock
-                        android:id="@+id/clockAmPm"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="4dp"
                         android:fontFamily="sans-serif-medium"
-                        android:format12Hour="a"
-                        android:format24Hour=""
                         android:letterSpacing="0.06"
                         android:textAllCaps="true"
-                        android:textColor="#B3FFFFFF"
-                        android:textSize="12sp" />
-                </LinearLayout>
+                        android:textColor="#A78BFA"
+                        android:maxLines="1"
+                        android:ellipsize="end"
+                        android:textSize="14sp" />
 
-                <TextView
-                    android:id="@+id/clockDate"
-                    style="@style/WidgetDetail"
-                    android:maxLines="1"
-                    android:ellipsize="end"
-                    android:textColor="#B0B3BD"
-                    android:textSize="11sp" />
+                    <TextView
+                        android:id="@+id/clockLunar"
+                        style="@style/WidgetDetail"
+                        android:layout_width="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:maxLines="1"
+                        android:ellipsize="end"
+                        android:textSize="15sp" />
+
+                    <TextView
+                        android:id="@+id/clockDate"
+                        style="@style/WidgetDetail"
+                        android:layout_width="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:maxLines="1"
+                        android:ellipsize="end"
+                        android:textColor="#B0B3BD"
+                        android:textSize="13sp" />
+                </LinearLayout>
             </LinearLayout>
 
             <View
                 android:id="@+id/clockDividerLine"
-                android:layout_width="1dp"
-                android:layout_height="match_parent"
-                android:layout_marginStart="8dp"
-                android:layout_marginEnd="8dp"
-                android:layout_marginTop="4dp"
-                android:layout_marginBottom="4dp"
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="14dp"
+                android:layout_marginBottom="14dp"
                 android:background="#1FFFFFFF" />
 
             <LinearLayout
-                android:id="@+id/calendarRightBlock"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:gravity="top"
-                android:orientation="vertical">
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:baselineAligned="false"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
                 <TextView
-                    android:id="@+id/calendarMonth"
+                    android:id="@+id/haStatus"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginEnd="10dp"
+                    android:background="@drawable/widget_chip_bg"
                     android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="0.06"
-                    android:textAllCaps="true"
-                    android:textColor="#A78BFA"
-                    android:textSize="11sp" />
+                    android:gravity="center_vertical"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:paddingStart="14dp"
+                    android:paddingTop="9dp"
+                    android:paddingEnd="14dp"
+                    android:paddingBottom="9dp"
+                    android:textColor="#FFFFFFFF"
+                    android:textSize="15sp" />
 
-                <LinearLayout
-                    android:id="@+id/calendarGrid"
+                <TextView
+                    android:id="@+id/haHumidity"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:orientation="vertical" />
+                    android:layout_marginEnd="10dp"
+                    android:fontFamily="sans-serif-medium"
+                    android:includeFontPadding="false"
+                    android:textColor="#38BDF8"
+                    android:textSize="14sp"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/haLightStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="10dp"
+                    android:background="@drawable/widget_chip_bg"
+                    android:fontFamily="sans-serif-medium"
+                    android:gravity="center_vertical"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:paddingStart="14dp"
+                    android:paddingTop="9dp"
+                    android:paddingEnd="14dp"
+                    android:paddingBottom="9dp"
+                    android:textColor="#FBBF24"
+                    android:textSize="15sp" />
+                <TextView
+                    android:id="@+id/haClimateStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    
+                    android:background="@drawable/widget_chip_bg"
+                    android:fontFamily="sans-serif-medium"
+                    android:gravity="center_vertical"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:paddingStart="14dp"
+                    android:paddingTop="9dp"
+                    android:paddingEnd="14dp"
+                    android:paddingBottom="9dp"
+                    android:textColor="#94A3B8"
+                    android:textSize="15sp" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:baselineAligned="false"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/haDetail"
+                    style="@style/WidgetDetail"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_marginTop="0dp"
+                    android:textColor="#B0B3BD"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:id="@+id/haOnlineStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:fontFamily="sans-serif-medium"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:textSize="13sp" />
             </LinearLayout>
         </LinearLayout>
     </com.gathin.tvhome.feature.main.widget.WidgetCard>
@@ -171,7 +258,7 @@
     </com.gathin.tvhome.feature.main.widget.WidgetCard>
 
     <com.gathin.tvhome.feature.main.widget.WidgetCard
-        android:id="@+id/widgetHomeAssistant"
+        android:id="@+id/widgetContinue"
         android:layout_width="0dp"
         android:layout_height="@dimen/widget_card_height"
         android:layout_gravity="center_vertical">
@@ -179,160 +266,73 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:orientation="horizontal"
-            android:baselineAligned="false"
-            android:paddingStart="12dp"
-            android:paddingTop="10dp"
-            android:paddingEnd="12dp"
-            android:paddingBottom="10dp">
+            android:orientation="vertical"
+            android:paddingStart="4dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="4dp"
+            android:paddingBottom="8dp">
 
             <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="top"
-                android:orientation="vertical">
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
                 <TextView
-                    android:id="@+id/haLabel"
-                    android:layout_width="wrap_content"
+                    android:id="@+id/contLabel"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_weight="1"
                     android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="0.04"
+                    android:letterSpacing="0.06"
                     android:textAllCaps="true"
                     android:textColor="#A78BFA"
                     android:maxLines="1"
                     android:ellipsize="end"
-                    android:textSize="11sp"
-                    android:text="@string/widget_home_assistant" />
+                    android:textSize="12sp"
+                    android:text="@string/widget_continue" />
 
-                <LinearLayout
+                <TextView
+                    android:id="@+id/contCount"
                     android:layout_width="wrap_content"
-                    android:layout_height="0dp"
-                    android:layout_weight="1"
-                    android:baselineAligned="false"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:id="@+id/haStatus"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:fontFamily="sans-serif"
-                        android:textStyle="bold"
-                        android:includeFontPadding="false"
-                        android:textColor="#FFFFFFFF"
-                        android:textSize="34sp"
-                        android:maxLines="1"
-                        android:ellipsize="end"
-                        android:text="—"
-                        tools:text="@string/home_assistant_online" />
-
-                    <TextView
-                        android:id="@+id/haHumidity"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
-                        android:fontFamily="sans-serif-medium"
-                        android:includeFontPadding="false"
-                        android:textColor="#38BDF8"
-                        android:textSize="14sp"
-                        android:visibility="gone" />
-                </LinearLayout>
-
-                <TextView
-                    android:id="@+id/haDetail"
-                    style="@style/WidgetDetail"
-                    android:maxLines="1"
-                    android:ellipsize="end"
-                    android:textColor="#B0B3BD"
-                    android:textSize="11sp"
-                    android:text="@string/home_assistant_click_hint" />
-            </LinearLayout>
-
-            <View
-                android:id="@+id/haDividerLine"
-                android:layout_width="1dp"
-                android:layout_height="match_parent"
-                android:layout_marginStart="10dp"
-                android:layout_marginEnd="10dp"
-                android:layout_marginTop="4dp"
-                android:layout_marginBottom="4dp"
-                android:background="#1FFFFFFF" />
-
-            <LinearLayout
-                android:id="@+id/haRightBlock"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="top"
-                android:orientation="vertical">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:baselineAligned="false"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:id="@+id/haRightTitle"
-                        android:layout_width="0dp"
-                        android:layout_weight="1"
-                        android:layout_height="wrap_content"
-                        android:fontFamily="sans-serif-medium"
-                        android:letterSpacing="0.06"
-                        android:textAllCaps="true"
-                        android:textColor="#A78BFA"
-                        android:textSize="11sp"
-                        android:text="THIẾT BỊ HOẠT ĐỘNG" />
-
-                    <com.gathin.tvhome.core.view.ShapeBadge
-                        android:id="@+id/haBadge"
-                        android:layout_width="26dp"
-                        android:layout_height="26dp" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="1"
-                    android:gravity="center_vertical"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:id="@+id/haLightStatus"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:fontFamily="sans-serif-medium"
-                        android:maxLines="1"
-                        android:ellipsize="end"
-                        android:textColor="#FBBF24"
-                        android:textSize="13sp"
-                        tools:text="💡 Đèn đang bật" />
-
-                    <TextView
-                        android:id="@+id/haClimateStatus"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="3dp"
-                        android:fontFamily="sans-serif-medium"
-                        android:maxLines="1"
-                        android:ellipsize="end"
-                        android:textColor="#94A3B8"
-                        android:textSize="12sp"
-                        tools:text="❄️ Điều hòa: Tắt" />
-                </LinearLayout>
-
-                <TextView
-                    android:id="@+id/haOnlineStatus"
-                    style="@style/WidgetDetail"
-                    android:maxLines="1"
-                    android:ellipsize="end"
-                    android:textColor="#34D399"
-                    android:textSize="11sp"
-                    tools:text="● Trực tuyến" />
+                    android:fontFamily="sans-serif-medium"
+                    android:textColor="#B0B3BD"
+                    android:textSize="12sp" />
             </LinearLayout>
+
+            <ImageView
+                android:id="@+id/contPoster"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:layout_marginTop="8dp"
+                android:scaleType="centerCrop"
+                android:importantForAccessibility="no" />
+
+            <TextView
+                android:id="@+id/contTitle"
+                style="@style/WidgetTitle"
+                android:layout_marginTop="8dp"
+                android:maxLines="1"
+                android:textSize="16sp"
+                android:textColor="#FFFFFFFF" />
+
+            <TextView
+                android:id="@+id/contSubtitle"
+                style="@style/WidgetDetail"
+                android:layout_marginTop="2dp"
+                android:maxLines="1"
+                android:textColor="#B0B3BD"
+                android:textSize="12sp" />
+
+            <ProgressBar
+                android:id="@+id/contProgress"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="4dp"
+                android:layout_marginTop="8dp"
+                android:max="1000" />
         </LinearLayout>
     </com.gathin.tvhome.feature.main.widget.WidgetCard>
 

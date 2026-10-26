@@ -47,6 +47,10 @@ import java.util.LinkedHashMap
 import java.util.function.Predicate
 
 
+private const val CATALOG_HEIGHT_DP = 214
+private const val CARD_WIDTH_DP = 112
+private const val CARD_HEIGHT_DP = 112
+
 class AppLibraryDialog(
     private val activity: Activity,
     private val animations: Boolean,
@@ -90,7 +94,7 @@ class AppLibraryDialog(
         val decor = activity.window.decorView
         catalogWidth = dp(800).coerceAtMost(dp(200).coerceAtLeast(decor.width - dp(64)))
         val width = catalogWidth
-        val height = dp(280)
+        val height = dp(CATALOG_HEIGHT_DP)
 
         popup = PopupWindow(panel, width, height, true).apply {
             setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
@@ -225,32 +229,32 @@ class AppLibraryDialog(
 
     private fun showCatalog() {
         stopHighlight()
-        resize(catalogWidth, dp(280))
+        resize(catalogWidth, dp(CATALOG_HEIGHT_DP))
         panel.removeAllViews()
 
         val header = LinearLayout(activity).apply {
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(12), dp(4), dp(8), dp(4))
         }
-        val title = text(activity.getString(R.string.app_library), 24, colors.onSurface).apply {
+        val title = text(activity.getString(R.string.app_library), 20, colors.onSurface).apply {
             typeface = Fonts.REGULAR
             gravity = Gravity.CENTER_VERTICAL
             isSingleLine = true
             ellipsize = TextUtils.TruncateAt.END
         }
-        header.addView(title, LinearLayout.LayoutParams(0, dp(36), 1f))
+        header.addView(title, LinearLayout.LayoutParams(0, dp(32), 1f))
 
         val countText = activity.resources.getQuantityString(R.plurals.library_app_count, totalApps, totalApps)
         val count = text(countText, 13, colors.onSurfaceVariant).apply { isSingleLine = true }
         header.addView(count, LinearLayout.LayoutParams(-2, -2))
-        panel.addView(header, LinearLayout.LayoutParams(-1, dp(44)))
+        panel.addView(header, LinearLayout.LayoutParams(-1, dp(38)))
 
         instructions = text(activity.getString(R.string.library_hint_add), 13, colors.onSurfaceVariant).apply {
             isSingleLine = true
             ellipsize = TextUtils.TruncateAt.END
             setPadding(dp(12), 0, dp(12), dp(6))
         }
-        panel.addView(instructions, LinearLayout.LayoutParams(-1, dp(26)))
+        panel.addView(instructions, LinearLayout.LayoutParams(-1, dp(24)))
 
         if (apps.isEmpty()) {
             instructions?.visibility = View.GONE
@@ -280,7 +284,7 @@ class AppLibraryDialog(
         list.itemAnimator = null
         list.overScrollMode = View.OVER_SCROLL_NEVER
         list.clipToPadding = false
-        list.setPadding(dp(10), dp(8), dp(10), dp(8))
+        list.setPadding(dp(10), dp(6), dp(10), dp(6))
         list.adapter = CatalogAdapter()
         sf.addView(list, FrameLayout.LayoutParams(-1, -1))
 
@@ -291,7 +295,7 @@ class AppLibraryDialog(
             importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
         }
         highlight = hl
-        sf.addView(hl, FrameLayout.LayoutParams(dp(144), dp(180)))
+        sf.addView(hl, FrameLayout.LayoutParams(dp(CARD_WIDTH_DP + 12), dp(CARD_HEIGHT_DP + 4)))
 
         scrollOffset = 0f
         val sp = SpringAnimation(hl, object : FloatPropertyCompat<View>("libraryScrollX") {
@@ -488,11 +492,11 @@ class AppLibraryDialog(
     private inner class CatalogAdapter : RecyclerView.Adapter<AppLibraryRow>() {
         override fun onCreateViewHolder(parent: ViewGroup, type: Int): AppLibraryRow {
             val row = FrameLayout(activity)
-            val params = RecyclerView.LayoutParams(dp(132), dp(170)).apply {
+            val params = RecyclerView.LayoutParams(dp(CARD_WIDTH_DP), dp(CARD_HEIGHT_DP)).apply {
                 setMargins(dp(6), dp(2), dp(6), dp(2))
             }
             row.layoutParams = params
-            row.setPadding(dp(10), dp(12), dp(10), dp(10))
+            row.setPadding(dp(8), dp(10), dp(8), dp(8))
             row.isFocusableInTouchMode = true
             row.isClickable = true
 
@@ -506,19 +510,19 @@ class AppLibraryDialog(
                 id = R.id.icon
                 scaleType = ImageView.ScaleType.FIT_CENTER
             }
-            content.addView(icon, LinearLayout.LayoutParams(dp(60), dp(60)))
+            content.addView(icon, LinearLayout.LayoutParams(dp(44), dp(44)))
 
-            val name = text("", 15, colors.onSurface).apply {
+            val name = text("", 14, colors.onSurface).apply {
                 id = R.id.title
                 gravity = Gravity.CENTER
-                maxLines = 2
+                maxLines = 1
             }
-            content.addView(name, LinearLayout.LayoutParams(-1, dp(44)).apply { topMargin = dp(10) })
+            content.addView(name, LinearLayout.LayoutParams(-1, dp(20)).apply { topMargin = dp(8) })
 
             val status = text("", 11, colors.onSurfaceVariant).apply {
                 id = R.id.status
                 gravity = Gravity.CENTER
-                maxLines = 2
+                maxLines = 1
             }
             content.addView(status, LinearLayout.LayoutParams(-1, -2))
 

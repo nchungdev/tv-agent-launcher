@@ -1,5 +1,6 @@
 package com.gathin.tvhome.feature.system.data
 
+import java.util.Calendar
 import android.content.Context
 import com.gathin.tvhome.R
 import org.json.JSONException
@@ -61,8 +62,8 @@ object Weather {
 
     @JvmStatic
     fun isDaytime(): Boolean {
-        val now = java.util.Calendar.getInstance()
-        val minute = now.get(java.util.Calendar.HOUR_OF_DAY) * 60 + now.get(java.util.Calendar.MINUTE)
+        val now = Calendar.getInstance()
+        val minute = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
         return minute in DAY_FROM_MINUTE until DAY_UNTIL_MINUTE
     }
 

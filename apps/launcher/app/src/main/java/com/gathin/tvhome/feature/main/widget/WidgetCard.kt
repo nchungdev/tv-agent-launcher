@@ -26,6 +26,7 @@ open class WidgetCard @JvmOverloads constructor(
     private val innerStroke = Paint(Paint.ANTI_ALIAS_FLAG)
     private val density: Float = resources.displayMetrics.density
     private var ghost = false
+    private var flat = false
     private var motion = false
     private var turning = false
     private var turnPaint: Runnable? = null
@@ -47,6 +48,11 @@ open class WidgetCard @JvmOverloads constructor(
 
     fun setGhost(on: Boolean) {
         ghost = on
+        invalidate()
+    }
+
+    fun setFlat(on: Boolean) {
+        flat = on
         invalidate()
     }
 
@@ -102,7 +108,7 @@ open class WidgetCard @JvmOverloads constructor(
 
     override fun onFocusChanged(gainFocus: Boolean, direction: Int, previouslyFocusedRect: Rect?) {
         super.onFocusChanged(gainFocus, direction, previouslyFocusedRect)
-        if (ghost) invalidate()
+        if (ghost || flat) invalidate()
     }
 
     override fun onDraw(c: Canvas) {
@@ -110,6 +116,7 @@ open class WidgetCard @JvmOverloads constructor(
         val radius = Shapes.TILE_FOCUSED * density
         val w = width.toFloat()
         val h = height.toFloat()
+        if (flat && !isFocused) return
         if (ghost && !isFocused) {
             val half = outline.strokeWidth / 2f
             c.drawRoundRect(inset, inset, w - inset, h - inset, radius, radius, hole)

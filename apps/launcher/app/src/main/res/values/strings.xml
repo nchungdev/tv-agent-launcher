@@ -433,4 +433,5 @@
     <string name="open_action">Open now</string>
     <string name="bot_action_hint">▶ Press OK to open</string>
     <string name="notification_action_hint">▶ Press OK to open now</string>
+    <string name="widget_continue">Continue watching</string>
 </resources>

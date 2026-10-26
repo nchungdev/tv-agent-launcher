@@ -82,7 +82,30 @@ class HomeMenuHandler(
             rows.addView(row)
         }
 
-        popup.showAsDropDown(anchor, (anchor.width - popupWidth) / 2, -dp(8), Gravity.START)
+        showBesideAnchor(popup, panel, anchor, popupWidth)
+    }
+
+    private fun showBesideAnchor(popup: PopupWindow, panel: View, anchor: View, popupWidth: Int) {
+        panel.measure(
+            View.MeasureSpec.makeMeasureSpec(popupWidth, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        )
+        val screen = activity.resources.displayMetrics
+        val margin = dp(8)
+        val anchorOnScreen = IntArray(2)
+        anchor.getLocationOnScreen(anchorOnScreen)
+
+        val centered = anchorOnScreen[0] + (anchor.width - popupWidth) / 2
+        val left = centered.coerceIn(margin, screen.widthPixels - popupWidth - margin)
+        val below = anchorOnScreen[1] + anchor.height - margin
+        val fitsBelow = below + panel.measuredHeight <= screen.heightPixels - margin
+        val top = if (fitsBelow) below else anchorOnScreen[1] - panel.measuredHeight + margin
+        popup.showAtLocation(
+            activity.window.decorView,
+            Gravity.TOP or Gravity.START,
+            left,
+            maxOf(margin, top)
+        )
     }
 
     private fun dp(value: Int): Int = Math.round(value * activity.resources.displayMetrics.density)

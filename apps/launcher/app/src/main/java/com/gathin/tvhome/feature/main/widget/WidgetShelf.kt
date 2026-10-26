@@ -6,6 +6,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.SharedPreferences
 import android.content.res.ColorStateList
+import android.graphics.Outline
 import android.graphics.Rect
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
@@ -14,16 +15,19 @@ import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewOutlineProvider
 import android.view.ViewTreeObserver
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.TextClock
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.gathin.tvhome.Contract
 import com.gathin.tvhome.R
 import com.gathin.tvhome.feature.settings.data.Config
+import com.gathin.tvhome.feature.watching.data.ContinueWatching
 import com.gathin.tvhome.feature.system.data.AirQuality
 import com.gathin.tvhome.feature.system.data.Weather
 import com.gathin.tvhome.feature.main.widget.HomeGrid
@@ -103,12 +107,9 @@ class WidgetShelf(
     private val weatherDetail: TextView
     private val weatherIcon: ShapeBadge
 
-    private val haLabel: TextView
     private val haStatus: TextView
     private val haHumidity: TextView
     private val haDetail: TextView
-    private val haBadge: ShapeBadge
-    private val haRightTitle: TextView
     private val haLightStatus: TextView
     private val haClimateStatus: TextView
     private val haOnlineStatus: TextView
@@ -122,9 +123,19 @@ class WidgetShelf(
     private val clockTime: TextClock
     private val clockAmPm: TextClock
     private val clockDate: TextView
-    private val calendarMonth: TextView
-    private val calendarGrid: LinearLayout
+    private val clockLunar: TextView
     private var clockSeconds = false
+
+    private val contLabel: TextView
+    private val contCount: TextView
+    private val contTitle: TextView
+    private val contSubtitle: TextView
+    private val contPoster: ImageView
+    private val contProgress: ProgressBar
+    private val watching = ContinueWatching(activity)
+    private var watchIndex = 0
+    private var watchRefreshedAt = 0L
+    private var watchRotatedAt = 0L
 
     private val lunarLabel: TextView
     private val lunarDate: TextView
@@ -149,11 +160,13 @@ class WidgetShelf(
         cards = arrayOf(
             shelf.findViewById(R.id.widgetClock),
             shelf.findViewById(R.id.widgetWeather),
-            shelf.findViewById(R.id.widgetHomeAssistant),
+            shelf.findViewById(R.id.widgetContinue),
             shelf.findViewById(R.id.widgetAir),
             shelf.findViewById(R.id.widgetCalendar)
         )
         for (c in cards) c.setMotion(motion)
+        cards[0].setFlat(true)
+        cards[2].setFlat(true)
 
         addCard = shelf.findViewById(R.id.widgetAdd)
         addCard.setMotion(motion)
@@ -168,23 +181,32 @@ class WidgetShelf(
         clockTime = cards[0].findViewById(R.id.clockTime)
         clockAmPm = cards[0].findViewById(R.id.clockAmPm)
         clockDate = cards[0].findViewById(R.id.clockDate)
-        calendarMonth = cards[0].findViewById(R.id.calendarMonth)
-        calendarGrid = cards[0].findViewById(R.id.calendarGrid)
+        clockLunar = cards[0].findViewById(R.id.clockLunar)
 
         weatherPlace = cards[1].findViewById(R.id.weatherPlace)
         weatherTemp = cards[1].findViewById(R.id.weatherTemp)
         weatherDetail = cards[1].findViewById(R.id.weatherDetail)
         weatherIcon = cards[1].findViewById(R.id.weatherIcon)
 
-        haLabel = cards[2].findViewById(R.id.haLabel)
-        haStatus = cards[2].findViewById(R.id.haStatus)
-        haHumidity = cards[2].findViewById(R.id.haHumidity)
-        haDetail = cards[2].findViewById(R.id.haDetail)
-        haBadge = cards[2].findViewById(R.id.haBadge)
-        haRightTitle = cards[2].findViewById(R.id.haRightTitle)
-        haLightStatus = cards[2].findViewById(R.id.haLightStatus)
-        haClimateStatus = cards[2].findViewById(R.id.haClimateStatus)
-        haOnlineStatus = cards[2].findViewById(R.id.haOnlineStatus)
+        haStatus = cards[0].findViewById(R.id.haStatus)
+        haHumidity = cards[0].findViewById(R.id.haHumidity)
+        haDetail = cards[0].findViewById(R.id.haDetail)
+        haLightStatus = cards[0].findViewById(R.id.haLightStatus)
+        haClimateStatus = cards[0].findViewById(R.id.haClimateStatus)
+        haOnlineStatus = cards[0].findViewById(R.id.haOnlineStatus)
+
+        contLabel = cards[2].findViewById(R.id.contLabel)
+        contCount = cards[2].findViewById(R.id.contCount)
+        contTitle = cards[2].findViewById(R.id.contTitle)
+        contSubtitle = cards[2].findViewById(R.id.contSubtitle)
+        contPoster = cards[2].findViewById(R.id.contPoster)
+        contProgress = cards[2].findViewById(R.id.contProgress)
+        contPoster.clipToOutline = true
+        contPoster.outlineProvider = object : ViewOutlineProvider() {
+            override fun getOutline(view: View, outline: Outline) {
+                outline.setRoundRect(0, 0, view.width, view.height, 10 * view.resources.displayMetrics.density)
+            }
+        }
 
         airLabel = cards[3].findViewById(R.id.airLabel)
         airValue = cards[3].findViewById(R.id.airValue)
@@ -232,11 +254,7 @@ class WidgetShelf(
     }
 
     private fun setupCardInteractions() {
-        cards[0].setOnClickListener {
-            clockSeconds = !clockSeconds
-            paintClockDate()
-            refreshHaData(true)
-        }
+        cards[0].setOnClickListener { openSmartHomeCard() }
         cards[1].setOnClickListener {
             cards[1].turn {
                 weatherPage = (weatherPage + 1) % WEATHER_PAGES
@@ -244,16 +262,7 @@ class WidgetShelf(
                 paintWeather()
             }
         }
-        cards[2].setOnClickListener {
-            val connection = com.gathin.tvhome.feature.settings.data.AgentHomeConfig(activity)
-            val configured = connection.homeAssistantUrl.isNotBlank() &&
-                connection.homeAssistantToken.isNotBlank()
-            if (configured) {
-                host.openSmartHome()
-            } else {
-                host.openHomeAssistant()
-            }
-        }
+        cards[2].setOnClickListener { launchWatching() }
         cards[3].setOnClickListener {
             cards[3].turn {
                 airTomorrow = !airTomorrow
@@ -291,6 +300,73 @@ class WidgetShelf(
         for (c in allCards()) c.setOnKeyListener(keyListener)
     }
 
+    private fun openSmartHomeCard() {
+        val connection = com.gathin.tvhome.feature.settings.data.AgentHomeConfig(activity)
+        val configured = connection.homeAssistantUrl.isNotBlank() &&
+            connection.homeAssistantToken.isNotBlank()
+        if (configured) host.openSmartHome() else host.openHomeAssistant()
+    }
+
+    private fun launchWatching() {
+        val items = watching.items
+        val item = items.getOrNull(watchIndex % maxOf(1, items.size))
+        val launch = item?.launch
+        if (launch == null) {
+            refreshWatching(true)
+            return
+        }
+        try {
+            activity.startActivity(launch)
+        } catch (_: Exception) {
+        }
+    }
+
+    private fun refreshWatching(force: Boolean) {
+        val now = System.currentTimeMillis()
+        if (!force && now - watchRefreshedAt < WATCH_REFRESH_MS) return
+        watchRefreshedAt = now
+        watching.refresh {
+            watchIndex = 0
+            paintContinue()
+        }
+    }
+
+    private fun rotateWatching() {
+        val count = watching.items.size
+        val now = System.currentTimeMillis()
+        if (count < 2 || now - watchRotatedAt < WATCH_ROTATE_MS) return
+        watchRotatedAt = now
+        watchIndex = (watchIndex + 1) % count
+        paintContinue()
+    }
+
+    private fun paintContinue() {
+        val items = watching.items
+        val item = items.getOrNull(watchIndex)
+        contLabel.setTextColor(palette.primary)
+        contProgress.progressTintList = ColorStateList.valueOf(palette.primary)
+        contProgress.progressBackgroundTintList =
+            ColorStateList.valueOf(Palette.alpha(palette.onSurfaceVariant, 0x40))
+        if (item == null) {
+            contLabel.text = activity.getString(R.string.widget_continue)
+            contCount.text = ""
+            contTitle.text = "Chưa có gì đang xem"
+            contSubtitle.text = "Xem dở một phim để hiện ở đây"
+            contPoster.visibility = View.INVISIBLE
+            contProgress.visibility = View.INVISIBLE
+            return
+        }
+        contLabel.text = "${activity.getString(R.string.widget_continue)} · ${item.appLabel}"
+        contCount.text = if (items.size > 1) "${watchIndex + 1}/${items.size}" else ""
+        contTitle.text = item.title
+        contSubtitle.text = item.subtitle
+        val poster = watching.poster(item.posterUri)
+        contPoster.visibility = if (poster != null) View.VISIBLE else View.INVISIBLE
+        contPoster.setImageBitmap(poster)
+        contProgress.visibility = if (item.progress > 0f) View.VISIBLE else View.INVISIBLE
+        contProgress.progress = Math.round(item.progress * 1000)
+    }
+
     private fun allCards(): Array<WidgetCard> = arrayOf(
         cards[0], cards[1], cards[2], cards[3], cards[4], addCard
     )
@@ -301,7 +377,7 @@ class WidgetShelf(
     }
 
     private fun span(card: WidgetCard): Int {
-        if (card === cards[0] || card === cards[2]) return 2
+        if (card === cards[0]) return 3
         return 1
     }
 
@@ -309,18 +385,19 @@ class WidgetShelf(
 
     private fun loadOrder() {
         order.clear()
-        val defaultOrder = "$CLOCK,$HOME_ASSISTANT"
+        val defaultOrder = "$CLOCK,$CONTINUE"
         val saved = prefs.getString(ORDER_KEY, defaultOrder) ?: defaultOrder
         for (raw in saved.split(",")) {
             var id = raw.trim()
             if (id == "now_playing") id = AIR
+            if (id == "home_assistant") id = CONTINUE
             if (id == "smarthome" || id == "system") continue
             if (card(id) != null && !order.contains(id)) order.add(id)
         }
         order.remove(CLOCK)
-        order.remove(HOME_ASSISTANT)
+        order.remove(CONTINUE)
         order.add(0, CLOCK)
-        order.add(1, HOME_ASSISTANT)
+        order.add(1, CONTINUE)
     }
 
     private fun setOrder(next: List<String>, focusId: String?, fallbackColumn: Int, removing: String?) {
@@ -629,7 +706,7 @@ class WidgetShelf(
         return when (id) {
             CLOCK -> R.string.widget_clock
             WEATHER -> R.string.weather
-            HOME_ASSISTANT -> R.string.widget_home_assistant
+            CONTINUE -> R.string.widget_continue
             AIR -> R.string.air_quality
             else -> R.string.lunar_calendar
         }
@@ -639,7 +716,7 @@ class WidgetShelf(
         return when (id) {
             CLOCK -> R.drawable.ic_timer
             WEATHER -> R.drawable.ic_w_partly_day
-            HOME_ASSISTANT -> R.drawable.ic_home_assistant
+            CONTINUE -> R.drawable.ic_tv
             AIR -> R.drawable.ic_air
             else -> R.drawable.ic_calendar
         }
@@ -651,8 +728,13 @@ class WidgetShelf(
         val canChi = LunarCalendar.canChi(l.year)
         val lunarStr = if (l.leap) "${l.day}/${l.month} (nhuận)" else "${l.day}/${l.month}"
 
-        clockDay.text = "Âm lịch: $lunarStr ($canChi)"
+        val weekdayPattern = android.text.format.DateFormat.getBestDateTimePattern(
+            java.util.Locale.getDefault(),
+            "EEEEdMMMM"
+        )
+        clockDay.text = today.format(java.time.format.DateTimeFormatter.ofPattern(weekdayPattern))
         clockDay.setTextColor(palette.primary)
+        clockLunar.text = "🌙 Âm lịch $lunarStr ($canChi)"
 
         val connection = com.gathin.tvhome.feature.settings.data.AgentHomeConfig(activity)
         val haEvent = connection.cachedHaCalendarEvent()
@@ -676,92 +758,6 @@ class WidgetShelf(
         clockTime.format24Hour = if (clockSeconds) "HH:mm:ss" else "HH:mm"
         clockTime.format12Hour = if (clockSeconds) "h:mm:ss" else "h:mm"
 
-        paintMiniCalendar(today)
-    }
-
-    private fun paintMiniCalendar(today: LocalDate) {
-        val month = today.monthValue
-        val year = today.year
-        val firstDay = LocalDate.of(year, month, 1)
-        val firstDayOfWeek = firstDay.dayOfWeek.value
-        val daysInMonth = today.lengthOfMonth()
-        val currentDay = today.dayOfMonth
-
-        val monthName = when (month) {
-            1 -> "THÁNG 1"
-            2 -> "THÁNG 2"
-            3 -> "THÁNG 3"
-            4 -> "THÁNG 4"
-            5 -> "THÁNG 5"
-            6 -> "THÁNG 6"
-            7 -> "THÁNG 7"
-            8 -> "THÁNG 8"
-            9 -> "THÁNG 9"
-            10 -> "THÁNG 10"
-            11 -> "THÁNG 11"
-            else -> "THÁNG 12"
-        }
-        calendarMonth.text = monthName
-        calendarMonth.setTextColor(palette.primary)
-
-        calendarGrid.removeAllViews()
-
-        val cellW = (21.5f * density).toInt()
-        val totalRows = if (firstDayOfWeek + daysInMonth - 1 > 35) 6 else 5
-        val cellH = if (totalRows == 6) (15f * density).toInt() else (17.5f * density).toInt()
-        val headerH = (14 * density).toInt()
-
-        val headers = arrayOf("T2", "T3", "T4", "T5", "T6", "T7", "CN")
-        val headerRow = LinearLayout(activity).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-        }
-        for (h in headers) {
-            headerRow.addView(TextView(activity).apply {
-                text = h
-                textSize = 10f
-                gravity = Gravity.CENTER
-                includeFontPadding = false
-                setTextColor(palette.onSurfaceVariant)
-                layoutParams = LinearLayout.LayoutParams(cellW, headerH)
-            })
-        }
-        calendarGrid.addView(headerRow)
-
-        var dayCounter = 1 - (firstDayOfWeek - 1)
-        for (r in 0 until totalRows) {
-            val row = LinearLayout(activity).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER
-            }
-            for (c in 0 until 7) {
-                val dayNum = dayCounter
-                val tv = TextView(activity).apply {
-                    textSize = 10.5f
-                    gravity = Gravity.CENTER
-                    includeFontPadding = false
-                    layoutParams = LinearLayout.LayoutParams(cellW, cellH)
-
-                    if (dayNum in 1..daysInMonth) {
-                        text = dayNum.toString()
-                        if (dayNum == currentDay) {
-                            setTextColor(palette.onPrimary)
-                            background = GradientDrawable().apply {
-                                setColor(palette.primary)
-                                cornerRadius = cellH / 2f
-                            }
-                        } else {
-                            setTextColor(palette.onSurface)
-                        }
-                    } else {
-                        text = ""
-                    }
-                }
-                row.addView(tv)
-                dayCounter++
-            }
-            calendarGrid.addView(row)
-        }
     }
 
     private fun paintHaConnection() {
@@ -774,12 +770,8 @@ class WidgetShelf(
         val configured = connection.homeAssistantUrl.isNotBlank() &&
             connection.homeAssistantToken.isNotBlank()
 
-        haLabel.text = "NHÀ THÔNG MINH"
-        haLabel.setTextColor(palette.primary)
-        haRightTitle.setTextColor(palette.primary)
         val statusText = temperature ?: (if (configured) "Sẵn sàng" else "—")
-        haStatus.text = statusText
-        haStatus.textSize = if (statusText.length > 5) 20f else 32f
+        haStatus.text = "🌡 $statusText"
 
         if (!humidity.isNullOrBlank()) {
             haHumidity.text = "💧 $humidity"
@@ -821,8 +813,6 @@ class WidgetShelf(
             haOnlineStatus.setTextColor(palette.error)
         }
 
-        haBadge.setIcon(activity.getDrawable(R.drawable.ic_home_assistant))
-        haBadge.setColors(palette.primaryContainer, palette.onPrimaryContainer)
     }
 
     private var fetchingHa = false
@@ -943,6 +933,8 @@ class WidgetShelf(
         paintClockDate()
         paintHaConnection()
         refreshHaData(false)
+        refreshWatching(false)
+        paintContinue()
         weatherPage = prefs.getInt(WEATHER_PAGE_KEY, 0) % WEATHER_PAGES
         airTomorrow = prefs.getInt(AIR_PAGE_KEY, 0) == 1
         if (has(CALENDAR)) paintCalendar()
@@ -960,6 +952,8 @@ class WidgetShelf(
         paintClockDate()
         paintHaConnection()
         refreshHaData(false)
+        refreshWatching(false)
+        rotateWatching()
         if (has(CALENDAR)) paintCalendar()
         if (has(WEATHER)) refreshWeather(false)
         if (has(AIR)) refreshAir(false)
@@ -1044,20 +1038,18 @@ class WidgetShelf(
         for (t in arrayOf(clockAmPm, weatherPlace, airLabel, lunarLabel)) {
             t.setTextColor(p.onSurfaceVariant)
         }
-        for (t in arrayOf(clockTime, weatherTemp, lunarDate, airValue, haStatus)) {
+        for (t in arrayOf(clockTime, weatherTemp, lunarDate, airValue, haStatus, contTitle)) {
             t.setTextColor(p.onSurface)
         }
-        for (t in arrayOf(clockDate, weatherDetail, airDetail, holiday, haDetail)) {
+        for (t in arrayOf(clockDate, weatherDetail, airDetail, holiday, haDetail, clockLunar, contSubtitle, contCount)) {
             t.setTextColor(p.onSurfaceVariant)
         }
-        haBadge.setIcon(activity.getDrawable(R.drawable.ic_home_assistant))
-        haBadge.setColors(p.primaryContainer, p.onPrimaryContainer)
         val dividerColor = Palette.alpha(p.outlineVariant, 0x66)
         shelf.findViewById<View>(R.id.clockDividerLine)?.setBackgroundColor(dividerColor)
-        shelf.findViewById<View>(R.id.haDividerLine)?.setBackgroundColor(dividerColor)
         weatherIcon.setPalette(p)
         paintClockDate()
         paintHaConnection()
+        paintContinue()
         paintAir()
     }
 
@@ -1212,11 +1204,13 @@ class WidgetShelf(
         const val ORDER_KEY = "widget_order"
         const val CLOCK = "clock"
         const val WEATHER = "weather"
-        const val HOME_ASSISTANT = "home_assistant"
+        const val CONTINUE = "continue_watching"
         const val AIR = "air"
         const val CALENDAR = "calendar"
-        private val ALL = arrayOf(CLOCK, WEATHER, HOME_ASSISTANT, AIR, CALENDAR)
+        private val ALL = arrayOf(CLOCK, WEATHER, CONTINUE, AIR, CALENDAR)
         private const val MAX_CARDS = 4
+        private const val WATCH_REFRESH_MS = 60_000L
+        private const val WATCH_ROTATE_MS = 8_000L
         private const val WEATHER_RETRY_MS = 5 * 60_000L
         private const val ENTER_SCALE = 0.85f
 
