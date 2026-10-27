@@ -15,6 +15,7 @@ Locales: English and Vietnamese only.
 | `.RunningAppsActivity` | Running apps side sheet: switch to or force-stop apps, through `LocalAdb` |
 | `.InputKeyService` | Accessibility: Input button (`KEYCODE_TV`, `KEYCODE_TV_INPUT`, `input_key_keycodes`, Menu if `menu_opens_inputs`), `app_keys`, `running_apps_keycodes`; no system switcher: Home's Inputs menu |
 | `.HomeKeyService` | Accessibility: Home that sends `KEYCODE_ALL_APPS`, `settings_key_*`, `app_keys`; stands in for Home where the firmware keeps it (Xiaomi CN): `KEYCODE_HOME` and any other HOME activity coming to the front (the stock launcher, or Settings' FallbackHome once the stock one is disabled) open this one, 300 ms after it settles |
+| `.NowPlayingListener` | Notification listener (`tvctl install` allows it): follows apps' media sessions for the watch history |
 | `.ClockDream` | Clock screensaver; style from Launcher settings (shapes, glow, minimal, large) |
 | `.InstallStatusReceiver` | Not exported: the PackageInstaller session's result; shows the system confirm dialog |
 
@@ -25,6 +26,10 @@ Locales: English and Vietnamese only.
 - Colour and skin: `Palette` (Tonal Spot from `background_color` or wallpaper), `M3Skin` (styles views by `android:tag`), `M3Switch`, `M3Progress`, `ShapeBadge`, `SettingsBanner`.
 - Home content: `HomeGrid` (full height; the header floats over its top `underlap()`, and rows scrolled under it fade into `headerScrim`), `AppAdapter`, `Order`, `DockSlots`, `DockDecoration`, `GridNavigation`, `LibraryApps`, `AppLibraryDialog`.
 - Widgets: `WidgetShelf`, `WidgetCard`, `Weather` and `AirQuality` (Open-Meteo; the place from ipwho.is or geojs.io), `CpuMeter` (cpuidle in sysfs, since `/proc/stat` is hidden; `/proc/uptime` without cpuidle; else `AdbCpuFeed`, /proc/stat through `LocalAdb` once the owner turns the CPU line on), `LunarCalendar`, `Shamsi`.
+- Watch history: `PlaybackTracker` (media sessions seen by `NowPlayingListener`), `WatchReporter`
+  (`POST /v2/watch/events`, see `docs/modules/agent-protocol.md` 9), `ServerContinueSource`
+  (`GET /v2/watch/continue`) for the "continue watching" card, `LocalWatchHistory` when the server
+  is offline. Watch Next rows of other apps are readable only by the system launcher.
 - Network pill: `SpeedTest` (Cloudflare `speed.cloudflare.com`, only when asked from the Wi-Fi menu).
 - Running apps: `LocalAdb` (adb client to `127.0.0.1:5555` with its own key in `files/adbkey`; the TV asks once to allow it), `BackgroundApps` (`ps` and recent tasks, `am force-stop`). Port 5555 is gone after a reboot until `adb tcpip 5555` runs again.
 - Backgrounds: `WallpaperPlayer`, `WallpaperRotation`, `WallpaperSize`, `Sky`/`SkyView` (tinted by the

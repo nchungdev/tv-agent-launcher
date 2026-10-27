@@ -31,6 +31,7 @@ import com.gathin.tvhome.Contract
 import com.gathin.tvhome.R
 import com.gathin.tvhome.feature.settings.data.Config
 import com.gathin.tvhome.feature.watching.data.ContinueWatching
+import com.gathin.tvhome.feature.agent.coordinator.AgentActionExecutor
 import com.gathin.tvhome.feature.system.data.AirQuality
 import com.gathin.tvhome.feature.system.data.Weather
 import com.gathin.tvhome.feature.main.widget.HomeGrid
@@ -342,15 +343,11 @@ class WidgetShelf(
     private fun launchWatching() {
         val items = watching.items
         val item = items.getOrNull(watchIndex % maxOf(1, items.size))
-        val launch = item?.launch
-        if (launch == null) {
+        if (item == null) {
             refreshWatching(true)
             return
         }
-        try {
-            activity.startActivity(launch)
-        } catch (_: Exception) {
-        }
+        AgentActionExecutor.execute(activity, "continue-watching", item.actionType, item.parameters)
     }
 
     private fun refreshWatching(force: Boolean) {

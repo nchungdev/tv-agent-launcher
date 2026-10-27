@@ -435,5 +435,6 @@
     <string name="notification_action_hint">▶ Press OK to open now</string>
     <string name="widget_continue">Continue watching</string>
     <string name="restarting_launcher">Closing all apps and restarting the launcher…</string>
+    <string name="now_playing_listener_name">Watch history</string>
     <string name="home_section">Your home</string>
 </resources>

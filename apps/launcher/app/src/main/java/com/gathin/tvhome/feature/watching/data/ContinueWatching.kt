@@ -26,7 +26,7 @@ class ContinueWatching(private val context: Context) {
         if (loading) return
         loading = true
         worker.execute {
-            val loaded = WatchNextSource(context).load()
+            val loaded = load()
             for (item in loaded) cachePoster(item.posterUri)
             mainHandler.post {
                 loading = false
@@ -34,6 +34,12 @@ class ContinueWatching(private val context: Context) {
                 onLoaded()
             }
         }
+    }
+
+    private fun load(): List<WatchItem> = try {
+        ServerContinueSource(context).load()
+    } catch (_: Exception) {
+        LocalWatchHistory(context).continueItems()
     }
 
     private fun cachePoster(uri: String?) {

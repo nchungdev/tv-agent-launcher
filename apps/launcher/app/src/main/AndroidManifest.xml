@@ -11,7 +11,6 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- The weather widget (Open-Meteo; where the TV is, from its IP address). -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="com.android.providers.tv.permission.READ_EPG_DATA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <!-- Needed since Android 10 to read the Wi-Fi network name for the network pill. Never requested at
@@ -123,6 +122,18 @@
             <meta-data
                 android:name="android.accessibilityservice"
                 android:resource="@xml/home_key_service" />
+        </service>
+
+        <!-- Watch history: reads the media sessions apps publish and reports them to the agent
+             server. `tvctl install` allows it with `cmd notification allow_listener`. -->
+        <service
+            android:name=".NowPlayingListener"
+            android:label="@string/now_playing_listener_name"
+            android:exported="true"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
         </service>
 
         <!-- Screensaver: pick it in Settings, or `settings put secure screensaver_components

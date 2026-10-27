@@ -1,7 +1,5 @@
 package com.gathin.tvhome.feature.watching.data
 
-import android.content.Intent
-
 class WatchItem(
     val title: String,
     val subtitle: String,
@@ -9,5 +7,6 @@ class WatchItem(
     val posterUri: String?,
     val appLabel: String,
     val packageName: String,
-    val launch: Intent?
+    val actionType: String,
+    val parameters: Map<String, Any?>
 )

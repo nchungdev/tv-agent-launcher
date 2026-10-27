@@ -26,6 +26,8 @@ can be built against it without the launcher source. The launcher implements it 
 | POST | `/v2/ask` | The user asked something (voice or typed). Streams events |
 | POST | `/v2/action` | The user pressed a card button that needs the server. Streams events |
 | WS | `/ws/duinch` | Server pushes notifications, greetings and actions |
+| POST | `/v2/watch/events` | The TV reports what its apps are playing (see 9) |
+| GET | `/v2/watch/continue` | The "continue watching" list for Home (see 9) |
 
 ### 2.1 `POST /v2/ask`
 
@@ -240,3 +242,54 @@ should treat a repeated `media.request` for the same id as idempotent.
 The path carries the major version (`/v2/…`). Additive changes (new event types, card fields, client
 actions) need no version bump. The launcher ignores event types, card fields and websocket `type`s it does
 not know, and the server should do the same for the launcher's requests.
+
+## 9. Watch history
+
+Android keeps every app's Watch Next rows private to the system launcher, so the server owns the
+history instead. The launcher listens to the media sessions apps publish (YouTube, Netflix, Plex…)
+and reports them; the server stores them, adds Plex On Deck and answers the list Home shows.
+
+### 9.1 `POST /v2/watch/events`
+
+Sent when a session starts, pauses, stops or ends, and every 60 s while it plays. Answer `204`.
+
+```json
+{"events": [{
+  "package_name": "com.google.android.youtube.tv",
+  "app_label": "YouTube",
+  "title": "Big Buck Bunny 60fps 4K",
+  "subtitle": "Blender",
+  "media_id": "aqz-KE-bpKQ",
+  "position_ms": 3985,
+  "duration_ms": 634000,
+  "state": "playing",
+  "artwork_url": "https://i.ytimg.com/vi/aqz-KE-bpKQ/hqdefault.jpg",
+  "at": 1793091600000
+}]}
+```
+
+| Field | Notes |
+|---|---|
+| `state` | `playing`, `paused`, `stopped` (the session went away) |
+| `media_id`, `subtitle`, `artwork_url`, `duration_ms` | optional; whatever the app published |
+| `at` | the TV's clock, epoch milliseconds |
+
+The same `package_name` + `title` is one entry: the newest event replaces the older one.
+
+### 9.2 `GET /v2/watch/continue`
+
+```json
+{"items": [{
+  "id": "plex:12345",
+  "title": "The Expanse",
+  "subtitle": "S2 · E5 · Home",
+  "app_label": "Plex",
+  "package_name": "com.plexapp.android",
+  "progress": 0.42,
+  "poster_url": "http://<nas>:32400/library/metadata/12345/thumb?X-Plex-Token=…",
+  "action": {"action_type": "plex.open", "parameters": {"uri": "plex://server/play?key=12345"}}
+}]}
+```
+
+Newest first, at most 8. Entries between 3 % and 95 % watched (or without a duration) are kept for
+14 days. `action` is a client action (see 5); the launcher falls back to opening `package_name`.
