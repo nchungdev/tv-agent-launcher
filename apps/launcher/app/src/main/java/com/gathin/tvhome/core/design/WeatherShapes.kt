@@ -42,7 +42,7 @@ class WeatherShapes {
         piece.addCircle(cx + r * 0.45f, cy - r * 0.30f, r * 0.85f, Path.Direction.CW)
         moon.op(piece, Path.Op.DIFFERENCE)
         for (i in STARS.indices) {
-            val size = h * (if (i % 3 == 0) 0.016f else 0.010f)
+            val size = h * (if (i % 3 == 0) 0.011f else 0.007f)
             ExpressiveBackdrop.shapePath(piece, STARS[i][0] * w, STARS[i][1] * h, size, 4, 0.55f, 45f)
             stars.op(piece, Path.Op.UNION)
         }
@@ -123,8 +123,8 @@ class WeatherShapes {
             floatArrayOf(0.86f, 0.24f), floatArrayOf(0.95f, 0.08f), floatArrayOf(0.18f, 0.60f),
             floatArrayOf(0.47f, 0.63f), floatArrayOf(0.72f, 0.58f), floatArrayOf(0.05f, 0.95f), floatArrayOf(0.62f, 0.96f)
         )
-        private const val SUN_X = 0.54f
+        private const val SUN_X = 0.60f
         private const val SUN_Y = 0.11f
-        private const val SUN_R = 0.08f
+        private const val SUN_R = 0.065f
     }
 }

@@ -22,194 +22,223 @@
             android:layout_height="match_parent"
             android:orientation="vertical"
             android:paddingStart="4dp"
-            android:paddingTop="8dp"
-            android:paddingEnd="4dp"
-            android:paddingBottom="8dp">
+            android:paddingEnd="4dp">
 
             <LinearLayout
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:baselineAligned="false"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <TextClock
-                    android:id="@+id/clockTime"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="sans-serif"
-                    android:textStyle="bold"
-                    android:format12Hour="h:mm"
-                    android:format24Hour="HH:mm"
-                    android:includeFontPadding="false"
-                    android:textColor="#FFFFFFFF"
-                    android:textSize="56sp" />
-
-                <TextClock
-                    android:id="@+id/clockAmPm"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
-                    android:fontFamily="sans-serif-medium"
-                    android:format12Hour="a"
-                    android:format24Hour=""
-                    android:letterSpacing="0.06"
-                    android:textAllCaps="true"
-                    android:textColor="#B3FFFFFF"
-                    android:textSize="14sp" />
+                android:minWidth="@dimen/widget_hub_min_width"
+                android:orientation="vertical">
 
                 <LinearLayout
-                    android:layout_width="0dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginStart="24dp"
-                    android:gravity="end"
-                    android:orientation="vertical">
+                    android:baselineAligned="false"
+                    android:gravity="bottom"
+                    android:orientation="horizontal">
 
-                    <TextView
-                        android:id="@+id/clockDay"
+                    <TextClock
+                        android:id="@+id/clockTime"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif"
+                        android:textStyle="bold"
+                        android:format12Hour="h:mm"
+                        android:format24Hour="HH:mm"
+                        android:includeFontPadding="false"
+                        android:textColor="#FFFFFFFF"
+                        android:textSize="100sp" />
+
+                    <TextClock
+                        android:id="@+id/clockAmPm"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:layout_marginBottom="20dp"
                         android:fontFamily="sans-serif-medium"
+                        android:format12Hour="a"
+                        android:format24Hour=""
                         android:letterSpacing="0.06"
                         android:textAllCaps="true"
-                        android:textColor="#A78BFA"
-                        android:maxLines="1"
-                        android:ellipsize="end"
-                        android:textSize="14sp" />
+                        android:textColor="#B3FFFFFF"
+                        android:textSize="20sp" />
+                </LinearLayout>
 
-                    <TextView
-                        android:id="@+id/clockLunar"
-                        style="@style/WidgetDetail"
-                        android:layout_width="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:maxLines="1"
-                        android:ellipsize="end"
-                        android:textSize="15sp" />
+                <TextView
+                    android:id="@+id/clockDay"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="-10dp"
+                    android:fontFamily="sans-serif-medium"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textColor="#FFFFFFFF"
+                    android:textSize="24sp" />
 
-                    <TextView
-                        android:id="@+id/clockDate"
-                        style="@style/WidgetDetail"
-                        android:layout_width="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:maxLines="1"
-                        android:ellipsize="end"
-                        android:textColor="#B0B3BD"
-                        android:textSize="13sp" />
+                <TextView
+                    android:id="@+id/clockLunar"
+                    style="@style/WidgetDetail"
+                    android:layout_width="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textSize="17sp" />
+
+                <TextView
+                    android:id="@+id/clockDate"
+                    style="@style/WidgetDetail"
+                    android:layout_marginTop="2dp"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textColor="#B0B3BD"
+                    android:textSize="14sp"
+                    android:visibility="gone" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="32dp"
+                    android:baselineAligned="false"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:id="@+id/tileTemp"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="8dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp">
+
+                        <TextView
+                            android:id="@+id/tileTempIcon"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:includeFontPadding="false"
+                            android:textSize="18sp" />
+
+                        <TextView
+                            android:id="@+id/tileTempValue"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:fontFamily="sans-serif-medium"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:ellipsize="end"
+                            android:textColor="#FFFFFFFF"
+                            android:textSize="16sp" />
+
+                        <TextView
+                            android:id="@+id/tileTempCaption"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="3dp"
+                            android:maxLines="1"
+                            android:ellipsize="end"
+                            android:textColor="#B0B3BD"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/tileLight"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="8dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp">
+
+                        <TextView
+                            android:id="@+id/tileLightIcon"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:includeFontPadding="false"
+                            android:textSize="18sp" />
+
+                        <TextView
+                            android:id="@+id/tileLightValue"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:fontFamily="sans-serif-medium"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:ellipsize="end"
+                            android:textColor="#FFFFFFFF"
+                            android:textSize="16sp" />
+
+                        <TextView
+                            android:id="@+id/tileLightCaption"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="3dp"
+                            android:maxLines="1"
+                            android:ellipsize="end"
+                            android:textColor="#B0B3BD"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/tileSwitch"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                    
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp">
+
+                        <TextView
+                            android:id="@+id/tileSwitchIcon"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:includeFontPadding="false"
+                            android:textSize="18sp" />
+
+                        <TextView
+                            android:id="@+id/tileSwitchValue"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:fontFamily="sans-serif-medium"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:ellipsize="end"
+                            android:textColor="#FFFFFFFF"
+                            android:textSize="16sp" />
+
+                        <TextView
+                            android:id="@+id/tileSwitchCaption"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="3dp"
+                            android:maxLines="1"
+                            android:ellipsize="end"
+                            android:textColor="#B0B3BD"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
                 </LinearLayout>
             </LinearLayout>
 
             <View
                 android:id="@+id/clockDividerLine"
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginTop="14dp"
-                android:layout_marginBottom="14dp"
-                android:background="#1FFFFFFF" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:baselineAligned="false"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:id="@+id/haStatus"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="10dp"
-                    android:background="@drawable/widget_chip_bg"
-                    android:fontFamily="sans-serif-medium"
-                    android:gravity="center_vertical"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end"
-                    android:paddingStart="14dp"
-                    android:paddingTop="9dp"
-                    android:paddingEnd="14dp"
-                    android:paddingBottom="9dp"
-                    android:textColor="#FFFFFFFF"
-                    android:textSize="15sp" />
-
-                <TextView
-                    android:id="@+id/haHumidity"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="10dp"
-                    android:fontFamily="sans-serif-medium"
-                    android:includeFontPadding="false"
-                    android:textColor="#38BDF8"
-                    android:textSize="14sp"
-                    android:visibility="gone" />
-
-                <TextView
-                    android:id="@+id/haLightStatus"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="10dp"
-                    android:background="@drawable/widget_chip_bg"
-                    android:fontFamily="sans-serif-medium"
-                    android:gravity="center_vertical"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end"
-                    android:paddingStart="14dp"
-                    android:paddingTop="9dp"
-                    android:paddingEnd="14dp"
-                    android:paddingBottom="9dp"
-                    android:textColor="#FBBF24"
-                    android:textSize="15sp" />
-                <TextView
-                    android:id="@+id/haClimateStatus"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    
-                    android:background="@drawable/widget_chip_bg"
-                    android:fontFamily="sans-serif-medium"
-                    android:gravity="center_vertical"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end"
-                    android:paddingStart="14dp"
-                    android:paddingTop="9dp"
-                    android:paddingEnd="14dp"
-                    android:paddingBottom="9dp"
-                    android:textColor="#94A3B8"
-                    android:textSize="15sp" />
-            </LinearLayout>
-
-            <View
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="0dp"
-                android:layout_weight="1" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:baselineAligned="false"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:id="@+id/haDetail"
-                    style="@style/WidgetDetail"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_marginTop="0dp"
-                    android:textColor="#B0B3BD"
-                    android:textSize="13sp" />
-
-                <TextView
-                    android:id="@+id/haOnlineStatus"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
-                    android:fontFamily="sans-serif-medium"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:textSize="13sp" />
-            </LinearLayout>
+                android:visibility="gone" />
         </LinearLayout>
     </com.gathin.tvhome.feature.main.widget.WidgetCard>
 
@@ -260,17 +289,17 @@
     <com.gathin.tvhome.feature.main.widget.WidgetCard
         android:id="@+id/widgetContinue"
         android:layout_width="0dp"
-        android:layout_height="@dimen/widget_card_height"
+        android:layout_height="@dimen/widget_continue_height"
         android:layout_gravity="center_vertical">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical"
-            android:paddingStart="4dp"
-            android:paddingTop="8dp"
-            android:paddingEnd="4dp"
-            android:paddingBottom="8dp">
+            android:paddingStart="14dp"
+            android:paddingTop="12dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="12dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -284,12 +313,11 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="0.06"
-                    android:textAllCaps="true"
-                    android:textColor="#A78BFA"
+                    android:includeFontPadding="false"
                     android:maxLines="1"
                     android:ellipsize="end"
-                    android:textSize="12sp"
+                    android:textColor="#FFFFFFFF"
+                    android:textSize="14sp"
                     android:text="@string/widget_continue" />
 
                 <TextView
@@ -315,13 +343,13 @@
                 style="@style/WidgetTitle"
                 android:layout_marginTop="8dp"
                 android:maxLines="1"
-                android:textSize="16sp"
+                android:textSize="15sp"
                 android:textColor="#FFFFFFFF" />
 
             <TextView
                 android:id="@+id/contSubtitle"
                 style="@style/WidgetDetail"
-                android:layout_marginTop="2dp"
+                android:layout_marginTop="1dp"
                 android:maxLines="1"
                 android:textColor="#B0B3BD"
                 android:textSize="12sp" />
@@ -414,7 +442,7 @@
     <com.gathin.tvhome.feature.main.widget.WidgetCard
         android:id="@+id/widgetAdd"
         android:layout_width="0dp"
-        android:layout_height="@dimen/widget_card_height"
+        android:layout_height="@dimen/widget_continue_height"
         android:layout_gravity="center_vertical"
         android:visibility="gone">
 

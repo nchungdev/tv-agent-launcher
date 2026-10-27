@@ -27,6 +27,8 @@ open class WidgetCard @JvmOverloads constructor(
     private val density: Float = resources.displayMetrics.density
     private var ghost = false
     private var flat = false
+    private var glass = false
+    private var palette: Palette = Palette.currentOrBaseline()
     private var motion = false
     private var turning = false
     private var turnPaint: Runnable? = null
@@ -49,6 +51,11 @@ open class WidgetCard @JvmOverloads constructor(
     fun setGhost(on: Boolean) {
         ghost = on
         invalidate()
+    }
+
+    fun setGlass(on: Boolean) {
+        glass = on
+        setPalette(palette)
     }
 
     fun setFlat(on: Boolean) {
@@ -99,10 +106,11 @@ open class WidgetCard @JvmOverloads constructor(
     }
 
     fun setPalette(p: Palette) {
-        fill.color = p.surfaceContainer
+        palette = p
+        fill.color = if (glass) Palette.alpha(p.onSurface, 0x14) else p.surfaceContainer
         outline.color = p.outlineVariant
         hole.color = p.surface
-        innerStroke.color = Palette.alpha(p.outlineVariant, 0x4D)
+        innerStroke.color = Palette.alpha(if (glass) p.onSurface else p.outlineVariant, if (glass) 0x2E else 0x4D)
         invalidate()
     }
 

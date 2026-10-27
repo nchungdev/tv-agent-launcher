@@ -77,7 +77,7 @@ class DockModeController(
             dockView.visibility = View.GONE
             grid.visibility = View.VISIBLE
             heroName.visibility = if (dockTitleEnabled) View.VISIBLE else View.GONE
-            alignShelf(currentColumns)
+            widgets?.setEnabled(false)
         }
     }
 

@@ -47,6 +47,10 @@ class AgentHomeConfig(private val context: Context) {
             preferences.edit().putString(KEY_HA_TOKEN_ENC, encrypted).apply()
         }
 
+    val homeAssistantConfigured: Boolean
+        get() = homeAssistantUrl.isNotBlank() &&
+            !preferences.getString(KEY_HA_TOKEN_ENC, "").isNullOrBlank()
+
     var homeAssistantTemperatureEntity: String
         get() = preferences.getString("ha_temperature_entity", "") ?: ""
         set(value) { preferences.edit().putString("ha_temperature_entity", value).apply() }

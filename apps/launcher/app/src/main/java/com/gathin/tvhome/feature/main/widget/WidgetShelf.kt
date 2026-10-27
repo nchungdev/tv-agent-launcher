@@ -1,6 +1,9 @@
 package com.gathin.tvhome.feature.main.widget
 
 import com.gathin.tvhome.feature.smarthome.data.HassClient
+import com.gathin.tvhome.feature.smarthome.widget.HomeTile
+import com.gathin.tvhome.feature.smarthome.widget.HomeTiles
+import com.gathin.tvhome.feature.settings.data.AgentHomeConfig
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
@@ -73,6 +76,7 @@ class WidgetShelf(
 
     private val density: Float = activity.resources.displayMetrics.density
     private val prefs: SharedPreferences = activity.getSharedPreferences(Config.SETTINGS_NAME, Context.MODE_PRIVATE)
+    private var homeTiles: List<HomeTile> = HomeTiles.load(prefs)
     private val configCity: String = activity.getString(R.string.weather_city).trim()
     private val main = Handler(Looper.getMainLooper())
     private val motion: Boolean = animations && !reducedMotion
@@ -107,12 +111,10 @@ class WidgetShelf(
     private val weatherDetail: TextView
     private val weatherIcon: ShapeBadge
 
-    private val haStatus: TextView
-    private val haHumidity: TextView
-    private val haDetail: TextView
-    private val haLightStatus: TextView
-    private val haClimateStatus: TextView
-    private val haOnlineStatus: TextView
+    private val tiles: List<View>
+    private val tileIcons: List<TextView>
+    private val tileValues: List<TextView>
+    private val tileCaptions: List<TextView>
 
     private val airLabel: TextView
     private val airValue: TextView
@@ -134,6 +136,7 @@ class WidgetShelf(
     private val contProgress: ProgressBar
     private val watching = ContinueWatching(activity)
     private var watchIndex = 0
+    private var continueShown = false
     private var watchRefreshedAt = 0L
     private var watchRotatedAt = 0L
 
@@ -166,7 +169,9 @@ class WidgetShelf(
         )
         for (c in cards) c.setMotion(motion)
         cards[0].setFlat(true)
-        cards[2].setFlat(true)
+        cards[0].isFocusable = false
+        cards[0].isClickable = false
+        cards[2].setGlass(true)
 
         addCard = shelf.findViewById(R.id.widgetAdd)
         addCard.setMotion(motion)
@@ -188,12 +193,14 @@ class WidgetShelf(
         weatherDetail = cards[1].findViewById(R.id.weatherDetail)
         weatherIcon = cards[1].findViewById(R.id.weatherIcon)
 
-        haStatus = cards[0].findViewById(R.id.haStatus)
-        haHumidity = cards[0].findViewById(R.id.haHumidity)
-        haDetail = cards[0].findViewById(R.id.haDetail)
-        haLightStatus = cards[0].findViewById(R.id.haLightStatus)
-        haClimateStatus = cards[0].findViewById(R.id.haClimateStatus)
-        haOnlineStatus = cards[0].findViewById(R.id.haOnlineStatus)
+        tiles = listOf(R.id.tileTemp, R.id.tileLight, R.id.tileSwitch)
+            .map { cards[0].findViewById<View>(it) }
+        tileIcons = listOf(R.id.tileTempIcon, R.id.tileLightIcon, R.id.tileSwitchIcon)
+            .map { cards[0].findViewById<TextView>(it) }
+        tileValues = listOf(R.id.tileTempValue, R.id.tileLightValue, R.id.tileSwitchValue)
+            .map { cards[0].findViewById<TextView>(it) }
+        tileCaptions = listOf(R.id.tileTempCaption, R.id.tileLightCaption, R.id.tileSwitchCaption)
+            .map { cards[0].findViewById<TextView>(it) }
 
         contLabel = cards[2].findViewById(R.id.contLabel)
         contCount = cards[2].findViewById(R.id.contCount)
@@ -254,7 +261,13 @@ class WidgetShelf(
     }
 
     private fun setupCardInteractions() {
-        cards[0].setOnClickListener { openSmartHomeCard() }
+        tiles.forEachIndexed { index, tile ->
+            tile.setOnClickListener { runTile(index) }
+            tile.setOnLongClickListener {
+                showEditMenu(CLOCK)
+                true
+            }
+        }
         cards[1].setOnClickListener {
             cards[1].turn {
                 weatherPage = (weatherPage + 1) % WEATHER_PAGES
@@ -287,24 +300,43 @@ class WidgetShelf(
             if (event.action != KeyEvent.ACTION_DOWN) return@OnKeyListener false
             if (editing && carried != null) return@OnKeyListener false
             if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN && onDown != null) {
-                val idx = slots.indexOf(v as? WidgetCard).coerceAtLeast(0)
+                val idx = slots.indexOf(ownerOf(v)).coerceAtLeast(0)
                 onDown?.accept(dockColumnUnderCard(idx))
                 return@OnKeyListener true
             }
-            if (keyCode == KeyEvent.KEYCODE_DPAD_UP && slots.indexOf(v as? WidgetCard) == 0) {
+            if (keyCode == KeyEvent.KEYCODE_DPAD_UP && slots.indexOf(ownerOf(v)) == 0) {
                 val bot = activity.findViewById<View>(R.id.duinchBot)
                 if (bot != null && bot.requestFocus()) return@OnKeyListener true
             }
             false
         }
         for (c in allCards()) c.setOnKeyListener(keyListener)
+        for (tile in tiles) tile.setOnKeyListener(keyListener)
     }
 
     private fun openSmartHomeCard() {
         val connection = com.gathin.tvhome.feature.settings.data.AgentHomeConfig(activity)
-        val configured = connection.homeAssistantUrl.isNotBlank() &&
-            connection.homeAssistantToken.isNotBlank()
+        val configured = connection.homeAssistantConfigured
         if (configured) host.openSmartHome() else host.openHomeAssistant()
+    }
+
+    private fun runTile(index: Int) {
+        val tile = homeTiles[index]
+        val connection = AgentHomeConfig(activity)
+        val configured = connection.homeAssistantConfigured
+        if (!configured || tile.action.isEmpty()) {
+            openSmartHomeCard()
+            return
+        }
+        tileValues[index].text = "…"
+        Thread {
+            runCatching {
+                HassClient(connection.homeAssistantUrl, connection.homeAssistantToken).use {
+                    it.callService(tile.domain, tile.service, tile.entities)
+                }
+            }
+            main.postDelayed({ refreshHaData(true) }, TILE_SETTLE_MS)
+        }.start()
     }
 
     private fun launchWatching() {
@@ -343,25 +375,21 @@ class WidgetShelf(
     private fun paintContinue() {
         val items = watching.items
         val item = items.getOrNull(watchIndex)
-        contLabel.setTextColor(palette.primary)
         contProgress.progressTintList = ColorStateList.valueOf(palette.primary)
         contProgress.progressBackgroundTintList =
             ColorStateList.valueOf(Palette.alpha(palette.onSurfaceVariant, 0x40))
-        if (item == null) {
-            contLabel.text = activity.getString(R.string.widget_continue)
-            contCount.text = ""
-            contTitle.text = "Chưa có gì đang xem"
-            contSubtitle.text = "Xem dở một phim để hiện ở đây"
-            contPoster.visibility = View.INVISIBLE
-            contProgress.visibility = View.INVISIBLE
-            return
+        if ((item != null) != continueShown) {
+            continueShown = item != null
+            lastGrid?.let { align(it, lastColumns, lastDockTop) }
+            host.slotsChanged()
         }
+        if (item == null) return
         contLabel.text = "${activity.getString(R.string.widget_continue)} · ${item.appLabel}"
         contCount.text = if (items.size > 1) "${watchIndex + 1}/${items.size}" else ""
         contTitle.text = item.title
         contSubtitle.text = item.subtitle
         val poster = watching.poster(item.posterUri)
-        contPoster.visibility = if (poster != null) View.VISIBLE else View.INVISIBLE
+        contPoster.visibility = if (poster != null) View.VISIBLE else View.GONE
         contPoster.setImageBitmap(poster)
         contProgress.visibility = if (item.progress > 0f) View.VISIBLE else View.INVISIBLE
         contProgress.progress = Math.round(item.progress * 1000)
@@ -377,7 +405,7 @@ class WidgetShelf(
     }
 
     private fun span(card: WidgetCard): Int {
-        if (card === cards[0]) return 3
+        if (card === cards[0]) return 2
         return 1
     }
 
@@ -398,6 +426,7 @@ class WidgetShelf(
         order.remove(CONTINUE)
         order.add(0, CLOCK)
         order.add(1, CONTINUE)
+        order.retainAll(listOf(CLOCK, CONTINUE))
     }
 
     private fun setOrder(next: List<String>, focusId: String?, fallbackColumn: Int, removing: String?) {
@@ -490,11 +519,6 @@ class WidgetShelf(
             }))
         }
         items.add(MenuItem(R.drawable.ic_settings_outline, activity.getString(R.string.widget_settings), Runnable { showSettingsMenu(id) }))
-        items.add(MenuItem(R.drawable.ic_remove, activity.getString(R.string.widget_remove), Runnable {
-            val next = ArrayList(order)
-            next.remove(id)
-            setOrder(next, null, at, id)
-        }))
         val c = card(id)
         if (c != null) host.showMenu(c, items)
     }
@@ -554,9 +578,38 @@ class WidgetShelf(
         }
     }
 
-    private fun idOf(card: View): String? {
+    private fun idOf(view: View): String? {
+        val card = ownerOf(view) ?: return null
         for (i in ALL.indices) if (cards[i] === card) return ALL[i]
         return null
+    }
+
+    private fun ownerOf(view: View): WidgetCard? {
+        var current: View? = view
+        while (current != null) {
+            if (current is WidgetCard) return current
+            current = current.parent as? View
+        }
+        return null
+    }
+
+    private fun paintTiles() {
+        val resting = GradientDrawable().apply {
+            cornerRadius = 16 * activity.resources.displayMetrics.density
+            setColor(Palette.alpha(palette.onSurface, 0x14))
+            setStroke(Math.round(activity.resources.displayMetrics.density), Palette.alpha(palette.onSurface, 0x2E))
+        }
+        for (tile in tiles) {
+            val focused = GradientDrawable().apply {
+                cornerRadius = 16 * activity.resources.displayMetrics.density
+                setColor(Palette.alpha(palette.primary, 0x33))
+                setStroke(Math.round(2 * activity.resources.displayMetrics.density), palette.primary)
+            }
+            tile.background = android.graphics.drawable.StateListDrawable().apply {
+                addState(intArrayOf(android.R.attr.state_focused), focused)
+                addState(intArrayOf(), resting.constantState?.newDrawable()?.mutate() ?: resting)
+            }
+        }
     }
 
     private fun city(): String = prefs.getString(CITY_KEY, configCity) ?: configCity
@@ -733,8 +786,9 @@ class WidgetShelf(
             "EEEEdMMMM"
         )
         clockDay.text = today.format(java.time.format.DateTimeFormatter.ofPattern(weekdayPattern))
-        clockDay.setTextColor(palette.primary)
-        clockLunar.text = "🌙 Âm lịch $lunarStr ($canChi)"
+        clockDay.setTextColor(palette.onSurface)
+        clockLunar.setTextColor(palette.primary)
+        clockLunar.text = "Âm lịch $lunarStr  ·  $canChi"
 
         val connection = com.gathin.tvhome.feature.settings.data.AgentHomeConfig(activity)
         val haEvent = connection.cachedHaCalendarEvent()
@@ -761,58 +815,27 @@ class WidgetShelf(
     }
 
     private fun paintHaConnection() {
-        val connection = com.gathin.tvhome.feature.settings.data.AgentHomeConfig(activity)
-        val temperature = connection.cachedHaTemperature()
-        val humidity = connection.cachedHaHumidity()
-        val sensorName = connection.cachedHaSensorName()
-        val devices = connection.cachedHaDevicesSummary()
-        val climate = connection.cachedHaClimateSummary()
-        val configured = connection.homeAssistantUrl.isNotBlank() &&
-            connection.homeAssistantToken.isNotBlank()
-
-        val statusText = temperature ?: (if (configured) "Sẵn sàng" else "—")
-        haStatus.text = "🌡 $statusText"
-
-        if (!humidity.isNullOrBlank()) {
-            haHumidity.text = "💧 $humidity"
-            haHumidity.setTextColor(palette.secondary)
-            haHumidity.visibility = View.VISIBLE
-        } else {
-            haHumidity.visibility = View.GONE
+        val connection = AgentHomeConfig(activity)
+        val configured = connection.homeAssistantConfigured
+        val shown = withOutdoorFallback(if (configured) homeTiles else HomeTiles.EMPTY)
+        shown.forEachIndexed { index, tile ->
+            paintTile(index, tile.icon, tile.value, tile.caption)
         }
+    }
 
-        haDetail.text = if (sensorName != null && temperature != null && temperature != "—") {
-            "$sensorName · Bấm OK để mở"
-        } else if (configured) {
-            "Phòng khách · Bấm OK để mở"
-        } else {
-            "Cấu hình URL và token Home Assistant"
-        }
+    private fun withOutdoorFallback(tiles: List<HomeTile>): List<HomeTile> {
+        if (tiles[0].value != "—") return tiles
+        val report = Weather.cached(activity) ?: return tiles
+        val outdoor = HomeTile("🌡", "${Math.round(report.temp)}°C", "Ngoài trời")
+        return listOf(outdoor) + tiles.drop(1)
+    }
 
-        if (!configured) {
-            haLightStatus.text = "Chưa kết nối"
-            haLightStatus.setTextColor(palette.onSurfaceVariant)
-            haClimateStatus.text = "Cần URL và Token"
-            haClimateStatus.setTextColor(palette.onSurfaceVariant)
-            haOnlineStatus.text = "○ Chưa cấu hình"
-            haOnlineStatus.setTextColor(palette.onSurfaceVariant)
-        } else if (devices != null || climate != null) {
-            haLightStatus.text = devices ?: "💡 Đèn: —"
-            haLightStatus.setTextColor(if (palette.dark) 0xFFFBBF24.toInt() else palette.tertiary)
-            haClimateStatus.text = climate ?: "❄️ Điều hòa: —"
-            haClimateStatus.setTextColor(palette.onSurfaceVariant)
-            haOnlineStatus.text = "● Trực tuyến"
-            val onlineColor = if (palette.dark) 0xFF34D399.toInt() else 0xFF059669.toInt()
-            haOnlineStatus.setTextColor(onlineColor)
-        } else {
-            haLightStatus.text = "Đang kết nối…"
-            haLightStatus.setTextColor(palette.onSurfaceVariant)
-            haClimateStatus.text = "Chờ phản hồi"
-            haClimateStatus.setTextColor(palette.onSurfaceVariant)
-            haOnlineStatus.text = "○ Ngoại tuyến"
-            haOnlineStatus.setTextColor(palette.error)
-        }
-
+    private fun paintTile(index: Int, icon: String, value: String, caption: String) {
+        tileIcons[index].text = icon
+        tileValues[index].text = value
+        tileValues[index].setTextColor(palette.onSurface)
+        tileCaptions[index].text = caption
+        tileCaptions[index].setTextColor(palette.onSurfaceVariant)
     }
 
     private var fetchingHa = false
@@ -822,7 +845,7 @@ class WidgetShelf(
         val now = System.currentTimeMillis()
         if (!force && now - lastHaFetch < 60_000L) return
         val connection = com.gathin.tvhome.feature.settings.data.AgentHomeConfig(activity)
-        if (connection.homeAssistantUrl.isBlank() || connection.homeAssistantToken.isBlank()) return
+        if (!connection.homeAssistantConfigured) return
         if (fetchingHa) return
         fetchingHa = true
         lastHaFetch = now
@@ -841,6 +864,9 @@ class WidgetShelf(
                     }
 
                     val states = client.states()
+                    val picked = HomeTiles.pick(states, connection.homeAssistantTemperatureEntity)
+                    HomeTiles.save(prefs, picked)
+                    main.post { homeTiles = picked }
                     val entityId = connection.homeAssistantTemperatureEntity
                     val target = if (entityId.isNotBlank()) {
                         states.find { it.id == entityId }
@@ -968,13 +994,13 @@ class WidgetShelf(
         var usedColumns = 0
         for (id in order) {
             val card = card(id) ?: continue
+            if (card === cards[2] && !continueShown) continue
             val cardSpan = span(card)
             if (usedColumns + cardSpan <= MAX_CARDS) {
                 slots.add(card)
                 usedColumns += cardSpan
             }
         }
-        if (usedColumns < MAX_CARDS && order.size < ALL.size) slots.add(addCard)
         for (c in allCards()) {
             val visibility = if (slots.contains(c)) View.VISIBLE else View.GONE
             if (c.visibility != visibility) c.visibility = visibility
@@ -1038,10 +1064,10 @@ class WidgetShelf(
         for (t in arrayOf(clockAmPm, weatherPlace, airLabel, lunarLabel)) {
             t.setTextColor(p.onSurfaceVariant)
         }
-        for (t in arrayOf(clockTime, weatherTemp, lunarDate, airValue, haStatus, contTitle)) {
+        for (t in arrayOf(clockTime, weatherTemp, lunarDate, airValue, contTitle, contLabel)) {
             t.setTextColor(p.onSurface)
         }
-        for (t in arrayOf(clockDate, weatherDetail, airDetail, holiday, haDetail, clockLunar, contSubtitle, contCount)) {
+        for (t in arrayOf(clockDate, weatherDetail, airDetail, holiday, contSubtitle, contCount)) {
             t.setTextColor(p.onSurfaceVariant)
         }
         val dividerColor = Palette.alpha(p.outlineVariant, 0x66)
@@ -1050,6 +1076,7 @@ class WidgetShelf(
         paintClockDate()
         paintHaConnection()
         paintContinue()
+        paintTiles()
         paintAir()
     }
 
@@ -1226,6 +1253,7 @@ class WidgetShelf(
         private val CITY_NAMES = arrayOf(null, "Hà Nội", "TP. Hồ Chí Minh", "Đà Nẵng", "Hải Phòng", "Cần Thơ", "Huế", "Nha Trang", "Đà Lạt")
 
         private const val WEATHER_PAGES = 3
+        private const val TILE_SETTLE_MS = 1_500L
 
         private fun holidayName(h: LunarCalendar.Holiday): Int {
             return when (h) {

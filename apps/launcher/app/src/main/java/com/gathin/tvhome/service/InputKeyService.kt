@@ -52,10 +52,6 @@ open class InputKeyService : AccessibilityService() {
         return false
     }
 
-    private fun isHomeKey(keyCode: Int): Boolean {
-        return keyCode == KeyEvent.KEYCODE_HOME || keyCode == KeyEvent.KEYCODE_ALL_APPS
-    }
-
     private fun isInputKey(keyCode: Int): Boolean {
         if (keyCode == KeyEvent.KEYCODE_TV || keyCode == KeyEvent.KEYCODE_TV_INPUT) return true
         if (keyCode == KeyEvent.KEYCODE_MENU && !XiaomiInputs.isPlayer(frontPackage)
@@ -69,12 +65,7 @@ open class InputKeyService : AccessibilityService() {
     override fun onKeyEvent(event: KeyEvent): Boolean {
         if (assistantShortcut?.onKeyEvent(event) == true) return true
 
-        if (isHomeKey(event.keyCode)) {
-            if (event.action == KeyEvent.ACTION_UP && !event.isCanceled) {
-                openHome()
-            }
-            return true
-        }
+        if (RemoteGestures.onKeyEvent(this, event)) return true
 
         if (isRunningAppsKey(event.keyCode)) {
             if (event.action == KeyEvent.ACTION_UP && !event.isCanceled) {
@@ -97,17 +88,6 @@ open class InputKeyService : AccessibilityService() {
             }
         }
         return true
-    }
-
-    private fun openHome() {
-        if (performGlobalAction(GLOBAL_ACTION_HOME)) return
-        val home = Intent(this, MainActivity::class.java)
-            .setAction(Intent.ACTION_MAIN)
-            .addCategory(Intent.CATEGORY_HOME)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
-        try {
-            startActivity(home)
-        } catch (_: ActivityNotFoundException) {}
     }
 
     private fun openInputs() {

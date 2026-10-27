@@ -107,6 +107,11 @@ class HassClient(address: String, private val token: String) : AutoCloseable {
         request("POST", "/api/services/${action.domain}/${action.service}", values)
     }
 
+    fun callService(domain: String, service: String, entityIds: List<String>) {
+        val values = JSONObject().put("entity_id", JSONArray(entityIds))
+        request("POST", "/api/services/$domain/$service", values)
+    }
+
     private fun request(method: String, path: String, body: JSONObject? = null): String {
         check(!closed) { "Kết nối đã đóng" }
         val connection = URL(base + path).openConnection() as HttpURLConnection

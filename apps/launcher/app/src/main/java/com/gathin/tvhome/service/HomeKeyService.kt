@@ -72,10 +72,7 @@ class HomeKeyService : AccessibilityService() {
             if (event.action == KeyEvent.ACTION_UP && !event.isCanceled) RemoteKeys.launch(this, app)
             return true
         }
-        val home = event.keyCode == KeyEvent.KEYCODE_ALL_APPS || event.keyCode == KeyEvent.KEYCODE_HOME
-        if (!home) return false
-        if (event.action == KeyEvent.ACTION_UP && !event.isCanceled) openHome()
-        return true
+        return RemoteGestures.onKeyEvent(this, event)
     }
 
     private fun isOtherHomeWindow(event: AccessibilityEvent): Boolean {

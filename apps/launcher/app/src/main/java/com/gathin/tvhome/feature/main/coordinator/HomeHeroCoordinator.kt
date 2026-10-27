@@ -10,16 +10,19 @@ class HomeHeroCoordinator {
     private var heroName: TextView? = null
     private var ambient: View? = null
     private var heroShown = false
+    private var glow: HomeGridController? = null
 
     fun setup(root: View) {
         heroName = root.findViewById(R.id.heroName)
         ambient = root.findViewById(R.id.ambient)
+        glow = ambient?.let { HomeGridController(it, root.resources.displayMetrics.density) }
     }
 
     fun showHero(label: String, color: Int, dockTopInRoot: Float, density: Float) {
         val hero = heroName ?: return
         val targetY = dockTopInRoot - 14 * density - 26 * density - hero.height
         val changed = label != hero.text.toString()
+        glow?.setAmbientColor(color, true)
 
         if (!heroShown) {
             hero.animate().cancel()
@@ -28,7 +31,6 @@ class HomeHeroCoordinator {
             hero.y = targetY
             hero.translationX = 0f
             Motion.DEFAULT_EFFECTS.drive(hero.animate().alpha(1f)).start()
-            ambient?.setBackgroundColor(color)
             ambient?.animate()?.alpha(1f)?.setDuration(600)?.start()
             heroShown = true
         } else if (changed) {

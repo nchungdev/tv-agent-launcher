@@ -15,6 +15,8 @@ import com.gathin.tvhome.feature.runningapps.data.AppLocalDataSource
 import com.gathin.tvhome.feature.runningapps.data.AppRepositoryImpl
 import com.gathin.tvhome.feature.notification.data.NotificationRepositoryImpl
 import com.gathin.tvhome.feature.main.adapter.AppAdapter
+import com.gathin.tvhome.feature.main.data.HomeLook
+import com.gathin.tvhome.feature.main.widget.SkyView
 import com.gathin.tvhome.feature.main.adapter.Entry
 import com.gathin.tvhome.feature.system.coordinator.HomeKeyHandler
 import com.gathin.tvhome.feature.system.coordinator.HomeMenuHandler
@@ -54,6 +56,7 @@ import kotlinx.coroutines.launch
 class MainActivity : Activity(), AppAdapter.TileListener {
 
     private lateinit var root: ViewGroup
+    private lateinit var skyView: SkyView
     private lateinit var homeConfig: Config
     private lateinit var presenter: MainPresenter
     private lateinit var appAdapter: AppAdapter
@@ -87,6 +90,7 @@ class MainActivity : Activity(), AppAdapter.TileListener {
         root = findViewById(R.id.root)
         agentOverlay = AgentOverlay(this, root)
         homeConfig = Config.load(this)
+        configureSky(homeConfig)
 
         initPresentersAndRepositories()
         initCoordinators(homeConfig)
@@ -94,6 +98,14 @@ class MainActivity : Activity(), AppAdapter.TileListener {
 
         presenter.processIntent(MainIntent.Init)
         reloadAllApps(homeConfig)
+    }
+
+    private fun configureSky(cfg: Config) {
+        val choices = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)
+        val backdrop = HomeLook.backdrop(choices)
+        val intensity = HomeLook.skyIntensity(backdrop, cfg.skyIntensity, Palette.darkMode())
+        skyView = findViewById(R.id.sky)
+        skyView.setIntensity(intensity)
     }
 
     private fun initPresentersAndRepositories() {
@@ -116,6 +128,7 @@ class MainActivity : Activity(), AppAdapter.TileListener {
             onMinuteTick = {
                 val rep = Weather.cached(this)
                 headerCoordinator.updateWeather(rep)
+                skyView.update()
             },
             onSysInfoSample = { cpu ->
                 headerCoordinator.updateSysInfo(cpu)
