@@ -47,7 +47,7 @@ object BackgroundApps {
     }
 
     @JvmStatic
-    fun stopAll(context: Context) {
+    fun launchable(context: Context): Set<String> {
         val packageManager = context.packageManager
         val launchable = HashSet<String>()
         val categories = arrayOf(Intent.CATEGORY_LEANBACK_LAUNCHER, Intent.CATEGORY_LAUNCHER)
@@ -64,7 +64,12 @@ object BackgroundApps {
             context.contentResolver, Settings.Secure.DEFAULT_INPUT_METHOD
         )
         if (ime != null) launchable.remove(ime.split("/")[0])
+        return launchable
+    }
 
+    @JvmStatic
+    fun stopAll(context: Context) {
+        val launchable = launchable(context)
         try {
             val adb = LocalAdb(context)
             val running = list(adb) { launchable.contains(it) }

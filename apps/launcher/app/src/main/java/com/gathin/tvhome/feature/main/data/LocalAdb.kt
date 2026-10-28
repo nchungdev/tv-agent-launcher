@@ -43,10 +43,10 @@ class LocalAdb(context: Context) {
     private val context: Context = context.applicationContext
 
     @Throws(IOException::class)
-    fun shell(command: String): String {
+    fun shell(command: String, mayPrompt: Boolean = true): String {
         val output = ByteArrayOutputStream()
         Session().use { session ->
-            session.run(command, true) { chunk -> output.write(chunk) }
+            session.run(command, mayPrompt) { chunk -> output.write(chunk) }
         }
         return output.toString("UTF-8")
     }

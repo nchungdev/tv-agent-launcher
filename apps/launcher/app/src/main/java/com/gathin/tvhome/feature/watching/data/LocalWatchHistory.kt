@@ -9,9 +9,11 @@ class LocalWatchHistory(context: Context) {
 
     @Synchronized
     fun record(event: WatchEvent) {
-        val kept = load().filter { it.key != event.key }.take(MAX_ENTRIES - 1)
+        val history = load()
+        val earlier = history.firstOrNull { it.key == event.key }
+        val kept = history.filter { it.key != event.key }.take(MAX_ENTRIES - 1)
         val rows = JSONArray()
-        rows.put(event.toJson())
+        rows.put(keepPosition(event, earlier).toJson())
         for (entry in kept) rows.put(entry.toJson())
         prefs.edit().putString(KEY, rows.toString()).apply()
     }
@@ -23,6 +25,14 @@ class LocalWatchHistory(context: Context) {
         return (0 until rows.length()).mapNotNull { index ->
             rows.optJSONObject(index)?.let { WatchEvent.fromJson(it) }
         }
+    }
+
+    private fun keepPosition(event: WatchEvent, earlier: WatchEvent?): WatchEvent {
+        if (earlier == null || event.positionMs > 0 || earlier.positionMs <= 0) return event
+        return event.copy(
+            positionMs = earlier.positionMs,
+            durationMs = maxOf(event.durationMs, earlier.durationMs)
+        )
     }
 
     fun continueItems(): List<WatchItem> {
@@ -51,7 +61,8 @@ class LocalWatchHistory(context: Context) {
             appLabel = event.appLabel,
             packageName = event.packageName,
             actionType = "app.open",
-            parameters = mapOf("package_name" to event.packageName)
+            parameters = mapOf("package_name" to event.packageName),
+            remainingMs = (event.durationMs - event.positionMs).coerceAtLeast(0L)
         )
     }
 

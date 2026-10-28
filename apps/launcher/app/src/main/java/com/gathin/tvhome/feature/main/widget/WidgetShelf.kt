@@ -9,7 +9,6 @@ import android.app.Activity
 import android.content.Context
 import android.content.SharedPreferences
 import android.content.res.ColorStateList
-import android.graphics.Outline
 import android.graphics.Rect
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
@@ -18,7 +17,6 @@ import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
-import android.view.ViewOutlineProvider
 import android.view.ViewTreeObserver
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -31,6 +29,8 @@ import com.gathin.tvhome.Contract
 import com.gathin.tvhome.R
 import com.gathin.tvhome.feature.settings.data.Config
 import com.gathin.tvhome.feature.watching.data.ContinueWatching
+import com.gathin.tvhome.feature.watching.data.WatchItem
+import com.gathin.tvhome.feature.watching.ui.WatchFormat
 import com.gathin.tvhome.feature.agent.coordinator.AgentActionExecutor
 import com.gathin.tvhome.feature.system.data.AirQuality
 import com.gathin.tvhome.feature.system.data.Weather
@@ -135,6 +135,7 @@ class WidgetShelf(
     private val contSubtitle: TextView
     private val contPoster: ImageView
     private val contProgress: ProgressBar
+    private val contRemaining: TextView
     private val watching = ContinueWatching(activity)
     private var watchIndex = 0
     private var continueShown = false
@@ -209,12 +210,8 @@ class WidgetShelf(
         contSubtitle = cards[2].findViewById(R.id.contSubtitle)
         contPoster = cards[2].findViewById(R.id.contPoster)
         contProgress = cards[2].findViewById(R.id.contProgress)
-        contPoster.clipToOutline = true
-        contPoster.outlineProvider = object : ViewOutlineProvider() {
-            override fun getOutline(view: View, outline: Outline) {
-                outline.setRoundRect(0, 0, view.width, view.height, 10 * view.resources.displayMetrics.density)
-            }
-        }
+        contRemaining = cards[2].findViewById(R.id.contRemaining)
+        cards[2].findViewById<View>(R.id.contPosterFrame).clipToOutline = true
 
         airLabel = cards[3].findViewById(R.id.airLabel)
         airValue = cards[3].findViewById(R.id.airValue)
@@ -381,15 +378,35 @@ class WidgetShelf(
             host.slotsChanged()
         }
         if (item == null) return
-        contLabel.text = "${activity.getString(R.string.widget_continue)} · ${item.appLabel}"
+        contLabel.text = continueLabel(item)
         contCount.text = if (items.size > 1) "${watchIndex + 1}/${items.size}" else ""
         contTitle.text = item.title
         contSubtitle.text = item.subtitle
-        val poster = watching.poster(item.posterUri)
-        contPoster.visibility = if (poster != null) View.VISIBLE else View.GONE
-        contPoster.setImageBitmap(poster)
+        contSubtitle.visibility = if (item.subtitle.isBlank()) View.GONE else View.VISIBLE
+        paintPoster(item)
+        val remaining = WatchFormat.remaining(activity, item.remainingMs)
+        contRemaining.text = remaining
+        contRemaining.visibility = if (remaining == null) View.GONE else View.VISIBLE
         contProgress.visibility = if (item.progress > 0f) View.VISIBLE else View.INVISIBLE
         contProgress.progress = Math.round(item.progress * 1000)
+    }
+
+    private fun paintPoster(item: WatchItem) {
+        val poster = watching.poster(item.posterUri)
+        if (poster != null) {
+            contPoster.scaleType = ImageView.ScaleType.CENTER_CROP
+            contPoster.setImageBitmap(poster)
+            return
+        }
+        contPoster.scaleType = ImageView.ScaleType.FIT_CENTER
+        contPoster.setImageDrawable(WatchFormat.appArt(activity, item.packageName))
+    }
+
+    private fun continueLabel(item: WatchItem): String {
+        val label = activity.getString(R.string.widget_continue)
+        val app = item.appLabel
+        if (app.isBlank() || app == item.packageName) return label
+        return "$label · $app"
     }
 
     private fun allCards(): Array<WidgetCard> = arrayOf(

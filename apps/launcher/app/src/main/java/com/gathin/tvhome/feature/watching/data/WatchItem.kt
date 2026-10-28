@@ -8,5 +8,6 @@ class WatchItem(
     val appLabel: String,
     val packageName: String,
     val actionType: String,
-    val parameters: Map<String, Any?>
+    val parameters: Map<String, Any?>,
+    val remainingMs: Long = 0L
 )

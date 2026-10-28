@@ -329,14 +329,46 @@
                     android:textSize="12sp" />
             </LinearLayout>
 
-            <ImageView
-                android:id="@+id/contPoster"
+            <FrameLayout
+                android:id="@+id/contPosterFrame"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="1"
                 android:layout_marginTop="8dp"
-                android:scaleType="centerCrop"
-                android:importantForAccessibility="no" />
+                android:background="@drawable/continue_poster_bg">
+
+                <ImageView
+                    android:id="@+id/contPoster"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:scaleType="centerCrop"
+                    android:importantForAccessibility="no" />
+
+                <TextView
+                    android:id="@+id/contRemaining"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom|end"
+                    android:layout_marginEnd="6dp"
+                    android:layout_marginBottom="9dp"
+                    android:background="@drawable/continue_chip_bg"
+                    android:fontFamily="sans-serif-medium"
+                    android:paddingStart="6dp"
+                    android:paddingTop="2dp"
+                    android:paddingEnd="6dp"
+                    android:paddingBottom="2dp"
+                    android:textColor="#FFFFFFFF"
+                    android:textSize="11sp"
+                    android:visibility="gone" />
+
+                <ProgressBar
+                    android:id="@+id/contProgress"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="3dp"
+                    android:layout_gravity="bottom"
+                    android:max="1000" />
+            </FrameLayout>
 
             <TextView
                 android:id="@+id/contTitle"
@@ -349,18 +381,10 @@
             <TextView
                 android:id="@+id/contSubtitle"
                 style="@style/WidgetDetail"
-                android:layout_marginTop="1dp"
+                android:layout_marginTop="2dp"
                 android:maxLines="1"
                 android:textColor="#B0B3BD"
                 android:textSize="12sp" />
-
-            <ProgressBar
-                android:id="@+id/contProgress"
-                style="?android:attr/progressBarStyleHorizontal"
-                android:layout_width="match_parent"
-                android:layout_height="4dp"
-                android:layout_marginTop="8dp"
-                android:max="1000" />
         </LinearLayout>
     </com.gathin.tvhome.feature.main.widget.WidgetCard>
 
