@@ -411,6 +411,8 @@
     <string name="bot_action_hint">▶ Bấm OK để mở</string>
     <string name="notification_action_hint">▶ Bấm để mở ngay</string>
     <string name="widget_continue">Tiếp tục xem</string>
+    <string name="continue_left_minutes">Còn %d phút</string>
+    <string name="continue_left_hours">Còn %1$d giờ %2$d phút</string>
     <string name="restarting_launcher">Đang đóng mọi app và khởi động lại launcher…</string>
     <string name="now_playing_listener_name">Lịch sử xem</string>
     <string name="home_section">Ngôi nhà của bạn</string>

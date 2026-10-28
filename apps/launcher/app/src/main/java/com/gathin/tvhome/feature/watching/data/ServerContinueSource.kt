@@ -50,7 +50,8 @@ class ServerContinueSource(private val context: Context) {
             appLabel = row.optString("app_label"),
             packageName = packageName,
             actionType = action?.optString("action_type").orEmpty().ifBlank { "app.open" },
-            parameters = parameters(action?.optJSONObject("parameters"), packageName)
+            parameters = parameters(action?.optJSONObject("parameters"), packageName),
+            remainingMs = row.optLong("remaining_ms")
         )
     }
 

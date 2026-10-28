@@ -16,6 +16,7 @@ class PlaybackTracker(private val context: Context, private val listener: Compon
     private val main = Handler(Looper.getMainLooper())
     private val sessions = context.getSystemService(MediaSessionManager::class.java)
     private val reporter = WatchReporter(context)
+    private val artwork = ArtworkStore(context)
     private val watched = HashMap<MediaSession.Token, Watched>()
 
     private val sessionsChanged = MediaSessionManager.OnActiveSessionsChangedListener {
@@ -79,7 +80,8 @@ class PlaybackTracker(private val context: Context, private val listener: Compon
             controller.unregisterCallback(callback)
             val last = lastEvent ?: return
             if (last.state == WatchEvent.STOPPED) return
-            report(build(WatchEvent.STOPPED) ?: last.copy(state = WatchEvent.STOPPED))
+            val stopped = last.copy(state = WatchEvent.STOPPED, at = System.currentTimeMillis())
+            report(build(WatchEvent.STOPPED) ?: stopped)
         }
 
         private fun reportChange() {
@@ -92,8 +94,19 @@ class PlaybackTracker(private val context: Context, private val listener: Compon
 
         private fun report(event: WatchEvent?) {
             if (event == null) return
-            lastEvent = event
-            reporter.report(event)
+            val kept = keepProgress(event)
+            lastEvent = kept
+            reporter.report(kept)
+        }
+
+        private fun keepProgress(event: WatchEvent): WatchEvent {
+            val previous = lastEvent ?: return event
+            if (previous.key != event.key || event.positionMs > 0) return event
+            return event.copy(
+                positionMs = previous.positionMs,
+                durationMs = maxOf(event.durationMs, previous.durationMs),
+                artworkUrl = event.artworkUrl.ifEmpty { previous.artworkUrl }
+            )
         }
 
         private fun isPlaying(): Boolean =
@@ -102,6 +115,7 @@ class PlaybackTracker(private val context: Context, private val listener: Compon
         private fun build(state: String): WatchEvent? {
             val metadata = controller.metadata ?: return null
             val title = SessionMetadata.title(metadata) ?: return null
+            val key = "${controller.packageName}|$title"
             return WatchEvent(
                 packageName = controller.packageName,
                 appLabel = SessionMetadata.appLabel(context, controller.packageName),
@@ -111,7 +125,7 @@ class PlaybackTracker(private val context: Context, private val listener: Compon
                 positionMs = position(),
                 durationMs = metadata.getLong(MediaMetadata.METADATA_KEY_DURATION),
                 state = state,
-                artworkUrl = SessionMetadata.artwork(metadata),
+                artworkUrl = artwork.artwork(metadata, key),
                 at = System.currentTimeMillis()
             )
         }

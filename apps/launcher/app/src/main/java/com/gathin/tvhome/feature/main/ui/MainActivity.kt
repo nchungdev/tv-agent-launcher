@@ -13,6 +13,7 @@ import com.gathin.tvhome.feature.agent.ui.AgentOverlay
 import com.gathin.tvhome.feature.settings.data.Config
 import com.gathin.tvhome.feature.runningapps.data.AppLocalDataSource
 import com.gathin.tvhome.feature.runningapps.data.AppRepositoryImpl
+import com.gathin.tvhome.feature.runningapps.data.StuckLayers
 import com.gathin.tvhome.feature.notification.data.NotificationRepositoryImpl
 import com.gathin.tvhome.feature.main.adapter.AppAdapter
 import com.gathin.tvhome.feature.main.data.HomeLook
@@ -437,6 +438,7 @@ class MainActivity : Activity(), AppAdapter.TileListener {
         headerCoordinator.updateSysInfo(0)
         widgetShelf.start()
         refreshRunningApps()
+        StuckLayers.scheduleCheck(this) { isHomeResumed }
 
         val fresh = Config.load(this)
         if (fresh.layoutMode != homeConfig.layoutMode || fresh.columns != homeConfig.columns) {
@@ -449,6 +451,7 @@ class MainActivity : Activity(), AppAdapter.TileListener {
         super.onPause()
         headerCoordinator.stop()
         isHomeResumed = false
+        StuckLayers.cancel()
         agentOverlay.onPause()
         AgentEventHub.greetingListener = null
         networkManager.stop()
