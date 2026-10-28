@@ -43,17 +43,23 @@ class TvWatchNextSource(private val context: Context) {
             val position = number(cursor, "last_playback_position_millis").coerceAtLeast(0)
             val duration = number(cursor, "duration_millis").coerceAtLeast(0)
             val episode = text(cursor, "episode_title")
+            val rawDesc = text(cursor, "short_description").ifBlank { text(cursor, "long_description") }
+            val desc = if (rawDesc.contains("<")) {
+                android.text.Html.fromHtml(rawDesc, android.text.Html.FROM_HTML_MODE_LEGACY).toString().trim()
+            } else rawDesc.trim()
+            val posterUri = text(cursor, "poster_art_uri").takeIf { it.isNotBlank() }
+            val thumbUri = text(cursor, "thumbnail_uri").takeIf { it.isNotBlank() }
+            val primaryPoster = posterUri ?: thumbUri
+            val altPosters = listOfNotNull(posterUri, thumbUri).filter { it != primaryPoster }
             items.add(WatchItem(
-                title, episode.takeIf { it != title }.orEmpty().ifBlank {
-                    text(cursor, "short_description").ifBlank { text(cursor, "long_description") }
-                },
+                title, episode.takeIf { it != title }.orEmpty().ifBlank { desc },
                 if (duration > 0) WatchMerge.progress(position.toFloat() / duration) else 0f,
-                text(cursor, "poster_art_uri").ifBlank { text(cursor, "thumbnail_uri") }
-                    .takeIf { it.isNotBlank() },
+                primaryPoster,
                 packageName, packageName, "app.open", mapOf("package_name" to packageName),
                 (duration - position).coerceAtLeast(0), WatchSource.TV,
                 text(cursor, "_id"), number(cursor, "last_engagement_time_utc_millis"),
-                text(cursor, "intent_uri"), durationMs = duration
+                text(cursor, "intent_uri"), durationMs = duration,
+                posterAlternatives = altPosters
             ))
         }
         return items

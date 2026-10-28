@@ -1,17 +1,15 @@
 package com.gathin.tvhome.feature.smarthome.presenter
 import com.gathin.tvhome.feature.smarthome.data.*
 
+import com.gathin.tvhome.core.util.EffectBus
 import com.gathin.tvhome.feature.smarthome.data.SmartHomeAction
 import com.gathin.tvhome.feature.smarthome.data.SmartHomeDevice
 import com.gathin.tvhome.feature.smarthome.data.SmartHomeRepository
 import com.gathin.tvhome.feature.settings.data.AgentHomeConfig
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
@@ -55,8 +53,7 @@ class SmartHomePresenter(
     )
     val state: StateFlow<SmartHomeState> = _state.asStateFlow()
 
-    private val _effects = Channel<SmartHomeEffect>(Channel.BUFFERED)
-    val effects: Flow<SmartHomeEffect> = _effects.receiveAsFlow()
+    val effects = EffectBus<SmartHomeEffect>()
 
     fun processIntent(intent: SmartHomeIntent) {
         when (intent) {
@@ -85,7 +82,7 @@ class SmartHomePresenter(
                     isLoading = false,
                     errorMessage = msg
                 )
-                _effects.send(SmartHomeEffect.ShowToast(msg))
+                effects.emit(SmartHomeEffect.ShowToast(msg))
             }
         }
     }
@@ -99,7 +96,7 @@ class SmartHomePresenter(
             val result = repository.executeAction(device, action, values)
             result.onFailure { err ->
                 val msg = err.message ?: "Lỗi thực thi lệnh"
-                _effects.send(SmartHomeEffect.ShowToast(msg))
+                effects.emit(SmartHomeEffect.ShowToast(msg))
             }
             loadDevices()
         }

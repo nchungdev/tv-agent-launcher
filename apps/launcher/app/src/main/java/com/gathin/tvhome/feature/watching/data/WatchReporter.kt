@@ -26,7 +26,8 @@ class WatchReporter(context: Context) {
         val token = AgentClient.token(appContext)
         if (base.isEmpty() || token.isNullOrEmpty()) return
 
-        val body = JSONObject().put("events", JSONArray().put(event.toJson()))
+        val protocolEvent = event.toJson().apply { remove("resume_uri") }
+        val body = JSONObject().put("events", JSONArray().put(protocolEvent))
         val connection = URL("$base$EVENTS_PATH").openConnection() as HttpURLConnection
         try {
             connection.requestMethod = "POST"

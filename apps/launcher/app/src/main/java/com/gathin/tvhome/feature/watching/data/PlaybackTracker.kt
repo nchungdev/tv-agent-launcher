@@ -88,7 +88,9 @@ class PlaybackTracker(private val context: Context, private val listener: Compon
             val state = if (isPlaying()) WatchEvent.PLAYING else WatchEvent.PAUSED
             val event = build(state) ?: return
             val previous = lastEvent
-            if (previous != null && previous.key == event.key && previous.state == state) return
+            if (previous != null && previous.key == event.key && previous.state == state &&
+                previous.resumeUri == event.resumeUri && previous.title == event.title &&
+                previous.subtitle == event.subtitle) return
             report(event)
         }
 
@@ -115,18 +117,20 @@ class PlaybackTracker(private val context: Context, private val listener: Compon
         private fun build(state: String): WatchEvent? {
             val metadata = controller.metadata ?: return null
             val title = SessionMetadata.title(metadata) ?: return null
-            val key = "${controller.packageName}|$title"
+            val mediaId = SessionMetadata.mediaId(metadata)
+            val key = "${controller.packageName}|${mediaId.ifBlank { title }}"
             return WatchEvent(
                 packageName = controller.packageName,
                 appLabel = SessionMetadata.appLabel(context, controller.packageName),
                 title = title,
                 subtitle = SessionMetadata.subtitle(metadata),
-                mediaId = SessionMetadata.mediaId(metadata),
+                mediaId = mediaId,
                 positionMs = position(),
                 durationMs = metadata.getLong(MediaMetadata.METADATA_KEY_DURATION),
                 state = state,
                 artworkUrl = artwork.artwork(metadata, key),
-                at = System.currentTimeMillis()
+                at = System.currentTimeMillis(),
+                resumeUri = SessionMetadata.resumeUri(metadata)
             )
         }
 

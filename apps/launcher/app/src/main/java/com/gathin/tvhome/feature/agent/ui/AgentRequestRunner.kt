@@ -6,7 +6,12 @@ import android.os.Looper
 import android.os.SystemClock
 import com.gathin.tvhome.core.view.AgentCards
 import com.gathin.tvhome.core.view.AgentCardData
+import com.gathin.tvhome.core.view.CardAction
 import com.gathin.tvhome.feature.agent.data.AgentClient
+import com.gathin.tvhome.feature.agent.data.FlowClient
+import com.gathin.tvhome.feature.agent.data.FlowInput
+import com.gathin.tvhome.feature.agent.data.FlowItem
+import com.gathin.tvhome.feature.agent.data.FlowResult
 import com.gathin.tvhome.feature.agent.data.PresentationResponse
 import java.util.UUID
 import java.util.concurrent.ExecutorService
@@ -61,8 +66,73 @@ class AgentRequestRunner(context: Context, private val callbacks: Callbacks) {
         requestGeneration: Int,
         connection: AgentClient.Request
     ) {
-        var failure: String? = null
         val lastDelivery = longArrayOf(0)
+        var fallbackToLegacy = false
+
+        val input = FlowInput(text = request)
+        FlowClient.execute(appContext, input, object : FlowClient.FlowListener {
+            override fun onTaskResult(result: FlowResult) {
+                if (requestGeneration != generation) return
+                val cards = result.items.mapNotNull { item -> mapFlowItemToCard(item) }
+                if (cards.isNotEmpty()) {
+                    main.post {
+                        if (requestGeneration == generation) callbacks.onCards(cards)
+                    }
+                }
+                for (item in result.items) {
+                    if (item.content.isNotBlank()) {
+                        received.append(item.content).append("\n")
+                        deliverSnapshot(received, lastDelivery, requestGeneration)
+                    }
+                }
+            }
+
+            override fun onNeedsInput(question: String) {
+                if (requestGeneration != generation) return
+                received.append(question)
+                deliverSnapshot(received, lastDelivery, requestGeneration)
+            }
+
+            override fun onCompleted(status: String) {
+                if (requestGeneration != generation) return
+                val finalAnswer = received.toString().trim()
+                main.post {
+                    if (requestGeneration != generation) return@post
+                    main.removeCallbacks(renderPending)
+                    pendingAnswer = null
+                    callbacks.onFinished(null, finalAnswer)
+                }
+            }
+
+            override fun onError(code: String, message: String) {
+                if (requestGeneration != generation) return
+                val finalAnswer = received.toString().trim()
+                main.post {
+                    if (requestGeneration != generation) return@post
+                    main.removeCallbacks(renderPending)
+                    pendingAnswer = null
+                    callbacks.onFinished(message, finalAnswer)
+                }
+            }
+
+            override fun onLegacyFallback() {
+                fallbackToLegacy = true
+            }
+        }, connection)
+
+        if (fallbackToLegacy) {
+            askLegacy(request, received, requestGeneration, connection, lastDelivery)
+        }
+    }
+
+    private fun askLegacy(
+        request: String,
+        received: StringBuilder,
+        requestGeneration: Int,
+        connection: AgentClient.Request,
+        lastDelivery: LongArray
+    ) {
+        var failure: String? = null
         try {
             AgentClient.ask(appContext, session, request, { piece ->
                 if (received.length + piece.length > MAX_ANSWER_CHARS) {
@@ -85,6 +155,46 @@ class AgentRequestRunner(context: Context, private val callbacks: Callbacks) {
             pendingAnswer = null
             callbacks.onFinished(failure, finalAnswer)
         }
+    }
+
+    private fun mapFlowItemToCard(item: FlowItem): AgentCardData? {
+        val title = item.title.ifBlank { item.url }
+        if (title.isBlank()) return null
+        val actions = ArrayList<CardAction>()
+
+        for (action in item.actions) {
+            when (action.type) {
+                "catalog_detail" -> {
+                    val params = mapOf<String, Any?>("title_id" to action.itemId.ifBlank { item.id })
+                    actions.add(CardAction("detail", action.label.ifBlank { "Xem chi tiết" }, CardAction.KIND_CLIENT, "catalog_detail", params))
+                }
+                "catalog_playback" -> {
+                    val params = mapOf<String, Any?>("url" to action.url, "id" to action.itemId)
+                    actions.add(CardAction("play", action.label.ifBlank { "Phát ngay" }, CardAction.KIND_CLIENT, "catalog_playback", params))
+                }
+                else -> {
+                    val url = action.url.ifBlank { item.url }
+                    if (url.isNotBlank()) {
+                        actions.add(CardAction("open", action.label.ifBlank { "Mở" }, CardAction.KIND_CLIENT, "web.open", mapOf("url" to url)))
+                    }
+                }
+            }
+        }
+
+        if (actions.isEmpty() && item.url.isNotBlank()) {
+            actions.add(CardAction("open_web", "Mở liên kết", CardAction.KIND_CLIENT, "web.open", mapOf("url" to item.url)))
+        }
+
+        return AgentCardData(
+            status = "available",
+            title = title,
+            type = item.kind,
+            year = "",
+            link = item.url,
+            posterUrl = "",
+            id = item.id,
+            actions = actions
+        )
     }
 
     private fun deliverCards(presentation: PresentationResponse, requestGeneration: Int) {

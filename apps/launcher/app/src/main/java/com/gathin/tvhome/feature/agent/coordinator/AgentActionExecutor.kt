@@ -74,6 +74,39 @@ object AgentActionExecutor {
         return when (norm) {
             "plex.open", "plex" -> executePlexOpen(context, stepId, parameters)
             "youtube.launch", "youtube" -> executeYoutubeLaunch(context, stepId, parameters)
+            "catalog_detail", "catalog.detail" -> {
+                val titleId = parameters["title_id"]?.toString() ?: parameters["id"]?.toString() ?: ""
+                if (titleId.isNotBlank()) {
+                    CatalogEpisodeSheet.show(context, titleId)
+                    succeeded(stepId, "title_id" to titleId)
+                } else failed(stepId, "NO_TITLE_ID", "Thiếu ID phim")
+            }
+            "catalog_playback", "catalog.playback" -> {
+                val streamUrl = parameters["url"]?.toString() ?: ""
+                if (streamUrl.isNotBlank()) {
+                    val playback = PlaybackDescriptor(
+                        url = streamUrl,
+                        mimeType = parameters["mime_type"]?.toString().orEmpty(),
+                        title = parameters["title"]?.toString().orEmpty()
+                    )
+                    CatalogPlayerLauncher.play(context, playback, parameters["title"]?.toString().orEmpty())
+                    succeeded(stepId, "url" to streamUrl)
+                } else failed(stepId, "NO_STREAM_URL", "Thiếu URL luồng phát")
+            }
+            "web.open", "web_link", "url.open" -> {
+                val url = resolveUri(parameters)
+                if (!url.isNullOrBlank()) {
+                    try {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        context.startActivity(intent)
+                        succeeded(stepId, "url" to url)
+                    } catch (e: Exception) {
+                        failed(stepId, "NO_BROWSER", "Không có trình duyệt để mở: ${e.message}")
+                    }
+                } else failed(stepId, "NO_URL", "Thiếu URL liên kết")
+            }
             "app.open", "launch_app", "open_app", "deeplink", "open", "launch",
             "media.open", "play" -> executeDeepLinkOrApp(context, stepId, parameters)
             else -> if (!resolvePackage(parameters).isNullOrEmpty() ||

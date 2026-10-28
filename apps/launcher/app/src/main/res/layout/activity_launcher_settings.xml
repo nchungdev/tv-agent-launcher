@@ -85,6 +85,10 @@
                 <LinearLayout style="@style/SettingsSheetGroup">
                     <TextView android:id="@+id/colorChoice" style="@style/SettingsListItem" />
                     <TextView android:id="@+id/backdropChoice" style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/weatherLocationChoice"
+                        style="@style/SettingsListItem" />
+                    <TextView android:id="@+id/watchSourcesChoice"
+                        style="@style/SettingsListItem" />
                 </LinearLayout>
 
                 <TextView style="@style/SettingsSheetLabel" android:text="@string/settings_group_screensaver" />

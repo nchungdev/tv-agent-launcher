@@ -20,7 +20,10 @@ class ShelfHighlight private constructor(
     stretch: Boolean
 ) : Drawable() {
 
-    private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+    private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+    }
     private val density: Float = shelf.resources.displayMetrics.density
     private val inset: Float = WidgetCard.REACH_DP * density
     private val stretch: Boolean = stretch && animations && !reducedMotion
@@ -39,7 +42,10 @@ class ShelfHighlight private constructor(
     private val focusListener = ViewTreeObserver.OnGlobalFocusChangeListener { _, newFocus -> moveTo(newFocus) }
 
     init {
-        paint.color = Palette.currentOrBaseline().primary
+        strokePaint.strokeWidth = 2f * density
+        val base = Palette.currentOrBaseline().primary
+        fillPaint.color = Palette.alpha(base, 0x2E)
+        strokePaint.color = base
         trailSpring = Motion.DEFAULT_SPATIAL.reduced(reducedMotion).apply(SpringAnimation(this, property("trail", 0)))
         leadSpring = LEAD.reduced(reducedMotion).apply(SpringAnimation(this, property("lead", 1)))
         pop = Motion.FAST_SPATIAL.reduced(reducedMotion).apply(SpringAnimation(this, property("pop", 2)))
@@ -80,7 +86,8 @@ class ShelfHighlight private constructor(
     }
 
     fun setColor(argb: Int) {
-        paint.color = argb
+        fillPaint.color = Palette.alpha(argb, 0x2E)
+        strokePaint.color = argb
         invalidateSelf()
     }
 
@@ -139,7 +146,13 @@ class ShelfHighlight private constructor(
             right = maxOf(right, trailX + ahead + cardW)
         }
         val r = Shapes.TILE_FOCUSED * density + pad
-        c.drawRoundRect(left - pad, cardTop - pad, right + pad, cardTop + cardH + pad, r, r, paint)
+        c.drawRoundRect(left - pad, cardTop - pad, right + pad, cardTop + cardH + pad, r, r, fillPaint)
+        val half = strokePaint.strokeWidth / 2f
+        c.drawRoundRect(
+            left - pad + half, cardTop - pad + half,
+            right + pad - half, cardTop + cardH + pad - half,
+            r - half, r - half, strokePaint
+        )
     }
 
     override fun setAlpha(alpha: Int) {}

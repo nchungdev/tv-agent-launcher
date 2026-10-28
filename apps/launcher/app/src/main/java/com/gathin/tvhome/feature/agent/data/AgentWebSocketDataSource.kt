@@ -3,13 +3,11 @@ package com.gathin.tvhome.feature.agent.data
 import android.content.Context
 import android.util.Base64
 import com.gathin.tvhome.feature.agent.data.AgentClient
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
 import java.io.BufferedInputStream
 import java.io.EOFException
 import java.io.InputStream
@@ -28,11 +26,11 @@ class AgentWebSocketDataSource(private val context: Context) {
         0x8A.toByte(), 0x80.toByte(), 0x12, 0x34, 0x56, 0x78
     )
 
-    fun observeEvents(): Flow<String> = callbackFlow {
+    fun observeEvents(): Flow<String> = flow {
         var activeSocket: Socket? = null
-        val job = launch(Dispatchers.IO) {
+        try {
             var backoffMs = RECONNECT_DELAY_MS
-            while (isActive) {
+            while (currentCoroutineContext().isActive) {
                 var connected = false
                 try {
                     val base = AgentClient.baseUrl(appContext)
@@ -43,7 +41,7 @@ class AgentWebSocketDataSource(private val context: Context) {
                     val parsed = URI.create(base)
                     val host = parsed.host ?: run {
                         delay(backoffMs)
-                        return@launch
+                        return@flow
                     }
                     val port = if (parsed.port > 0) parsed.port else DEFAULT_PORT
 
@@ -62,10 +60,13 @@ class AgentWebSocketDataSource(private val context: Context) {
                     if (readHandshakeResponse(input)) {
                         connected = true
                         backoffMs = RECONNECT_DELAY_MS
-                        while (isActive && !socket.isClosed) {
-                            if (!readNextFrame(input, output) { payload ->
-                                trySend(payload)
-                            }) break
+                        while (currentCoroutineContext().isActive && !socket.isClosed) {
+                            var framePayload: String? = null
+                            val readOk = readNextFrame(input, output) { payload ->
+                                framePayload = payload
+                            }
+                            if (!readOk) break
+                            framePayload?.let { emit(it) }
                         }
                     }
                 } catch (_: Exception) {
@@ -74,18 +75,14 @@ class AgentWebSocketDataSource(private val context: Context) {
                     activeSocket = null
                 }
 
-                if (!isActive) break
+                if (!currentCoroutineContext().isActive) break
                 delay(backoffMs)
                 if (!connected) {
                     backoffMs = minOf(backoffMs * 2, MAX_BACKOFF_MS)
                 }
             }
-        }
-
-        awaitClose {
-            job.cancel()
+        } finally {
             try { activeSocket?.close() } catch (_: Exception) {}
-            activeSocket = null
         }
     }
 

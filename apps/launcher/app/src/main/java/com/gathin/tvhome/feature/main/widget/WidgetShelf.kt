@@ -177,6 +177,8 @@ class WidgetShelf(
         }
         cards[0].isFocusable = false
         cards[0].isClickable = false
+        cards[2].setGlass(true)
+        cards[2].setFlat(false)
 
         addCard = shelf.findViewById(R.id.widgetAdd)
         addCard.setMotion(motion)
@@ -445,9 +447,15 @@ class WidgetShelf(
         paintedWatchItem = item
         val darkP = Palette.dark(palette)
         contTitle.setTextColor(0xFFFFFFFF.toInt())
-        contLabel.setTextColor(0xFFFFFFFF.toInt())
+        contLabel.setTextColor(darkP.onSurfaceVariant)
         contSubtitle.setTextColor(darkP.onSurfaceVariant)
         contCount.setTextColor(darkP.onSurfaceVariant)
+        contRemaining.setTextColor(0xFFFFFFFF.toInt())
+        cards[2].findViewById<View>(R.id.contPosterFrame)?.let { frame ->
+            (frame.background as? GradientDrawable)?.setColor(
+                Palette.alpha(darkP.surfaceContainerHighest, 0x66)
+            )
+        }
         contProgress.progressTintList = ColorStateList.valueOf(darkP.primary)
         contProgress.progressBackgroundTintList =
             ColorStateList.valueOf(Palette.alpha(darkP.onSurfaceVariant, 0x40))
@@ -460,8 +468,11 @@ class WidgetShelf(
         contLabel.text = continueLabel(item)
         contCount.text = if (items.size > 1) "${watchIndex + 1}/${items.size}" else ""
         contTitle.text = item.title
-        contSubtitle.text = item.subtitle
-        contSubtitle.visibility = if (item.subtitle.isBlank()) View.GONE else View.VISIBLE
+        val cleanSubtitle = if (item.subtitle.contains("<")) {
+            android.text.Html.fromHtml(item.subtitle, android.text.Html.FROM_HTML_MODE_LEGACY).trim()
+        } else item.subtitle.trim()
+        contSubtitle.text = cleanSubtitle
+        contSubtitle.visibility = if (cleanSubtitle.isBlank()) View.GONE else View.VISIBLE
         paintPoster(item)
         val remaining = WatchFormat.remaining(activity, item.remainingMs)
         contRemaining.text = remaining
@@ -1129,11 +1140,13 @@ class WidgetShelf(
         }
         if (moved) shelf.post { for (card in slots) highlight.follow(card) }
         val headerRow = (shelf.parent as? View)?.findViewById<View>(R.id.headerRow)
+        val greetingBlock = (shelf.parent as? View)?.findViewById<View>(R.id.greetingBlock)
         val minHeader = Math.round(68 * density)
         val gridUnderlap = if (grid is HomeGrid && grid.visibility == View.VISIBLE) {
             grid.underlap()
         } else 0
-        headerUnderlap = maxOf(gridUnderlap, headerRow?.bottom ?: minHeader, minHeader)
+        val actualHeader = maxOf(headerRow?.bottom ?: 0, greetingBlock?.bottom ?: 0)
+        headerUnderlap = maxOf(gridUnderlap, actualHeader, minHeader)
         WidgetShelfPlacement.apply(shelf, headerUnderlap, dockTop, density, expandedHub)
     }
 
@@ -1155,10 +1168,10 @@ class WidgetShelf(
         highlight.setColor(if (editing) darkP.tertiary else darkP.primary)
         addLabel.setTextColor(darkP.onSurfaceVariant)
         addIcon.imageTintList = ColorStateList.valueOf(darkP.onSurfaceVariant)
-        for (t in arrayOf(clockAmPm, weatherPlace, airLabel, lunarLabel)) {
+        for (t in arrayOf(clockAmPm, weatherPlace, airLabel, lunarLabel, contLabel)) {
             t.setTextColor(darkP.onSurfaceVariant)
         }
-        for (t in arrayOf(clockTime, weatherTemp, lunarDate, airValue, contTitle, contLabel)) {
+        for (t in arrayOf(clockTime, weatherTemp, lunarDate, airValue, contTitle, contRemaining)) {
             t.setTextColor(0xFFFFFFFF.toInt())
         }
         for (t in arrayOf(clockDate, weatherDetail, airDetail, holiday, contSubtitle, contCount)) {

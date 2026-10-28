@@ -28,6 +28,7 @@ import java.util.concurrent.Executors
 class LauncherSettingsSheet(
     private val activity: Activity,
     private val config: Config,
+    private val watching: com.gathin.tvhome.feature.watching.data.ContinueWatching? = null,
     private val onClosed: ((needsRecreate: Boolean) -> Unit)? = null
 ) {
     private val choices: SharedPreferences = activity.getSharedPreferences(
@@ -100,6 +101,18 @@ class LauncherSettingsSheet(
         agentSection.bind(view)
 
         initLookAndScreensaver(view)
+        val watchSources = view.findViewById<TextView>(R.id.watchSourcesChoice)
+        watchSources.setText(R.string.watch_sources)
+        watchSources.setCompoundDrawablesRelativeWithIntrinsicBounds(
+            SettingsIcons.icon(activity, palette, R.drawable.ic_videocam), null, null, null
+        )
+        watchSources.setOnClickListener {
+            val feed = watching ?: com.gathin.tvhome.feature.watching.data.ContinueWatching(activity)
+            com.gathin.tvhome.feature.watching.ui.WatchNextSourceSheet(activity, config, feed).show()
+        }
+        WeatherLocationPicker.bind(activity, config, view.findViewById(R.id.weatherLocationChoice)) {
+            needsRecreate = true
+        }
 
         val systemSection = SettingsSystemSection(
             activity, config, choices, palette, worker,

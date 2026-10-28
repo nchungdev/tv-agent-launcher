@@ -9,6 +9,7 @@
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.READ_TV_LISTINGS" />
     <!-- The weather widget (Open-Meteo; where the TV is, from its IP address). -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
@@ -28,6 +29,7 @@
     <!-- Android 11+ package visibility: lets the launcher list the TV apps it shows as tiles, and the
          apps that declare a module card (docs/specs/card.md). -->
     <queries>
+        <provider android:authorities="android.media.tv" />
         <!-- Launcher settings, About: which app Home opens, and whether Google TV's own home is off. -->
         <intent>
             <action android:name="android.intent.action.MAIN" />

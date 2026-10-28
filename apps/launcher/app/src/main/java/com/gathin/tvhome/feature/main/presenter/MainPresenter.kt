@@ -1,15 +1,13 @@
 package com.gathin.tvhome.feature.main.presenter
 
+import com.gathin.tvhome.core.util.EffectBus
 import com.gathin.tvhome.feature.runningapps.data.AppRepository
 import com.gathin.tvhome.feature.notification.data.NotificationRepository
 import com.gathin.tvhome.feature.main.adapter.Entry
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
 
@@ -21,8 +19,7 @@ class MainPresenter(
     private val _state = MutableStateFlow(MainState())
     val state: StateFlow<MainState> = _state.asStateFlow()
 
-    private val _effects = Channel<MainEffect>(Channel.BUFFERED)
-    val effects: Flow<MainEffect> = _effects.receiveAsFlow()
+    val effects = EffectBus<MainEffect>()
 
     fun processIntent(intent: MainIntent) {
         when (intent) {
@@ -92,8 +89,6 @@ class MainPresenter(
     }
 
     private fun emitEffect(effect: MainEffect) {
-        scope.launch {
-            _effects.send(effect)
-        }
+        effects.emit(effect)
     }
 }

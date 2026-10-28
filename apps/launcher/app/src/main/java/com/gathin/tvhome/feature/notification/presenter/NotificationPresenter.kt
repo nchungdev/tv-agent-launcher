@@ -6,13 +6,11 @@ import com.gathin.tvhome.feature.notification.data.NotificationRepositoryImpl
 import com.gathin.tvhome.feature.notification.data.TvNotification
 import com.gathin.tvhome.feature.notification.data.NotificationRepository
 import com.gathin.tvhome.core.design.Palette
+import com.gathin.tvhome.core.util.EffectBus
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import java.util.Locale
 
@@ -49,8 +47,7 @@ class NotificationPresenter(
     private val _state = MutableStateFlow(NotificationState())
     val state: StateFlow<NotificationState> = _state.asStateFlow()
 
-    private val _effects = Channel<NotificationEffect>(Channel.BUFFERED)
-    val effects: Flow<NotificationEffect> = _effects.receiveAsFlow()
+    val effects = EffectBus<NotificationEffect>()
 
     fun processIntent(intent: NotificationIntent) {
         when (intent) {
@@ -76,12 +73,10 @@ class NotificationPresenter(
     }
 
     private fun handleItemClick(item: TvNotification) {
-        scope.launch {
-            val actionable = item.hasAction() || !item.imageUrl.isNullOrBlank()
-            if (actionable) {
-                _effects.send(NotificationEffect.ExecuteAction(item))
-                _effects.send(NotificationEffect.Close)
-            }
+        val actionable = item.hasAction() || !item.imageUrl.isNullOrBlank()
+        if (actionable) {
+            effects.emit(NotificationEffect.ExecuteAction(item))
+            effects.emit(NotificationEffect.Close)
         }
     }
 

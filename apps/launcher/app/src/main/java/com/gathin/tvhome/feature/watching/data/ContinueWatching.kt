@@ -24,7 +24,7 @@ class ContinueWatching(context: Context) {
     private val hidden = WatchHiddenStore(app)
     private val tv = TvWatchNextSource(app)
     private val posterLoader = WatchPosterLoader(app)
-    private val posters = object : LruCache<String, Bitmap>(2048) {
+    private val posters = object : LruCache<String, Bitmap>(16 * 1024) {
         override fun sizeOf(key: String, value: Bitmap) = maxOf(1, value.byteCount / 1024)
     }
     private var active = false
@@ -57,7 +57,13 @@ class ContinueWatching(context: Context) {
 
     private fun feedItems(): List<WatchItem> = feed.items
     fun isRunning(): Boolean = active
-    fun poster(uri: String?): Bitmap? = uri?.let { posters.get(it) }
+    fun poster(uri: String?): Bitmap? {
+        if (uri.isNullOrBlank()) return null
+        val cached = posters.get(uri)
+        if (cached != null) return cached
+        if (active && posterJob == null) loadPosters()
+        return null
+    }
     fun state(source: WatchSource) = feed.state(source)
     fun count(source: WatchSource) = feed.count(source)
     fun addListener(listener: () -> Unit) { listeners.add(listener) }
@@ -147,7 +153,10 @@ class ContinueWatching(context: Context) {
             postersPending = true
             return
         }
-        val missing = items.filter { poster(it.posterUri) == null && it.posterUri != null }
+        val missing = items.filter { item ->
+            val candidates = item.posterCandidates()
+            candidates.isNotEmpty() && candidates.none { posters.get(it) != null }
+        }
         if (missing.isEmpty()) return
         val ticket = generation
         val request = WatchRequest()
@@ -161,7 +170,9 @@ class ContinueWatching(context: Context) {
                         }
                     } ?: continue
                     if (!active || ticket != generation) break
-                    item.posterUri?.let { posters.put(it, bitmap) }
+                    for (candidateUri in item.posterCandidates()) {
+                        posters.put(candidateUri, bitmap)
+                    }
                     notifyChanged()
                 }
             } finally {

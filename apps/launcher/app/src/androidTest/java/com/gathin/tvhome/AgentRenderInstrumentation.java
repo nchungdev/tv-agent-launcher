@@ -21,6 +21,20 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 public final class AgentRenderInstrumentation extends Instrumentation {
+    public volatile Activity activeHome;
+
+    @Override
+    public void callActivityOnResume(Activity activity) {
+        super.callActivityOnResume(activity);
+        if (activity.getClass().getName().equals(
+                "com.gathin.tvhome.feature.main.ui.MainActivity")) {
+            activeHome = activity;
+        }
+    }
+
+    private boolean dockScenario;
+    private boolean weatherScenario;
+    private boolean hubScenario;
     private static final String FIXTURE = "## Kiểm tra hiển thị\n\n"
             + "| Ổ đĩa | Tổng | Còn trống |\n|---|---|---|\n"
             + "| NVMe | 233 GB | **72 GB** |\n| MainPool | 7,2 TB | **1,3 TB** |\n\n"
@@ -31,6 +45,9 @@ public final class AgentRenderInstrumentation extends Instrumentation {
     @Override
     public void onCreate(Bundle arguments) {
         super.onCreate(arguments);
+        dockScenario = arguments != null && "dock".equals(arguments.getString("scenario"));
+        weatherScenario = arguments != null && "weather".equals(arguments.getString("scenario"));
+        hubScenario = arguments != null && "hub".equals(arguments.getString("scenario"));
         start();
     }
 
@@ -38,6 +55,16 @@ public final class AgentRenderInstrumentation extends Instrumentation {
     public void onStart() {
         Bundle result = new Bundle();
         try {
+            if (weatherScenario || hubScenario) {
+                result.putString("result", new WeatherRenderChecks(this).run(hubScenario));
+                finish(Activity.RESULT_OK, result);
+                return;
+            }
+            if (dockScenario) {
+                result.putString("result", new DockRenderChecks(this).run());
+                finish(Activity.RESULT_OK, result);
+                return;
+            }
             Activity activity = startActivitySync(new Intent()
                     .setClassName(getTargetContext(), "com.gathin.tvhome.AgentActivity")
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
@@ -66,7 +93,7 @@ public final class AgentRenderInstrumentation extends Instrumentation {
             result.putString("result", "table, cards, link preview and image passed");
             finish(Activity.RESULT_OK, result);
         } catch (Exception error) {
-            result.putString("failure", error.toString());
+            result.putString("failure", android.util.Log.getStackTraceString(error));
             finish(Activity.RESULT_CANCELED, result);
         }
     }

@@ -38,6 +38,9 @@ open class WidgetCard @JvmOverloads constructor(
         setWillNotDraw(false)
         isFocusable = true
         isClickable = true
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            defaultFocusHighlightEnabled = false
+        }
         val inset = Math.round(REACH_DP * density)
         setPadding(inset, inset, inset, inset)
         outline.style = Paint.Style.STROKE

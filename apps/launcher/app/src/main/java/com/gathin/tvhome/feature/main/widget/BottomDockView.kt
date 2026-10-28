@@ -1,32 +1,26 @@
 package com.gathin.tvhome.feature.main.widget
 
-import com.gathin.tvhome.core.design.Fonts
 import android.content.Context
-import android.content.res.ColorStateList
-import android.graphics.Color
-import android.graphics.Outline
+import android.graphics.Bitmap
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
-import android.text.TextUtils
 import android.util.AttributeSet
-import android.util.TypedValue
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.SoundEffectConstants
 import android.view.View
 import android.view.ViewGroup
-import android.view.ViewOutlineProvider
 import android.widget.FrameLayout
-import android.widget.ImageView
+import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
-import android.widget.TextView
 import androidx.dynamicanimation.animation.DynamicAnimation
 import androidx.dynamicanimation.animation.SpringAnimation
 import com.gathin.tvhome.R
-import com.gathin.tvhome.core.design.DockIconNormalizer
 import com.gathin.tvhome.core.design.Palette
 import com.gathin.tvhome.core.motion.Motion
 import com.gathin.tvhome.core.util.SoundEffects
+import com.gathin.tvhome.feature.watching.data.WatchItem
+import com.gathin.tvhome.feature.watching.ui.DockWatchNextView
 
 
 class BottomDockView @JvmOverloads constructor(
@@ -44,27 +38,19 @@ class BottomDockView @JvmOverloads constructor(
         fun onAppLongClicked(item: DockItem, anchor: View)
         fun onItemFocused(index: Int, item: DockItem?)
         fun onNavigateUp(index: Int): Boolean
+        fun onWatchNextLongClicked(anchor: View) {}
     }
-
-    private data class SlotStyle(
-        val bg: GradientDrawable,
-        val border: GradientDrawable,
-        val allApps: Boolean,
-        val edgeColor: Int
-    )
 
     private val density = resources.displayMetrics.density
     private val dockBar = LinearLayout(context)
-    private val tooltipView = TextView(context)
+    private val tooltip = DockTooltip(this)
     private val barBackground = GradientDrawable()
-    private val tooltipBackground = GradientDrawable()
     private val slotViews = ArrayList<View>()
-    private val slotStyles = ArrayList<SlotStyle>()
     private val boundItems = ArrayList<DockItem>()
-    private val runningDots = ArrayList<View>()
     private var runningPackages: Set<String> = emptySet()
     private var dividerView: View? = null
-    private var allAppsIcon: ImageView? = null
+    private val watchNext = DockWatchNextView(context)
+    private var watchDivider: View? = null
     private var palette = Palette.currentOrBaseline()
     private var animations = true
     private var reducedMotion = false
@@ -75,26 +61,27 @@ class BottomDockView @JvmOverloads constructor(
         clipChildren = false
         clipToPadding = false
         descendantFocusability = ViewGroup.FOCUS_AFTER_DESCENDANTS
-
-        tooltipBackground.cornerRadius = dp(14).toFloat()
-        tooltipView.background = tooltipBackground
-        tooltipView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-        tooltipView.typeface = Fonts.MEDIUM
-        tooltipView.maxLines = 1
-        tooltipView.ellipsize = TextUtils.TruncateAt.END
-        tooltipView.setPadding(dp(12), dp(5), dp(12), dp(5))
-        tooltipView.alpha = 0f
-        addView(tooltipView, LayoutParams(-2, -2, Gravity.TOP or Gravity.START))
+        watchNext.setOnLongClickListener {
+            listener?.onWatchNextLongClicked(it)
+            true
+        }
 
         barBackground.cornerRadius = dp(26).toFloat()
         dockBar.orientation = LinearLayout.HORIZONTAL
         dockBar.gravity = Gravity.CENTER_VERTICAL
         dockBar.clipChildren = false
         dockBar.clipToPadding = false
-        dockBar.background = barBackground
         dockBar.setPadding(dp(14), dp(10), dp(14), dp(10))
-        dockBar.elevation = dp(8).toFloat()
-        addView(dockBar, LayoutParams(-2, -2, Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply {
+        val scroller = HorizontalScrollView(context).apply {
+            isHorizontalScrollBarEnabled = false
+            isFocusable = false
+            clipToPadding = false
+            background = barBackground
+            clipToOutline = true
+            elevation = dp(8).toFloat()
+            addView(dockBar)
+        }
+        addView(scroller, LayoutParams(-2, -2, Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply {
             topMargin = dp(40)
         })
         applyColors()
@@ -116,10 +103,8 @@ class BottomDockView @JvmOverloads constructor(
         boundItems.addAll(items)
         dockBar.removeAllViews()
         slotViews.clear()
-        slotStyles.clear()
-        runningDots.clear()
         dividerView = null
-        allAppsIcon = null
+        watchDivider = null
 
         val appsLabel = context.getString(R.string.app_library)
         val appsSlot = createSlotView(
@@ -144,6 +129,7 @@ class BottomDockView @JvmOverloads constructor(
             dockBar.addView(appSlot)
             slotViews.add(appSlot)
         }
+        syncWatchNext()
         applyColors()
         applyRunningState()
     }
@@ -157,8 +143,7 @@ class BottomDockView @JvmOverloads constructor(
         for (index in boundItems.indices) {
             val item = boundItems[index]
             val isRunning = runningPackages.contains(item.packageName)
-            val dot = runningDots.getOrNull(index + 1)
-            dot?.visibility = if (isRunning) View.VISIBLE else View.GONE
+            (slotViews.getOrNull(index + 1) as? DockAppSlot)?.setRunning(isRunning)
         }
     }
 
@@ -172,79 +157,8 @@ class BottomDockView @JvmOverloads constructor(
     private fun createSlotView(
         index: Int, label: String, iconDrawable: Drawable?, allApps: Boolean, dockItem: DockItem?
     ): View {
-        val sizePx = dp(58)
-        val radiusPx = dp(16).toFloat()
-        val norm = if (allApps) null else DockIconNormalizer.normalize(resources, iconDrawable)
-        val fullBleed = norm?.fullBleed == true
-        val edgeColor = if (fullBleed) norm?.edgeColor ?: Color.TRANSPARENT else Color.TRANSPARENT
-        val bgDrawable = GradientDrawable().apply { cornerRadius = radiusPx }
-        val borderDrawable = GradientDrawable().apply {
-            cornerRadius = radiusPx
-            setColor(Color.TRANSPARENT)
-        }
-        val style = SlotStyle(bgDrawable, borderDrawable, allApps, edgeColor)
-        slotStyles.add(style)
-
-        val slot = FrameLayout(context).apply {
-            layoutParams = LinearLayout.LayoutParams(sizePx, sizePx)
-            background = bgDrawable
-            foreground = borderDrawable
-            isFocusable = true
-            isFocusableInTouchMode = true
-            isClickable = true
-            outlineProvider = object : ViewOutlineProvider() {
-                override fun getOutline(view: View, outline: Outline) {
-                    outline.setRoundRect(0, 0, view.width, view.height, radiusPx)
-                }
-            }
-            clipToOutline = true
-        }
-
-        val iconSize = if (allApps) dp(28) else if (fullBleed) dp(50) else dp(38)
-        val iconRadius = if (fullBleed) dp(13).toFloat() else dp(10).toFloat()
-        val iconCard = FrameLayout(context).apply {
-            layoutParams = LayoutParams(iconSize, iconSize, Gravity.CENTER)
-            if (fullBleed && edgeColor != Color.TRANSPARENT) {
-                background = GradientDrawable().apply {
-                    cornerRadius = iconRadius
-                    setColor(edgeColor)
-                }
-            }
-            outlineProvider = object : ViewOutlineProvider() {
-                override fun getOutline(view: View, outline: Outline) {
-                    outline.setRoundRect(0, 0, view.width, view.height, iconRadius)
-                }
-            }
-            clipToOutline = true
-        }
-
-        val shownIcon = norm?.drawable ?: iconDrawable ?: context.getDrawable(R.drawable.ic_apps)
-        val image = ImageView(context).apply {
-            scaleType = if (fullBleed) ImageView.ScaleType.CENTER_CROP
-                else ImageView.ScaleType.FIT_CENTER
-            setImageDrawable(shownIcon)
-        }
-        iconCard.addView(image, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
-        slot.addView(iconCard)
-
-        if (allApps) allAppsIcon = image
-
-        val dot = View(context).apply {
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
-                setColor(0xFF22C55E.toInt())
-                setStroke(dp(1), 0xCC000000.toInt())
-            }
-            visibility = View.GONE
-        }
-        val dotParams = LayoutParams(dp(8), dp(8), Gravity.TOP or Gravity.END).apply {
-            topMargin = dp(4)
-            marginEnd = dp(4)
-        }
-        slot.addView(dot, dotParams)
-        runningDots.add(dot)
-
-        attachSlotFocus(slot, style, index, label, dockItem)
+        val slot = DockAppSlot(context, iconDrawable, allApps)
+        attachSlotFocus(slot, index, { label }, dockItem)
         slot.setOnClickListener {
             if (allApps) listener?.onAllAppsClicked()
             else if (dockItem != null) listener?.onAppClicked(dockItem)
@@ -260,14 +174,21 @@ class BottomDockView @JvmOverloads constructor(
     }
 
     private fun attachSlotFocus(
-        slot: View, style: SlotStyle, index: Int, label: String, item: DockItem?
+        slot: View, index: Int, label: () -> String, item: DockItem?
     ) {
         val spec = Motion.FAST_SPATIAL.reduced(reducedMotion)
         val scaleX = spec.apply(SpringAnimation(slot, DynamicAnimation.SCALE_X))
         val scaleY = spec.apply(SpringAnimation(slot, DynamicAnimation.SCALE_Y))
         val liftY = spec.apply(SpringAnimation(slot, DynamicAnimation.TRANSLATION_Y))
         slot.setOnFocusChangeListener { view, hasFocus ->
-            updateSlotStyle(style, hasFocus)
+            (slot as? DockAppSlot)?.setPalette(palette)
+            if (slot === watchNext) {
+                watchNext.setPalette(palette)
+                if (!hasFocus) {
+                    watchNext.releasePending()
+                    syncWatchNext()
+                }
+            }
             val targetScale = if (hasFocus) FOCUS_SCALE else 1f
             val targetLift = if (hasFocus) -dp(6).toFloat() else 0f
             if (animations) {
@@ -282,9 +203,9 @@ class BottomDockView @JvmOverloads constructor(
             }
             if (hasFocus) {
                 lastFocusedIndex = index
-                showTooltip(view, label)
+                tooltip.show(view, label(), animations)
                 listener?.onItemFocused(index, item)
-            } else post { if (!hasFocus()) hideTooltip() }
+            } else post { if (!hasFocus()) tooltip.hide(animations) }
         }
     }
 
@@ -312,52 +233,45 @@ class BottomDockView @JvmOverloads constructor(
         if (SoundEffects.isEnabled(context)) playSoundEffect(soundEffect)
     }
 
-    private fun showTooltip(slot: View, label: String) {
-        tooltipView.text = label
-        tooltipView.measure(MeasureSpec.UNSPECIFIED, MeasureSpec.UNSPECIFIED)
-        val slotCenter = dockBar.left + slot.left + slot.width / 2f
-        val maxLeft = maxOf(0f, (width - tooltipView.measuredWidth).toFloat())
-        val targetX = slotCenter - tooltipView.measuredWidth / 2f
-        tooltipView.translationX = targetX.coerceIn(0f, maxLeft)
-        fadeTooltip(1f, 140L)
-    }
-
-    private fun hideTooltip() = fadeTooltip(0f, 120L)
-
-    private fun fadeTooltip(targetAlpha: Float, durationMs: Long) {
-        tooltipView.animate().cancel()
-        if (animations) tooltipView.animate().alpha(targetAlpha).setDuration(durationMs).start()
-        else tooltipView.alpha = targetAlpha
-    }
-
     private fun applyColors() {
         barBackground.setColor(Palette.alpha(palette.surfaceContainerHigh, 0xD9))
         barBackground.setStroke(dp(1), Palette.alpha(palette.outlineVariant, 0x66))
-        tooltipBackground.setColor(Palette.alpha(palette.inverseSurface, 0xF2))
-        tooltipView.setTextColor(palette.inverseOnSurface)
+        tooltip.setPalette(palette)
         dividerView?.setBackgroundColor(Palette.alpha(palette.outlineVariant, 0x55))
-        allAppsIcon?.imageTintList = ColorStateList.valueOf(palette.onSurface)
-        for (index in slotViews.indices) {
-            updateSlotStyle(slotStyles[index], slotViews[index].isFocused)
-        }
+        watchDivider?.setBackgroundColor(Palette.alpha(palette.outlineVariant, 0x55))
+        watchNext.setPalette(palette)
+        for (slot in slotViews) (slot as? DockAppSlot)?.setPalette(palette)
     }
 
-    private fun updateSlotStyle(style: SlotStyle, focused: Boolean) {
-        val fill = if (style.allApps) palette.secondaryContainer
-        else if (style.edgeColor != Color.TRANSPARENT) {
-            Palette.alpha(palette.surfaceContainerHighest, 0x55)
-        } else palette.surfaceContainerHighest
-        style.bg.setColor(fill)
-        val stroke = if (focused) palette.primary else Palette.alpha(palette.outlineVariant, 0x45)
-        style.border.setStroke(if (focused) dp(2.5f) else dp(1), stroke)
-        if (style.allApps) {
-            val iconColor = if (focused) palette.primary else palette.onSecondaryContainer
-            allAppsIcon?.imageTintList = ColorStateList.valueOf(iconColor)
+    fun bindWatchNext(item: WatchItem?, poster: Bitmap?, open: () -> Unit) {
+        watchNext.bind(item, poster, open)
+        syncWatchNext()
+        applyColors()
+    }
+
+    private fun syncWatchNext() {
+        if (watchNext.visibility == View.VISIBLE && watchNext.parent == null) {
+            watchDivider = View(context).also {
+                dockBar.addView(it, LinearLayout.LayoutParams(dp(1), dp(36)).apply {
+                    marginStart = dp(12)
+                    marginEnd = dp(12)
+                })
+            }
+            val index = slotViews.size
+            dockBar.addView(watchNext)
+            slotViews.add(watchNext)
+            attachSlotFocus(watchNext, index, { watchNext.contentDescription.toString() }, null)
+            watchNext.setOnKeyListener { _, key, event -> handleSlotKey(index, key, event) }
+        } else if (watchNext.visibility != View.VISIBLE && watchNext.parent != null) {
+            dockBar.removeView(watchNext)
+            watchDivider?.let { dockBar.removeView(it) }
+            watchDivider = null
+            slotViews.remove(watchNext)
+            lastFocusedIndex = lastFocusedIndex.coerceAtMost(slotViews.lastIndex)
         }
     }
 
     private fun dp(value: Int): Int = Math.round(value * density)
-    private fun dp(value: Float): Int = Math.round(value * density)
 }
 
 private const val FOCUS_SCALE = 1.15f

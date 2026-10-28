@@ -8,62 +8,59 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 class ServerContinueSource(private val context: Context) {
-
-    @Throws(IOException::class)
-    fun load(): List<WatchItem> {
+    fun load(request: WatchRequest): WatchResult {
         val base = AgentClient.baseUrl(context).trimEnd('/')
         val token = AgentClient.token(context)
-        if (base.isEmpty() || token.isNullOrEmpty()) throw IOException("agent not configured")
-
-        val connection = URL("$base$CONTINUE_PATH").openConnection() as HttpURLConnection
+        if (base.isEmpty() || token.isNullOrEmpty()) {
+            return WatchResult(WatchAvailability.UNSUPPORTED)
+        }
+        val connection = URL("$base/v2/watch/continue").openConnection() as HttpURLConnection
+        request.attach(connection)
         try {
-            connection.connectTimeout = TIMEOUT_MS
-            connection.readTimeout = TIMEOUT_MS
+            connection.connectTimeout = 4000
+            connection.readTimeout = 4000
             connection.setRequestProperty("Authorization", "Bearer $token")
             connection.setRequestProperty("Accept", "application/json")
-            if (connection.responseCode != HttpURLConnection.HTTP_OK) {
-                throw IOException("continue ${connection.responseCode}")
-            }
-            val body = connection.inputStream.bufferedReader().use { it.readText() }
-            return parse(body)
+            if (connection.responseCode != HttpURLConnection.HTTP_OK) throw IOException("watch HTTP")
+            val stream = connection.inputStream
+            request.attach(stream)
+            val bytes = stream.use { it.readBytesBounded(1024 * 1024) }
+            return WatchResult.loaded(parse(bytes.toString(Charsets.UTF_8)))
         } finally {
             connection.disconnect()
         }
     }
 
-    private fun parse(body: String): List<WatchItem> {
-        val rows = JSONObject(body).optJSONArray("items") ?: return emptyList()
-        return (0 until rows.length()).mapNotNull { index ->
-            rows.optJSONObject(index)?.let { toItem(it) }
+    companion object {
+        fun parse(body: String): List<WatchItem> {
+            val rows = JSONObject(body).optJSONArray("items") ?: return emptyList()
+            return (0 until minOf(rows.length(), 512)).mapNotNull { index ->
+                rows.optJSONObject(index)?.let { toItem(it) }
+            }
         }
-    }
 
-    private fun toItem(row: JSONObject): WatchItem? {
-        val title = row.optString("title").takeIf { it.isNotBlank() } ?: return null
-        val packageName = row.optString("package_name")
-        val action = row.optJSONObject("action")
-        return WatchItem(
-            title = title,
-            subtitle = row.optString("subtitle"),
-            progress = row.optDouble("progress", 0.0).toFloat().coerceIn(0f, 1f),
-            posterUri = row.optString("poster_url").takeIf { it.isNotBlank() },
-            appLabel = row.optString("app_label"),
-            packageName = packageName,
-            actionType = action?.optString("action_type").orEmpty().ifBlank { "app.open" },
-            parameters = parameters(action?.optJSONObject("parameters"), packageName),
-            remainingMs = row.optLong("remaining_ms")
-        )
-    }
-
-    private fun parameters(json: JSONObject?, packageName: String): Map<String, Any?> {
-        val values = HashMap<String, Any?>()
-        json?.keys()?.forEach { key -> values[key] = json.opt(key) }
-        if (packageName.isNotBlank()) values.putIfAbsent("package_name", packageName)
-        return values
-    }
-
-    private companion object {
-        const val CONTINUE_PATH = "/v2/watch/continue"
-        const val TIMEOUT_MS = 4000
+        private fun toItem(row: JSONObject): WatchItem? {
+            val title = row.optString("title").takeIf { it.isNotBlank() } ?: return null
+            val packageName = row.optString("package_name")
+            val action = row.optJSONObject("action")
+            val parameters = HashMap<String, Any?>()
+            action?.optJSONObject("parameters")?.let { values ->
+                values.keys().forEach { parameters[it] = values.opt(it) }
+            }
+            parameters["package_name"] = packageName
+            val link = listOf("deep_link", "uri", "url").firstNotNullOfOrNull {
+                parameters[it]?.toString()?.takeIf { value -> value.isNotBlank() }
+            }.orEmpty()
+            return WatchItem(
+                title.take(512), row.optString("subtitle").take(1024),
+                WatchMerge.progress(row.optDouble("progress", 0.0).toFloat()),
+                row.optString("poster_url").takeIf { it.isNotBlank() && it.length <= 8192 },
+                row.optString("app_label"), packageName,
+                action?.optString("action_type").orEmpty().ifBlank { "app.open" }, parameters,
+                row.optLong("remaining_ms").coerceAtLeast(0), WatchSource.SERVER,
+                row.optString("id"), row.optLong("updated_at_ms", row.optLong("at")),
+                link.take(8192), durationMs = row.optLong("duration_ms").coerceAtLeast(0)
+            )
+        }
     }
 }

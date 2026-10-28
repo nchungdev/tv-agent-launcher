@@ -23,6 +23,10 @@ object SessionMetadata {
         firstText(metadata, MediaMetadata.METADATA_KEY_MEDIA_ID)
             ?: metadata.description?.mediaId.orEmpty()
 
+    fun resumeUri(metadata: MediaMetadata): String =
+        firstText(metadata, MediaMetadata.METADATA_KEY_MEDIA_URI)
+            ?: metadata.description?.mediaUri?.toString().orEmpty()
+
     fun artwork(metadata: MediaMetadata): String {
         val uri = firstText(
             metadata,

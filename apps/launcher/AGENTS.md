@@ -26,19 +26,28 @@ Locales: English and Vietnamese only.
 - Colour and skin: `Palette` (Tonal Spot from `background_color` or wallpaper), `M3Skin` (styles views by `android:tag`), `M3Switch`, `M3Progress`, `ShapeBadge`, `SettingsBanner`.
 - Home content: `HomeGrid` (full height; the header floats over its top `underlap()`, and rows scrolled under it fade into `headerScrim`), `AppAdapter`, `Order`, `DockSlots`, `DockDecoration`, `GridNavigation`, `LibraryApps`, `AppLibraryDialog`.
 - Widgets: `WidgetShelf`, `WidgetCard`, `Weather` and `AirQuality` (Open-Meteo; the place from ipwho.is or geojs.io), `CpuMeter` (cpuidle in sysfs, since `/proc/stat` is hidden; `/proc/uptime` without cpuidle; else `AdbCpuFeed`, /proc/stat through `LocalAdb` once the owner turns the CPU line on), `LunarCalendar`, `Shamsi`.
-- Watch history: `PlaybackTracker` (media sessions seen by `NowPlayingListener`), `WatchReporter`
-  (`POST /v2/watch/events`, see `docs/modules/agent-protocol.md` 9), `ServerContinueSource`
-  (`GET /v2/watch/continue`) for the "continue watching" card, `LocalWatchHistory` when the server
-  is offline. Watch Next rows of other apps are readable only by the system launcher.
+- Watch history: `ContinueWatching` aggregates Android TV's `TvContract.WatchNextPrograms` via `TvWatchNextSource`
+  (with `READ_TV_LISTINGS`), the agent server via `ServerContinueSource` (`GET /v2/watch/continue`), and on-device
+  media sessions via `PlaybackTracker`/`LocalWatchHistory`. In dock mode, the latest item appears after the apps as a
+  thumbnail with progress and a tooltip; `DockWatchNextView` keeps the current action while focused and hides when no
+  item is available. Hold OK on the thumbnail to choose another item or open source status (`WatchNextMenu`, `WatchNextSourceSheet`).
 - Network pill: `SpeedTest` (Cloudflare `speed.cloudflare.com`, only when asked from the Wi-Fi menu).
 - Google account: `feature/account` shows an account made visible through Android's account chooser.
   The header opens a panel to choose an account or manage TV accounts in system settings. The selected
   name stays in private preferences; it does not switch Google TV, YouTube or other apps' accounts.
   Empty visibility is not proof the TV is signed out. No Google SDK, tokens or GET_ACCOUNTS permission.
 - Running apps: `LocalAdb` (adb client to `127.0.0.1:5555` with its own key in `files/adbkey`; the TV asks once to allow it), `BackgroundApps` (`ps` and recent tasks, `am force-stop`). Port 5555 is gone after a reboot until `adb tcpip 5555` runs again.
-- Backgrounds: `WallpaperPlayer`, `WallpaperRotation`, `WallpaperSize`, `Sky`/`SkyView` (tinted by the
-  weather widget's last report, which `WeatherShapes` draws in M3E shapes), `ExpressiveBackdrop`,
+- Backgrounds: `WallpaperPlayer`, `WallpaperRotation`, `WallpaperSize`, `Sky`/`SkyView` (the shared
+  weather scene, drawn with cached gradients and `WeatherShapes` paths), `ExpressiveBackdrop`,
   `HomeLook` (the colour and backdrop chosen on the TV). Screensaver choices: `Screensaver`.
+- Home weather: `HomeWeatherCoordinator` shares one report with header, widgets and `SkyView`.
+  The existing minute tick checks the 30-minute cache and sunset; retry is 5/15/30 minutes.
+  `WeatherLocation` detects the TV city once and persists it; Launcher settings → Weather location
+  updates it explicitly or selects a city. `SkyPlacement` avoids visible UI; static Canvas paths
+  and shaders are reused, with no animation loop or renderer bitmap cache.
+- Wide Home: `HomeHubLayout` puts compact smart-home tiles below the clock when available space is
+  at least 840dp wide and 250dp high. Continue watching uses the right column; compact Home keeps
+  its preview in the dock. `HomeTileAppearance` supplies vector defaults and preserves custom icons.
 - Festive skin: `Festival`, `DiyaDrawable`, `BellDrawable`, `MarigoldDrawable`, `PetalShowerView`.
 - Inputs on Xiaomi's China TVs: `XiaomiInputs` (their player's source numbers, from the port labels).
 - Config: `Config` reads `res/values/config.xml`, overlaid by `/sdcard/Android/data/com.gathin.tvhome/files/config.json` (a theme).

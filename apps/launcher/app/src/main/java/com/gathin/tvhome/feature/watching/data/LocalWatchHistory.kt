@@ -28,26 +28,17 @@ class LocalWatchHistory(context: Context) {
     }
 
     private fun keepPosition(event: WatchEvent, earlier: WatchEvent?): WatchEvent {
-        if (earlier == null || event.positionMs > 0 || earlier.positionMs <= 0) return event
+        if (earlier == null) return event
         return event.copy(
-            positionMs = earlier.positionMs,
-            durationMs = maxOf(event.durationMs, earlier.durationMs)
+            positionMs = if (event.positionMs > 0) event.positionMs else earlier.positionMs,
+            durationMs = if (event.positionMs > 0) event.durationMs else
+                maxOf(event.durationMs, earlier.durationMs),
+            resumeUri = event.resumeUri.ifBlank { earlier.resumeUri },
+            artworkUrl = event.artworkUrl.ifBlank { earlier.artworkUrl }
         )
     }
 
-    fun continueItems(): List<WatchItem> {
-        val since = System.currentTimeMillis() - KEEP_MS
-        return load()
-            .filter { it.at >= since && unfinished(it) }
-            .take(MAX_ITEMS)
-            .map { toItem(it) }
-    }
-
-    private fun unfinished(event: WatchEvent): Boolean {
-        if (event.durationMs <= 0) return true
-        val watched = event.positionMs.toFloat() / event.durationMs
-        return watched in MIN_PROGRESS..MAX_PROGRESS
-    }
+    fun continueItems(): List<WatchItem> = load().map { toItem(it) }
 
     private fun toItem(event: WatchEvent): WatchItem {
         val progress = if (event.durationMs > 0) {
@@ -62,7 +53,11 @@ class LocalWatchHistory(context: Context) {
             packageName = event.packageName,
             actionType = "app.open",
             parameters = mapOf("package_name" to event.packageName),
-            remainingMs = (event.durationMs - event.positionMs).coerceAtLeast(0L)
+            remainingMs = (event.durationMs - event.positionMs).coerceAtLeast(0L),
+            contentId = event.mediaId,
+            updatedAt = event.at,
+            deepLink = event.resumeUri,
+            durationMs = event.durationMs
         )
     }
 
@@ -70,9 +65,5 @@ class LocalWatchHistory(context: Context) {
         const val PREFS = "watch_history"
         const val KEY = "events"
         const val MAX_ENTRIES = 20
-        const val MAX_ITEMS = 8
-        const val KEEP_MS = 14L * 24 * 60 * 60 * 1000
-        const val MIN_PROGRESS = 0.03f
-        const val MAX_PROGRESS = 0.95f
     }
 }

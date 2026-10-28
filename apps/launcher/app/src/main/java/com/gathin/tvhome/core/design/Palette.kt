@@ -7,7 +7,6 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import android.os.Looper
 import com.google.android.material.color.utilities.Hct
-import com.google.android.material.color.utilities.MaterialDynamicColors
 import com.google.android.material.color.utilities.QuantizerCelebi
 import com.google.android.material.color.utilities.SchemeTonalSpot
 import com.google.android.material.color.utilities.Score
@@ -42,29 +41,35 @@ class Palette private constructor(
 
     init {
         val s = SchemeTonalSpot(Hct.fromInt(seed), dark, 0.0)
-        val c = MaterialDynamicColors()
-        primary = c.primary().getArgb(s)
-        onPrimary = c.onPrimary().getArgb(s)
-        primaryContainer = c.primaryContainer().getArgb(s)
-        onPrimaryContainer = c.onPrimaryContainer().getArgb(s)
-        secondary = c.secondary().getArgb(s)
-        secondaryContainer = c.secondaryContainer().getArgb(s)
-        onSecondaryContainer = c.onSecondaryContainer().getArgb(s)
-        tertiary = c.tertiary().getArgb(s)
-        tertiaryContainer = c.tertiaryContainer().getArgb(s)
-        surface = c.surface().getArgb(s)
-        surfaceContainer = c.surfaceContainer().getArgb(s)
-        surfaceContainerHigh = c.surfaceContainerHigh().getArgb(s)
-        surfaceContainerHighest = c.surfaceContainerHighest().getArgb(s)
-        onSurface = c.onSurface().getArgb(s)
-        onSurfaceVariant = c.onSurfaceVariant().getArgb(s)
-        surfaceVariant = c.surfaceVariant().getArgb(s)
-        inverseSurface = c.inverseSurface().getArgb(s)
-        inverseOnSurface = c.inverseOnSurface().getArgb(s)
-        inversePrimary = c.inversePrimary().getArgb(s)
-        outline = c.outline().getArgb(s)
-        outlineVariant = c.outlineVariant().getArgb(s)
-        error = c.error().getArgb(s)
+        val p = s.primaryPalette
+        val sec = s.secondaryPalette
+        val ter = s.tertiaryPalette
+        val n = s.neutralPalette
+        val nv = s.neutralVariantPalette
+        val err = s.errorPalette
+
+        primary = p.tone(if (dark) 80 else 40)
+        onPrimary = p.tone(if (dark) 20 else 100)
+        primaryContainer = p.tone(if (dark) 30 else 90)
+        onPrimaryContainer = p.tone(if (dark) 90 else 10)
+        secondary = sec.tone(if (dark) 80 else 40)
+        secondaryContainer = sec.tone(if (dark) 30 else 90)
+        onSecondaryContainer = sec.tone(if (dark) 90 else 10)
+        tertiary = ter.tone(if (dark) 80 else 40)
+        tertiaryContainer = ter.tone(if (dark) 30 else 90)
+        surface = n.tone(if (dark) 6 else 98)
+        surfaceContainer = n.tone(if (dark) 12 else 94)
+        surfaceContainerHigh = n.tone(if (dark) 17 else 92)
+        surfaceContainerHighest = n.tone(if (dark) 22 else 90)
+        onSurface = n.tone(if (dark) 90 else 10)
+        onSurfaceVariant = nv.tone(if (dark) 80 else 30)
+        surfaceVariant = nv.tone(if (dark) 30 else 90)
+        inverseSurface = n.tone(if (dark) 90 else 20)
+        inverseOnSurface = n.tone(if (dark) 20 else 95)
+        inversePrimary = p.tone(if (dark) 40 else 80)
+        outline = nv.tone(if (dark) 60 else 50)
+        outlineVariant = nv.tone(if (dark) 30 else 80)
+        error = err.tone(if (dark) 80 else 40)
     }
 
     companion object {

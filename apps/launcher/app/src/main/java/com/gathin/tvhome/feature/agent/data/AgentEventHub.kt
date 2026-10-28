@@ -8,6 +8,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
+import kotlinx.coroutines.withContext
+
 object AgentEventHub {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -30,9 +32,11 @@ object AgentEventHub {
         val router = DuinchPayloadRouter(appContext) { text, mood ->
             greetingListener?.invoke(text, mood)
         }
-        job = scope.launch {
+        job = scope.launch(Dispatchers.IO) {
             repository.observeEvents().collect { payload ->
-                router.handleJson(payload) { isRunning }
+                withContext(Dispatchers.Main) {
+                    router.handleJson(payload) { isRunning }
+                }
             }
         }
     }

@@ -18,6 +18,7 @@ import com.gathin.tvhome.core.design.DockDecoration
 import com.gathin.tvhome.core.design.Palette
 import com.gathin.tvhome.core.util.SoundEffects
 import com.gathin.tvhome.feature.main.widget.WidgetShelf
+import com.gathin.tvhome.feature.agent.coordinator.AgentActionExecutor
 
 
 class DockModeController(
@@ -45,6 +46,13 @@ class DockModeController(
     private var runningPackages: Set<String> = emptySet()
 
     init {
+        widgets?.setContinueDock { item, poster ->
+            dockView.bindWatchNext(item, poster) {
+                if (item != null) {
+                    com.gathin.tvhome.feature.watching.ui.WatchLauncher.open(activity, item)
+                }
+            }
+        }
         val parent = dockView.parent as View
         parent.addOnLayoutChangeListener { _, left, top, right, bottom,
                                           oldLeft, oldTop, oldRight, oldBottom ->
@@ -148,6 +156,13 @@ class DockModeController(
 
     override fun onAllAppsClicked() {
         host.openLibrary()
+    }
+
+    override fun onWatchNextLongClicked(anchor: View) {
+        val feed = widgets?.continueFeed() ?: return
+        val focused = (anchor as? com.gathin.tvhome.feature.watching.ui.DockWatchNextView)?.boundItem
+        com.gathin.tvhome.feature.watching.ui.WatchNextMenu.show(activity, Config.load(activity),
+            feed, focused) { dockView.focusSlot(0) }
     }
 
     override fun onAppClicked(item: BottomDockView.DockItem) {

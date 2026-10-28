@@ -1,15 +1,13 @@
 package com.gathin.tvhome.feature.runningapps.presenter
 import com.gathin.tvhome.feature.runningapps.data.*
 
+import com.gathin.tvhome.core.util.EffectBus
 import com.gathin.tvhome.feature.runningapps.data.RunningApp
 import com.gathin.tvhome.feature.runningapps.data.AppRepository
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
 
@@ -39,8 +37,7 @@ class RunningAppsPresenter(
     private val _state = MutableStateFlow(RunningAppsState(isLoading = true))
     val state: StateFlow<RunningAppsState> = _state.asStateFlow()
 
-    private val _effects = Channel<RunningAppsEffect>(Channel.BUFFERED)
-    val effects: Flow<RunningAppsEffect> = _effects.receiveAsFlow()
+    val effects = EffectBus<RunningAppsEffect>()
 
     fun processIntent(intent: RunningAppsIntent) {
         when (intent) {
@@ -92,7 +89,7 @@ class RunningAppsPresenter(
     private fun trimLauncher() {
         scope.launch {
             val res = com.gathin.tvhome.R.string.running_launcher_trimmed
-            _effects.send(RunningAppsEffect.ShowToast(res))
+            effects.emit(RunningAppsEffect.ShowToast(res))
             loadApps()
         }
     }

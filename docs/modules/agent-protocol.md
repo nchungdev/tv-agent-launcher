@@ -245,9 +245,10 @@ not know, and the server should do the same for the launcher's requests.
 
 ## 9. Watch history
 
-Android keeps every app's Watch Next rows private to the system launcher, so the server owns the
-history instead. The launcher listens to the media sessions apps publish (YouTube, Netflix, Plex…)
-and reports them; the server stores them, adds Plex On Deck and answers the list Home shows.
+The TV launcher aggregates continue-watching items across Android TV's system provider
+(`TvContract.WatchNextPrograms` with `READ_TV_LISTINGS`), local media sessions captured on device,
+and the agent server (`GET /v2/watch/continue`). The server aggregates reported playback events
+and external sources such as Plex On Deck to provide cross-device history.
 
 ### 9.1 `POST /v2/watch/events`
 
