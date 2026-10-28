@@ -30,6 +30,7 @@ open class SkyView @JvmOverloads constructor(
     private var lastMinute = -1
     private var texture: Bitmap? = null
     private var drawable: BitmapDrawable? = null
+    private var contentTop = 0
 
     private var weather = Weather.Sky.CLEAR
     private var day = true
@@ -54,6 +55,19 @@ open class SkyView @JvmOverloads constructor(
     fun update() {
         if (intensity == 0 || visibility != VISIBLE) return
         render(false)
+    }
+
+    fun setContentTop(pixels: Int) {
+        val top = pixels.coerceAtLeast(0)
+        if (contentTop == top) return
+
+        contentTop = top
+        rebuildShapes()
+        invalidate()
+    }
+
+    private fun rebuildShapes() {
+        shapes.build(width, (height - contentTop).coerceAtLeast(0), weather, day)
     }
 
     override fun onAttachedToWindow() {
@@ -113,12 +127,12 @@ open class SkyView @JvmOverloads constructor(
         if (nowWeather == weather && nowDay == day) return
         weather = nowWeather
         day = nowDay
-        shapes.build(width, height, weather, day)
+        rebuildShapes()
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
-        shapes.build(w, h, weather, day)
+        rebuildShapes()
         rainPaint.strokeWidth = h * 0.006f
         boltPaint.pathEffect = CornerPathEffect(h * 0.006f)
     }
@@ -126,6 +140,8 @@ open class SkyView @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         if (intensity == 0) return
+        val saved = canvas.save()
+        canvas.translate(0f, contentTop.toFloat())
         canvas.drawPath(shapes.fog, fogPaint)
         canvas.drawPath(shapes.stars, starPaint)
         canvas.drawPath(shapes.sun, sunPaint)
@@ -134,6 +150,7 @@ open class SkyView @JvmOverloads constructor(
         canvas.drawPath(shapes.snow, snowPaint)
         canvas.drawPath(shapes.clouds, cloudPaint)
         canvas.drawPath(shapes.bolt, boltPaint)
+        canvas.restoreToCount(saved)
     }
 
     companion object {

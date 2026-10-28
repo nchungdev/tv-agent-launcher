@@ -1,11 +1,13 @@
 package com.gathin.tvhome.feature.main.coordinator
 
 import android.app.Activity
+import android.content.Intent
 import android.view.KeyEvent
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
 import com.gathin.tvhome.R
+import com.gathin.tvhome.feature.account.coordinator.GoogleAccountCoordinator
 import com.gathin.tvhome.feature.settings.data.Config
 import com.gathin.tvhome.feature.system.data.Weather
 import com.gathin.tvhome.feature.system.widget.SysInfoView
@@ -35,6 +37,8 @@ class HomeHeaderCoordinator(
     private var btnNotifications: TextView? = null
     private var btnReorder: View? = null
     private var btnSettings: View? = null
+    private var btnAccount: TextView? = null
+    private lateinit var googleAccount: GoogleAccountCoordinator
 
     fun setup(root: View, cfg: Config) {
         btnSysInfo = root.findViewById(R.id.btnSysInfo)
@@ -44,6 +48,8 @@ class HomeHeaderCoordinator(
         btnNotifications = root.findViewById(R.id.btnNotifications)
         btnReorder = root.findViewById(R.id.btnReorder)
         btnSettings = root.findViewById(R.id.btnSettings)
+        btnAccount = root.findViewById(R.id.btnAccount)
+        googleAccount = GoogleAccountCoordinator(activity, root.findViewById(R.id.btnAccount), cfg)
 
         btnSysInfo?.init(cfg.animations, cfg.reducedMotion)
         btnSysInfo?.visibility = View.VISIBLE
@@ -127,6 +133,7 @@ class HomeHeaderCoordinator(
         btnNotifications?.setOnKeyListener(pillKeys)
         btnReorder?.setOnKeyListener(pillKeys)
         btnSettings?.setOnKeyListener(pillKeys)
+        btnAccount?.setOnKeyListener(pillKeys)
     }
 
     fun focusDefault() {
@@ -145,5 +152,13 @@ class HomeHeaderCoordinator(
 
     fun updateReorderVisibility(visible: Boolean) {
         btnReorder?.visibility = if (visible) View.VISIBLE else View.GONE
+    }
+
+    fun start() = googleAccount.start()
+
+    fun stop() = googleAccount.stop()
+
+    fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        googleAccount.onActivityResult(requestCode, resultCode, data)
     }
 }

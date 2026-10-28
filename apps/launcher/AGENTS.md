@@ -31,6 +31,10 @@ Locales: English and Vietnamese only.
   (`GET /v2/watch/continue`) for the "continue watching" card, `LocalWatchHistory` when the server
   is offline. Watch Next rows of other apps are readable only by the system launcher.
 - Network pill: `SpeedTest` (Cloudflare `speed.cloudflare.com`, only when asked from the Wi-Fi menu).
+- Google account: `feature/account` shows an account made visible through Android's account chooser.
+  The header opens a panel to choose an account or manage TV accounts in system settings. The selected
+  name stays in private preferences; it does not switch Google TV, YouTube or other apps' accounts.
+  Empty visibility is not proof the TV is signed out. No Google SDK, tokens or GET_ACCOUNTS permission.
 - Running apps: `LocalAdb` (adb client to `127.0.0.1:5555` with its own key in `files/adbkey`; the TV asks once to allow it), `BackgroundApps` (`ps` and recent tasks, `am force-stop`). Port 5555 is gone after a reboot until `adb tcpip 5555` runs again.
 - Backgrounds: `WallpaperPlayer`, `WallpaperRotation`, `WallpaperSize`, `Sky`/`SkyView` (tinted by the
   weather widget's last report, which `WeatherShapes` draws in M3E shapes), `ExpressiveBackdrop`,

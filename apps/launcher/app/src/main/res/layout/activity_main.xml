@@ -309,6 +309,19 @@
                 android:drawableStart="@drawable/ic_settings"
                 android:contentDescription="@string/launcher_settings"
                 android:nextFocusDown="@+id/grid" />
+
+            <TextView
+                android:id="@+id/btnAccount"
+                style="@style/TopBarIcon"
+                android:layout_width="wrap_content"
+                android:minWidth="34dp"
+                android:maxWidth="150dp"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:drawableStart="@drawable/ic_person"
+                android:drawablePadding="4dp"
+                android:contentDescription="@string/google_account"
+                android:nextFocusDown="@+id/grid" />
         </LinearLayout>
     </RelativeLayout>
 

@@ -437,4 +437,10 @@
     <string name="restarting_launcher">Closing all apps and restarting the launcher…</string>
     <string name="now_playing_listener_name">Watch history</string>
     <string name="home_section">Your home</string>
+    <string name="google_account">Google account</string>
+    <string name="google_account_selected">Google account: %1$s</string>
+    <string name="google_account_choose">Choose Google account</string>
+    <string name="google_account_manage">Manage accounts on TV</string>
+    <string name="google_account_not_shared">Choose a Google account to display on Home. Accounts
+        already signed in on this TV may need your permission to appear here.</string>
 </resources>

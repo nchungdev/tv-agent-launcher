@@ -44,6 +44,19 @@ class DockModeController(
     private var currentColumns = 4
     private var runningPackages: Set<String> = emptySet()
 
+    init {
+        val parent = dockView.parent as View
+        parent.addOnLayoutChangeListener { _, left, top, right, bottom,
+                                          oldLeft, oldTop, oldRight, oldBottom ->
+            if (right - left != oldRight - oldLeft || bottom - top != oldBottom - oldTop) {
+                alignShelf(currentColumns)
+            }
+        }
+        dockView.addOnLayoutChangeListener { _, _, top, _, _, _, oldTop, _, _ ->
+            if (top != oldTop) alignShelf(currentColumns)
+        }
+    }
+
     fun setMotion(animations: Boolean, reducedMotion: Boolean) {
         dockView.setMotion(animations, reducedMotion)
     }

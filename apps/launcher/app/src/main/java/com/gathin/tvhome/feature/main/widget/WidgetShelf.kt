@@ -169,10 +169,8 @@ class WidgetShelf(
             shelf.findViewById(R.id.widgetCalendar)
         )
         for (c in cards) c.setMotion(motion)
-        cards[0].setFlat(true)
         cards[0].isFocusable = false
         cards[0].isClickable = false
-        cards[2].setGlass(true)
 
         addCard = shelf.findViewById(R.id.widgetAdd)
         addCard.setMotion(motion)
@@ -1028,17 +1026,7 @@ class WidgetShelf(
             grid.underlap()
         } else 0
         headerUnderlap = maxOf(gridUnderlap, headerRow?.bottom ?: minHeader, minHeader)
-        val slp = shelf.layoutParams as ViewGroup.MarginLayoutParams
-        val available = dockTop - headerUnderlap - slp.height
-        val top = if (available > 0) {
-            headerUnderlap + (available * 0.5f).toInt()
-        } else {
-            headerUnderlap + Math.round(8 * density)
-        }
-        if (slp.topMargin != top) {
-            slp.topMargin = top
-            shelf.layoutParams = slp
-        }
+        WidgetShelfPlacement.apply(shelf, headerUnderlap, dockTop, density)
     }
 
     fun onGridScrolled(grid: RecyclerView) {

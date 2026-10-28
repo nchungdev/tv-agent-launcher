@@ -106,6 +106,11 @@ class MainActivity : Activity(), AppAdapter.TileListener {
         val intensity = HomeLook.skyIntensity(backdrop, cfg.skyIntensity, Palette.darkMode())
         skyView = findViewById(R.id.sky)
         skyView.setIntensity(intensity)
+        val header = findViewById<View>(R.id.headerRow)
+        header.addOnLayoutChangeListener { _, _, _, _, bottom, _, _, _, _ ->
+            val gap = (12 * resources.displayMetrics.density).toInt()
+            skyView.setContentTop(bottom + gap)
+        }
     }
 
     private fun initPresentersAndRepositories() {
@@ -419,6 +424,7 @@ class MainActivity : Activity(), AppAdapter.TileListener {
 
     override fun onResume() {
         super.onResume()
+        headerCoordinator.start()
         isHomeResumed = true
         agentOverlay.onResume()
         AgentEventHub.greetingListener = { text, mood ->
@@ -441,12 +447,18 @@ class MainActivity : Activity(), AppAdapter.TileListener {
 
     override fun onPause() {
         super.onPause()
+        headerCoordinator.stop()
         isHomeResumed = false
         agentOverlay.onPause()
         AgentEventHub.greetingListener = null
         networkManager.stop()
         metricsMonitor.stop()
         widgetShelf.stop()
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        headerCoordinator.onActivityResult(requestCode, resultCode, data)
     }
 
     override fun onDestroy() {
