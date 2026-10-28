@@ -30,6 +30,9 @@ class HomeHeaderCoordinator(
         object FocusGridFromHeader : HeaderAction
     }
 
+    var onWeatherRefresh: (() -> Unit)? = null
+    private var weatherReport: Weather.Report? = null
+
     private var btnSysInfo: SysInfoView? = null
     private var btnWeather: TextView? = null
     private var btnInputs: View? = null
@@ -54,10 +57,10 @@ class HomeHeaderCoordinator(
         btnSysInfo?.init(cfg.animations, cfg.reducedMotion)
         btnSysInfo?.visibility = View.VISIBLE
         btnSysInfo?.setOnClickListener { onAction(HeaderAction.OpenRunningApps) }
-        updateWeather(Weather.cached(activity))
+        updateWeather(null, false)
 
         btnWeather?.setOnClickListener {
-            val report = Weather.cached(activity)
+            val report = weatherReport
             if (report != null) {
                 val sky = Weather.sky(report.code)
                 val status = activity.getString(Weather.label(sky))
@@ -66,7 +69,7 @@ class HomeHeaderCoordinator(
             } else {
                 Toast.makeText(activity, "Đang nạp thời tiết…", Toast.LENGTH_SHORT).show()
             }
-            Thread { Weather.fetch(activity, "") }.start()
+            onWeatherRefresh?.invoke()
         }
         btnInputs?.setOnClickListener { onAction(HeaderAction.OpenInputs) }
         btnWifi?.setOnClickListener { onAction(HeaderAction.OpenNetwork) }
@@ -90,13 +93,14 @@ class HomeHeaderCoordinator(
         btnSysInfo?.updateStats(cpuPercent)
     }
 
-    fun updateWeather(report: Weather.Report?) {
+    fun updateWeather(report: Weather.Report?, day: Boolean) {
+        weatherReport = report
         val tv = btnWeather ?: return
         if (tv.visibility == View.GONE) return
         if (report != null) {
             tv.visibility = View.VISIBLE
             tv.text = "${report.temp.toInt()}°"
-            val iconRes = Weather.icon(Weather.sky(report.code), Weather.isDaytime())
+            val iconRes = Weather.icon(Weather.sky(report.code), day)
             val d = activity.getDrawable(iconRes)?.mutate()
             if (d != null) {
                 val size = (16 * activity.resources.displayMetrics.density).toInt()
@@ -118,9 +122,17 @@ class HomeHeaderCoordinator(
     }
 
     private fun setupKeyNavigation() {
-        val pillKeys = View.OnKeyListener { _, keyCode, event ->
+        val pillKeys = View.OnKeyListener { v, keyCode, event ->
             if (event.action != KeyEvent.ACTION_DOWN) return@OnKeyListener false
             if (keyCode == KeyEvent.KEYCODE_DPAD_UP) return@OnKeyListener true
+            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                val pills = listOfNotNull(btnSysInfo, btnWeather, btnInputs, btnWifi, btnNotifications, btnReorder, btnSettings, btnAccount)
+                    .filter { it.visibility == View.VISIBLE }
+                if (pills.firstOrNull() === v) {
+                    val bot = activity.findViewById<View>(R.id.duinchBot)
+                    if (bot != null && bot.isShown && bot.requestFocus()) return@OnKeyListener true
+                }
+            }
             if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
                 onAction(HeaderAction.FocusGridFromHeader)
                 return@OnKeyListener true

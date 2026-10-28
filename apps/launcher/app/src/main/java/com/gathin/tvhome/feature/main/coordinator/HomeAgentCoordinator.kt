@@ -1,7 +1,9 @@
 package com.gathin.tvhome.feature.main.coordinator
 
 import android.app.Activity
+import android.view.KeyEvent
 import android.view.View
+import android.view.ViewGroup
 import android.widget.TextView
 import com.gathin.tvhome.R
 import com.gathin.tvhome.feature.main.widget.TypingGreetingView
@@ -51,6 +53,32 @@ class HomeAgentCoordinator(
                 val thought = DuinchAiGreeting.interactiveThought("", 0)
                 greeting?.showMessage(thought)
             }
+        }
+
+        bot.setOnKeyListener { _, keyCode, event ->
+            if (event.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
+            if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                val topButtons = root.findViewById<ViewGroup>(R.id.topButtons)
+                if (topButtons != null && topButtons.isShown) {
+                    for (i in 0 until topButtons.childCount) {
+                        val child = topButtons.getChildAt(i)
+                        if (child != null && child.isShown && child.isFocusable) {
+                            if (child.requestFocus()) return@setOnKeyListener true
+                        }
+                    }
+                }
+            }
+            if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                val tileTemp = root.findViewById<View>(R.id.tileTemp)
+                if (tileTemp != null && tileTemp.isShown && tileTemp.isFocusable) {
+                    if (tileTemp.requestFocus()) return@setOnKeyListener true
+                }
+                val widgetClock = root.findViewById<View>(R.id.widgetClock)
+                if (widgetClock != null && widgetClock.isShown && widgetClock.isFocusable) {
+                    if (widgetClock.requestFocus()) return@setOnKeyListener true
+                }
+            }
+            false
         }
     }
 

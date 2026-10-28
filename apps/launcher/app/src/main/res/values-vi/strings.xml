@@ -146,7 +146,7 @@
     <string name="setting_cpu">Dòng CPU</string>
     <string name="option_shown">Hiện</string>
     <string name="option_hidden">Ẩn</string>
-    <string name="widget_city_auto">Tự động (theo IP)</string>
+    <string name="widget_city_auto">Vị trí TV</string>
 
     <!-- Greeting name (Launcher settings) -->
     <string name="settings_group_home">Màn hình chính</string>
@@ -422,4 +422,22 @@
     <string name="google_account_manage">Quản lý tài khoản trên TV</string>
     <string name="google_account_not_shared">Chọn tài khoản Google để hiện trên Home. Tài khoản
         đã đăng nhập trên TV có thể cần bạn cho phép hiển thị tại đây.</string>
+    <string name="weather_location">Vị trí thời tiết</string>
+    <string name="weather_location_update">Cập nhật vị trí TV</string>
+    <string name="weather_location_once">Xác định một lần theo mạng của TV; cập nhật tại đây khi cần.</string>
+    <string name="watch_sources">Nguồn Xem tiếp</string>
+    <string name="watch_source_tv">Ứng dụng TV</string>
+    <string name="watch_source_server">Máy chủ media</string>
+    <string name="watch_source_local">Lịch sử trên TV</string>
+    <string name="watch_ready">Có nội dung</string>
+    <string name="watch_empty">Chưa có nội dung</string>
+    <string name="watch_permission">Cần quyền — chọn để bật</string>
+    <string name="watch_error">Tạm lỗi; giữ kết quả gần nhất</string>
+    <string name="watch_not_configured">Chưa cấu hình máy chủ</string>
+    <string name="watch_unsupported">Thiết bị không hỗ trợ</string>
+    <string name="watch_refresh">Làm mới</string>
+    <string name="watch_resume">Xem tiếp</string>
+    <string name="watch_hide">Ẩn mục này</string>
+    <string name="watch_open_failed">Không mở được nội dung hoặc ứng dụng</string>
+    <string name="watch_filter_hint" formatted="false">Mục đã ẩn hoặc xem từ 95% sẽ không hiện. Lịch sử trên TV giữ 14 ngày, từ 3% nếu biết thời lượng.</string>
 </resources>

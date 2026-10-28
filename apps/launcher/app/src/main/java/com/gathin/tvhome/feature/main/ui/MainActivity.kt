@@ -17,6 +17,8 @@ import com.gathin.tvhome.feature.runningapps.data.StuckLayers
 import com.gathin.tvhome.feature.notification.data.NotificationRepositoryImpl
 import com.gathin.tvhome.feature.main.adapter.AppAdapter
 import com.gathin.tvhome.feature.main.data.HomeLook
+import com.gathin.tvhome.feature.main.widget.SkyLayoutBinding
+import com.gathin.tvhome.feature.main.coordinator.HomeWeatherCoordinator
 import com.gathin.tvhome.feature.main.widget.SkyView
 import com.gathin.tvhome.feature.main.adapter.Entry
 import com.gathin.tvhome.feature.system.coordinator.HomeKeyHandler
@@ -57,6 +59,7 @@ import kotlinx.coroutines.launch
 class MainActivity : Activity(), AppAdapter.TileListener {
 
     private lateinit var root: ViewGroup
+    private lateinit var weatherCoordinator: HomeWeatherCoordinator
     private lateinit var skyView: SkyView
     private lateinit var homeConfig: Config
     private lateinit var presenter: MainPresenter
@@ -107,11 +110,7 @@ class MainActivity : Activity(), AppAdapter.TileListener {
         val intensity = HomeLook.skyIntensity(backdrop, cfg.skyIntensity, Palette.darkMode())
         skyView = findViewById(R.id.sky)
         skyView.setIntensity(intensity)
-        val header = findViewById<View>(R.id.headerRow)
-        header.addOnLayoutChangeListener { _, _, _, _, bottom, _, _, _, _ ->
-            val gap = (12 * resources.displayMetrics.density).toInt()
-            skyView.setContentTop(bottom + gap)
-        }
+        SkyLayoutBinding(root, skyView)
     }
 
     private fun initPresentersAndRepositories() {
@@ -127,14 +126,15 @@ class MainActivity : Activity(), AppAdapter.TileListener {
         headerCoordinator = HomeHeaderCoordinator(this) { action ->
             handleHeaderAction(action)
         }
-        networkManager = HomeNetworkManager(this) {}
+        networkManager = HomeNetworkManager(this) {
+            runOnUiThread { weatherCoordinator.tick() }
+        }
         metricsMonitor = HomeMetricsMonitor(
             context = this,
             scope = activityScope,
             onMinuteTick = {
-                val rep = Weather.cached(this)
-                headerCoordinator.updateWeather(rep)
-                skyView.update()
+                weatherCoordinator.tick()
+                widgetShelf.tick()
             },
             onSysInfoSample = { cpu ->
                 headerCoordinator.updateSysInfo(cpu)
@@ -172,6 +172,17 @@ class MainActivity : Activity(), AppAdapter.TileListener {
             }
         )
 
+        weatherCoordinator = HomeWeatherCoordinator(
+            activityScope, HomeWeatherCoordinator.source(this),
+            { Weather.selectedCity(this) },
+            { report, scene ->
+                headerCoordinator.updateWeather(report, scene.day)
+                widgetShelf.updateWeather(report, scene.day, weatherCoordinator.offline)
+                skyView.setScene(scene)
+            }
+        )
+        headerCoordinator.onWeatherRefresh = { weatherCoordinator.tick(true) }
+
         val dockView = root.findViewById<BottomDockView>(R.id.bottomDock)
         val heroName = root.findViewById<View>(R.id.heroName)
         val homeGrid = root.findViewById<HomeGrid>(R.id.grid)
@@ -205,6 +216,7 @@ class MainActivity : Activity(), AppAdapter.TileListener {
                 }
             }
         )
+        widgetShelf.onWeatherLocationChanged = { weatherCoordinator.reloadLocation() }
 
         dockModeController = DockModeController(
             activity = this,
@@ -262,7 +274,7 @@ class MainActivity : Activity(), AppAdapter.TileListener {
     private fun handleEffect(effect: MainEffect) {
         when (effect) {
             is MainEffect.LaunchEntry -> launchAppEntry(effect.entry)
-            is MainEffect.ShowSettings -> LauncherSettingsSheet(this, homeConfig) {
+            is MainEffect.ShowSettings -> LauncherSettingsSheet(this, homeConfig, widgetShelf.continueFeed()) {
                 if (it) recreate()
             }.show()
             is MainEffect.ShowInputs -> {
@@ -323,7 +335,7 @@ class MainActivity : Activity(), AppAdapter.TileListener {
                 presenter.processIntent(MainIntent.OpenSettings)
             }
             is HomeHeaderCoordinator.HeaderAction.ShowSettingsMenu -> {
-                LauncherSettingsSheet(this, homeConfig) {
+                LauncherSettingsSheet(this, homeConfig, widgetShelf.continueFeed()) {
                     if (it) recreate()
                 }.show()
             }
@@ -338,7 +350,9 @@ class MainActivity : Activity(), AppAdapter.TileListener {
                 }
             }
             is HomeHeaderCoordinator.HeaderAction.FocusGridFromHeader -> {
-                if (dockModeController.isDockMode()) {
+                if (widgetShelf.enabled() && widgetShelf.focusFromHeader(left = false)) {
+                    // focused into widget shelf
+                } else if (dockModeController.isDockMode()) {
                     dockModeController.focusDefault()
                 } else {
                     gridCoordinator.focusDefault()
@@ -419,10 +433,6 @@ class MainActivity : Activity(), AppAdapter.TileListener {
         return super.dispatchKeyEvent(event)
     }
 
-    fun updateTopWeather() {
-        headerCoordinator.updateWeather(Weather.cached(this))
-    }
-
     override fun onResume() {
         super.onResume()
         headerCoordinator.start()
@@ -434,7 +444,7 @@ class MainActivity : Activity(), AppAdapter.TileListener {
         AgentEventHub.ensureStarted(this)
         networkManager.start()
         metricsMonitor.start()
-        headerCoordinator.updateWeather(Weather.cached(this))
+        weatherCoordinator.start()
         headerCoordinator.updateSysInfo(0)
         widgetShelf.start()
         refreshRunningApps()
@@ -455,6 +465,7 @@ class MainActivity : Activity(), AppAdapter.TileListener {
         agentOverlay.onPause()
         AgentEventHub.greetingListener = null
         networkManager.stop()
+        weatherCoordinator.stop()
         metricsMonitor.stop()
         widgetShelf.stop()
     }
@@ -474,7 +485,10 @@ class MainActivity : Activity(), AppAdapter.TileListener {
         permissions: Array<out String>,
         results: IntArray
     ) {
-        agentOverlay.onPermissionResult(code, results)
+        super.onRequestPermissionsResult(code, permissions, results)
+        if (code == com.gathin.tvhome.feature.watching.ui.WatchNextSourceSheet.REQUEST_CODE) {
+            widgetShelf.continueFeed().refresh()
+        } else agentOverlay.onPermissionResult(code, results)
     }
 
     override fun onBackPressed() {

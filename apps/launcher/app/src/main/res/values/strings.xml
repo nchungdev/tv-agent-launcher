@@ -167,7 +167,7 @@
     <string name="setting_cpu">CPU line</string>
     <string name="option_shown">Shown</string>
     <string name="option_hidden">Hidden</string>
-    <string name="widget_city_auto">Automatic (from IP)</string>
+    <string name="widget_city_auto">TV location</string>
 
     <!-- Greeting name (Launcher settings) -->
     <string name="settings_group_home">Home</string>
@@ -445,4 +445,22 @@
     <string name="google_account_manage">Manage accounts on TV</string>
     <string name="google_account_not_shared">Choose a Google account to display on Home. Accounts
         already signed in on this TV may need your permission to appear here.</string>
+    <string name="weather_location">Weather location</string>
+    <string name="weather_location_update">Update TV location</string>
+    <string name="weather_location_once">Detect once using the TV network; update here when needed.</string>
+    <string name="watch_sources">Continue watching sources</string>
+    <string name="watch_source_tv">TV apps</string>
+    <string name="watch_source_server">Media server</string>
+    <string name="watch_source_local">History on this TV</string>
+    <string name="watch_ready">Available</string>
+    <string name="watch_empty">No content published</string>
+    <string name="watch_permission">Permission needed — select to enable</string>
+    <string name="watch_error">Temporarily unavailable; keeping last results</string>
+    <string name="watch_not_configured">Server not configured</string>
+    <string name="watch_unsupported">Not supported on this device</string>
+    <string name="watch_refresh">Refresh</string>
+    <string name="watch_resume">Resume</string>
+    <string name="watch_hide">Hide this item</string>
+    <string name="watch_open_failed">Cannot open this content or app</string>
+    <string name="watch_filter_hint" formatted="false">Hidden and completed items (95% or more) are excluded. TV history lasts 14 days and starts at 3% when duration is known.</string>
 </resources>

@@ -10,6 +10,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.content.res.ColorStateList
 import android.graphics.Rect
+import android.graphics.Bitmap
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
@@ -137,9 +138,11 @@ class WidgetShelf(
     private val contProgress: ProgressBar
     private val contRemaining: TextView
     private val watching = ContinueWatching(activity)
+    private var continueDock: ((WatchItem?, Bitmap?) -> Unit)? = null
     private var watchIndex = 0
     private var continueShown = false
-    private var watchRefreshedAt = 0L
+    private var expandedHub = false
+    private var paintedWatchItem: WatchItem? = null
     private var watchRotatedAt = 0L
 
     private val lunarLabel: TextView
@@ -150,8 +153,7 @@ class WidgetShelf(
     private var started = false
 
     private var report: Weather.Report? = null
-    private var fetching = false
-    private var lastFailure = 0L
+    private var weatherOffline = false
 
     private var air: AirQuality.Report? = null
     private var airFetching = false
@@ -235,6 +237,7 @@ class WidgetShelf(
     fun setEnabled(on: Boolean) {
         enabled = on
         shelf.visibility = if (on) View.VISIBLE else View.GONE
+        if (!on) stop()
     }
 
     fun setOnDown(listener: IntConsumer) {
@@ -261,6 +264,59 @@ class WidgetShelf(
         return slots[0].id
     }
 
+    fun focusFromHeader(left: Boolean = true): Boolean {
+        if (!enabled || slots.isEmpty()) return false
+        if (left) {
+            val first = tiles.firstOrNull { it.isShown && it.isFocusable }
+            if (first != null && first.requestFocus()) return true
+            return slots[0].requestFocus()
+        } else {
+            val target = if (slots.size > 1) slots[1] else slots[0]
+            return target.requestFocus()
+        }
+    }
+
+    private fun focusHeaderOrTopbar(fromView: View): Boolean {
+        val bot = activity.findViewById<View>(R.id.duinchBot)
+        val topButtons = activity.findViewById<ViewGroup>(R.id.topButtons)
+
+        val loc = IntArray(2)
+        fromView.getLocationOnScreen(loc)
+        val viewCenterX = loc[0] + fromView.width / 2
+
+        val botLoc = IntArray(2)
+        bot?.getLocationOnScreen(botLoc)
+        val botCenterX = if (bot != null && bot.isShown) botLoc[0] + bot.width / 2 else -1
+
+        var bestButton: View? = null
+        var minButtonDist = Int.MAX_VALUE
+
+        if (topButtons != null && topButtons.isShown) {
+            for (i in 0 until topButtons.childCount) {
+                val child = topButtons.getChildAt(i)
+                if (child.isShown && child.isFocusable) {
+                    val childLoc = IntArray(2)
+                    child.getLocationOnScreen(childLoc)
+                    val childCenterX = childLoc[0] + child.width / 2
+                    val dist = Math.abs(childCenterX - viewCenterX)
+                    if (dist < minButtonDist) {
+                        minButtonDist = dist
+                        bestButton = child
+                    }
+                }
+            }
+        }
+
+        val botDist = if (botCenterX >= 0) Math.abs(botCenterX - viewCenterX) else Int.MAX_VALUE
+
+        if (bot != null && bot.isShown && botDist <= minButtonDist) {
+            if (bot.requestFocus()) return true
+        }
+
+        if (bestButton != null && bestButton.requestFocus()) return true
+        return bot?.requestFocus() ?: false
+    }
+
     private fun setupCardInteractions() {
         tiles.forEachIndexed { index, tile ->
             tile.setOnClickListener { runTile(index) }
@@ -277,6 +333,9 @@ class WidgetShelf(
             }
         }
         cards[2].setOnClickListener { launchWatching() }
+        cards[2].setOnFocusChangeListener { _, focused ->
+            if (!focused) paintContinue()
+        }
         cards[3].setOnClickListener {
             cards[3].turn {
                 airTomorrow = !airTomorrow
@@ -293,21 +352,29 @@ class WidgetShelf(
         for (id in ALL) {
             val card = card(id) ?: continue
             card.setOnLongClickListener {
-                showEditMenu(id)
+                if (id == CONTINUE) {
+                    com.gathin.tvhome.feature.watching.ui.WatchNextMenu.show(activity,
+                        Config.load(activity), watching, paintedWatchItem) {
+                        cards[0].requestFocus()
+                    }
+                } else showEditMenu(id)
                 true
             }
         }
         val keyListener = View.OnKeyListener { v, keyCode, event ->
             if (event.action != KeyEvent.ACTION_DOWN) return@OnKeyListener false
             if (editing && carried != null) return@OnKeyListener false
+            if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                if (focusHeaderOrTopbar(v)) return@OnKeyListener true
+            }
+            if (expandedHub && keyCode == KeyEvent.KEYCODE_DPAD_DOWN && v === cards[0]) {
+                val firstTile = tiles.firstOrNull { it.isShown && it.isFocusable }
+                if (firstTile != null && firstTile.requestFocus()) return@OnKeyListener true
+            }
             if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN && onDown != null) {
                 val idx = slots.indexOf(ownerOf(v)).coerceAtLeast(0)
                 onDown?.accept(dockColumnUnderCard(idx))
                 return@OnKeyListener true
-            }
-            if (keyCode == KeyEvent.KEYCODE_DPAD_UP && slots.indexOf(ownerOf(v)) == 0) {
-                val bot = activity.findViewById<View>(R.id.duinchBot)
-                if (bot != null && bot.requestFocus()) return@OnKeyListener true
             }
             false
         }
@@ -342,25 +409,24 @@ class WidgetShelf(
 
     private fun launchWatching() {
         val items = watching.items
-        val item = items.getOrNull(watchIndex % maxOf(1, items.size))
+        val item = if (expandedHub) paintedWatchItem
+        else items.getOrNull(watchIndex % maxOf(1, items.size))
         if (item == null) {
             refreshWatching(true)
             return
         }
-        AgentActionExecutor.execute(activity, "continue-watching", item.actionType, item.parameters)
+        com.gathin.tvhome.feature.watching.ui.WatchLauncher.open(activity, item)
     }
 
+    fun continueFeed(): ContinueWatching = watching
+
     private fun refreshWatching(force: Boolean) {
-        val now = System.currentTimeMillis()
-        if (!force && now - watchRefreshedAt < WATCH_REFRESH_MS) return
-        watchRefreshedAt = now
-        watching.refresh {
-            watchIndex = 0
-            paintContinue()
-        }
+        if (force) watching.refresh() else watching.tick()
     }
 
     private fun rotateWatching() {
+        if (continueDock != null) return
+
         val count = watching.items.size
         val now = System.currentTimeMillis()
         if (count < 2 || now - watchRotatedAt < WATCH_ROTATE_MS) return
@@ -371,7 +437,12 @@ class WidgetShelf(
 
     private fun paintContinue() {
         val items = watching.items
+        val dockItem = items.firstOrNull()
+        val dockVisible = if (expandedHub) null else dockItem
+        continueDock?.invoke(dockVisible, watching.poster(dockVisible?.posterUri))
+        if (expandedHub && cards[2].hasFocus() && paintedWatchItem != null) return
         val item = items.getOrNull(watchIndex)
+        paintedWatchItem = item
         val darkP = Palette.dark(palette)
         contTitle.setTextColor(0xFFFFFFFF.toInt())
         contLabel.setTextColor(0xFFFFFFFF.toInt())
@@ -427,9 +498,20 @@ class WidgetShelf(
     }
 
     private fun span(card: WidgetCard): Int {
-        if (card === cards[0]) return 2
+        if (expandedHub && (card === cards[0] || card === cards[2])) return 2
+        if (card === cards[0]) {
+            return minOf(if (continueShown && continueDock == null) 3 else 4, slotsLimit())
+        }
         return 1
     }
+
+    fun setContinueDock(listener: (WatchItem?, Bitmap?) -> Unit) {
+        continueDock = listener
+        paintContinue()
+        lastGrid?.let { align(it, lastColumns, lastDockTop) }
+    }
+
+    fun continueItems(): List<WatchItem> = watching.items
 
     private fun has(id: String): Boolean = order.contains(id)
 
@@ -616,24 +698,7 @@ class WidgetShelf(
     }
 
     private fun paintTiles() {
-        val dp = activity.resources.displayMetrics.density
-        val darkP = Palette.dark(palette)
-        val resting = GradientDrawable().apply {
-            cornerRadius = 16 * dp
-            setColor(0x26FFFFFF.toInt())
-            setStroke(Math.round(dp), 0x33FFFFFF.toInt())
-        }
-        for (tile in tiles) {
-            val focused = GradientDrawable().apply {
-                cornerRadius = 16 * dp
-                setColor(Palette.alpha(darkP.primary, 0x4D))
-                setStroke(Math.round(2 * dp), darkP.primary)
-            }
-            tile.background = android.graphics.drawable.StateListDrawable().apply {
-                addState(intArrayOf(android.R.attr.state_focused), focused)
-                addState(intArrayOf(), resting.constantState?.newDrawable()?.mutate() ?: resting)
-            }
-        }
+        HomeTileAppearance.style(tiles, Palette.dark(palette))
     }
 
     private fun city(): String = prefs.getString(CITY_KEY, configCity) ?: configCity
@@ -668,7 +733,7 @@ class WidgetShelf(
                 })
             }
             WEATHER -> {
-                items.add(setting(R.drawable.ic_location, R.string.setting_location, cityName(city())) { showCityMenu(anchor) })
+                items.add(setting(R.drawable.ic_location, R.string.setting_location, cityName(city())) { showCityMenu() })
                 items.add(setting(R.drawable.ic_thermostat, R.string.setting_unit, if (fahrenheit()) "°F" else "°C") {
                     showChoices(anchor, arrayOf("°C", "°F"), if (fahrenheit()) 1 else 0) { i ->
                         prefs.edit().putString(UNIT_KEY, if (i == 1) "f" else "c").apply()
@@ -681,7 +746,7 @@ class WidgetShelf(
                 })
             }
             AIR -> {
-                items.add(setting(R.drawable.ic_location, R.string.setting_location_shared, cityName(city())) { showCityMenu(anchor) })
+                items.add(setting(R.drawable.ic_location, R.string.setting_location_shared, cityName(city())) { showCityMenu() })
                 items.add(opensOn(anchor, AIR_PAGE_KEY, AIR_PAGE_NAMES) { i ->
                     airTomorrow = i == 1
                     paintAir()
@@ -719,17 +784,15 @@ class WidgetShelf(
         }
     }
 
-    private fun showCityMenu(anchor: View) {
-        val current = city()
-        val names = Array(CITY_QUERIES.size) { cityName(CITY_QUERIES[it]) }
-        var selected = -1
-        for (i in CITY_QUERIES.indices) if (CITY_QUERIES[i] == current) selected = i
-        showChoices(anchor, names, selected) { i ->
-            prefs.edit().putString(CITY_KEY, CITY_QUERIES[i]).apply()
-            if (has(WEATHER)) refreshWeather(true)
+    private fun showCityMenu() {
+        com.gathin.tvhome.feature.settings.widget.WeatherLocationPicker.choose(activity,
+            com.gathin.tvhome.feature.settings.data.Config.load(activity)) {
+            onWeatherLocationChanged?.invoke()
             if (has(AIR)) refreshAir(true)
         }
     }
+
+    var onWeatherLocationChanged: (() -> Unit)? = null
 
     private fun showChoices(anchor: View, labels: Array<String>, selected: Int, choose: IntConsumer) {
         val items = ArrayList<MenuItem>()
@@ -852,14 +915,14 @@ class WidgetShelf(
 
     private fun withOutdoorFallback(tiles: List<HomeTile>): List<HomeTile> {
         if (tiles[0].value != "—") return tiles
-        val report = Weather.cached(activity) ?: return tiles
+        val report = this.report ?: return tiles
         val outdoor = HomeTile("🌡", "${Math.round(report.temp)}°C", "Ngoài trời")
         return listOf(outdoor) + tiles.drop(1)
     }
 
     private fun paintTile(index: Int, icon: String, value: String, caption: String) {
         val darkP = Palette.dark(palette)
-        tileIcons[index].text = icon
+        HomeTileAppearance.icon(tileIcons[index], icon, Palette.dark(palette).primary)
         tileValues[index].text = value
         tileValues[index].setTextColor(0xFFFFFFFF.toInt())
         tileCaptions[index].text = caption
@@ -987,16 +1050,19 @@ class WidgetShelf(
         paintClockDate()
         paintHaConnection()
         refreshHaData(false)
-        refreshWatching(false)
+        watching.start {
+            watchIndex = 0
+            paintContinue()
+        }
         paintContinue()
         weatherPage = prefs.getInt(WEATHER_PAGE_KEY, 0) % WEATHER_PAGES
         airTomorrow = prefs.getInt(AIR_PAGE_KEY, 0) == 1
         if (has(CALENDAR)) paintCalendar()
-        if (has(WEATHER)) refreshWeather(false)
         if (has(AIR)) refreshAir(false)
     }
 
     fun stop() {
+        watching.stop()
         if (!started) return
         started = false
     }
@@ -1009,7 +1075,6 @@ class WidgetShelf(
         refreshWatching(false)
         rotateWatching()
         if (has(CALENDAR)) paintCalendar()
-        if (has(WEATHER)) refreshWeather(false)
         if (has(AIR)) refreshAir(false)
     }
 
@@ -1018,11 +1083,21 @@ class WidgetShelf(
         lastColumns = columns
         lastDockTop = dockTop
         if (!enabled) return
+        val header = shelf.rootView.findViewById<View>(R.id.headerRow)
+        val wide = HomeHubLayout.expanded(shelf.rootView.width,
+            dockTop - (header?.bottom ?: 0), density)
+        if (expandedHub != wide) {
+            expandedHub = wide
+            HomeHubLayout.apply(shelf, wide)
+            val item = if (wide) null else watching.items.firstOrNull()
+            continueDock?.invoke(item, watching.poster(item?.posterUri))
+        }
         slots.clear()
         var usedColumns = 0
         for (id in order) {
             val card = card(id) ?: continue
-            if (card === cards[2] && !continueShown) continue
+            if (card === cards[2] && (!continueShown ||
+                    (continueDock != null && !expandedHub))) continue
             val cardSpan = span(card)
             if (usedColumns + cardSpan <= MAX_CARDS) {
                 slots.add(card)
@@ -1054,12 +1129,12 @@ class WidgetShelf(
         }
         if (moved) shelf.post { for (card in slots) highlight.follow(card) }
         val headerRow = (shelf.parent as? View)?.findViewById<View>(R.id.headerRow)
-        val minHeader = Math.round(92 * density)
+        val minHeader = Math.round(68 * density)
         val gridUnderlap = if (grid is HomeGrid && grid.visibility == View.VISIBLE) {
             grid.underlap()
         } else 0
         headerUnderlap = maxOf(gridUnderlap, headerRow?.bottom ?: minHeader, minHeader)
-        WidgetShelfPlacement.apply(shelf, headerUnderlap, dockTop, density)
+        WidgetShelfPlacement.apply(shelf, headerUnderlap, dockTop, density, expandedHub)
     }
 
     fun onGridScrolled(grid: RecyclerView) {
@@ -1099,34 +1174,18 @@ class WidgetShelf(
         paintAir()
     }
 
-    private fun refreshWeather(force: Boolean) {
-        if (report == null) report = Weather.cached(activity)
+    fun updateWeather(fresh: Weather.Report?, day: Boolean, offline: Boolean) {
+        report = fresh
+        weatherDay = day
+        weatherOffline = offline
         paintWeather()
-        val now = System.currentTimeMillis()
-        if (fetching) return
-        val rep = report
-        if (!force && rep != null && !rep.stale(now)) return
-        if (!force && now - lastFailure < WEATHER_RETRY_MS) return
-        fetching = true
-        val app = activity.applicationContext
-        Thread({
-            val fresh = try {
-                Weather.fetch(app, city())
-            } catch (_: Exception) {
-                null
-            }
-            main.post {
-                fetching = false
-                if (fresh != null) {
-                    report = fresh
-                    (activity as? com.gathin.tvhome.feature.main.ui.MainActivity)?.updateTopWeather()
-                } else {
-                    lastFailure = System.currentTimeMillis()
-                }
-                paintWeather()
-            }
-        }, "weather").start()
+        if (started) {
+            paintClockDate()
+            paintHaConnection()
+        }
     }
+
+    private var weatherDay = true
 
     private fun paintWeather() {
         val darkP = Palette.dark(palette)
@@ -1137,7 +1196,7 @@ class WidgetShelf(
         if (rep == null) {
             weatherPlace.setText(R.string.weather)
             weatherTemp.text = "–"
-            weatherDetail.text = if (lastFailure > 0) activity.getString(R.string.weather_offline) else ""
+            weatherDetail.text = if (weatherOffline) activity.getString(R.string.weather_offline) else ""
             weatherIcon.setIcon(activity.getDrawable(R.drawable.ic_w_cloud))
             return
         }
@@ -1165,7 +1224,7 @@ class WidgetShelf(
                 degrees(rep.low)
             )
         }
-        weatherIcon.setIcon(activity.getDrawable(Weather.icon(sky, weatherPage == 2 || Weather.isDaytime())))
+        weatherIcon.setIcon(activity.getDrawable(Weather.icon(sky, weatherPage == 2 || weatherDay)))
     }
 
     private fun degrees(celsius: Double): Int = Math.round(if (fahrenheit()) celsius * 9 / 5 + 32 else celsius).toInt()
@@ -1267,7 +1326,6 @@ class WidgetShelf(
         const val CALENDAR = "calendar"
         private val ALL = arrayOf(CLOCK, WEATHER, CONTINUE, AIR, CALENDAR)
         private const val MAX_CARDS = 4
-        private const val WATCH_REFRESH_MS = 60_000L
         private const val WATCH_ROTATE_MS = 8_000L
         private const val WEATHER_RETRY_MS = 5 * 60_000L
         private const val ENTER_SCALE = 0.85f
