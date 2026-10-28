@@ -8,7 +8,15 @@ class LocalWatchHistory(context: Context) {
     private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
     @Synchronized
-    fun record(event: WatchEvent) {
+    fun record(input: WatchEvent) {
+        val event = input.copy(
+            packageName = input.packageName.take(256), appLabel = input.appLabel.take(256),
+            title = input.title.take(512), subtitle = input.subtitle.take(1024),
+            mediaId = input.mediaId.take(2048),
+            artworkUrl = input.artworkUrl.takeIf { it.length <= 2048 }.orEmpty(),
+            resumeUri = input.resumeUri.takeIf { it.length <= 2048 }.orEmpty(),
+            details = input.details.copy(channel = input.details.channel.take(512))
+        )
         val history = load()
         val earlier = history.firstOrNull { it.key == event.key }
         val kept = history.filter { it.key != event.key }.take(MAX_ENTRIES - 1)
@@ -21,8 +29,9 @@ class LocalWatchHistory(context: Context) {
     @Synchronized
     fun load(): List<WatchEvent> {
         val raw = prefs.getString(KEY, null) ?: return emptyList()
+        if (raw.length > 512 * 1024) return emptyList()
         val rows = runCatching { JSONArray(raw) }.getOrNull() ?: return emptyList()
-        return (0 until rows.length()).mapNotNull { index ->
+        return (0 until minOf(rows.length(), MAX_ENTRIES)).mapNotNull { index ->
             rows.optJSONObject(index)?.let { WatchEvent.fromJson(it) }
         }
     }
@@ -57,7 +66,8 @@ class LocalWatchHistory(context: Context) {
             contentId = event.mediaId,
             updatedAt = event.at,
             deepLink = event.resumeUri,
-            durationMs = event.durationMs
+            durationMs = event.durationMs,
+            details = event.details
         )
     }
 

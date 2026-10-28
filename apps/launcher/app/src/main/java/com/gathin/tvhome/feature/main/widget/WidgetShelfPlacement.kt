@@ -7,6 +7,8 @@ import android.widget.TextView
 import com.gathin.tvhome.R
 
 object WidgetShelfPlacement {
+    private const val LOWER_DP = 12
+
     data class Bounds(val top: Int, val height: Int)
 
     fun fit(headerBottom: Int, dockTop: Int, naturalHeight: Int, gap: Int): Bounds {
@@ -23,7 +25,11 @@ object WidgetShelfPlacement {
     ) {
         val layout = shelf.layoutParams as ViewGroup.MarginLayoutParams
         val desiredHeight = (if (expanded) 260 else 180) * density
-        val bounds = fit(headerBottom, dockTop, desiredHeight.toInt(), (12 * density).toInt())
+        val gap = (12 * density).toInt()
+        val centered = fit(headerBottom, dockTop, desiredHeight.toInt(), gap)
+        val lowered = minOf(centered.top + (LOWER_DP * density).toInt(),
+            dockTop - gap - centered.height)
+        val bounds = centered.copy(top = maxOf(centered.top, lowered))
         shelf.scaleX = 1f
         shelf.scaleY = 1f
         if (layout.topMargin != bounds.top || layout.height != bounds.height) {

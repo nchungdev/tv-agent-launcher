@@ -133,7 +133,6 @@
                 android:layout_gravity="top"
                 android:layout_marginTop="2dp"
                 android:padding="2dp"
-                android:background="@drawable/bot_focus_bg"
                 android:clickable="true"
                 android:focusable="true"
                 android:nextFocusDown="@+id/grid" />

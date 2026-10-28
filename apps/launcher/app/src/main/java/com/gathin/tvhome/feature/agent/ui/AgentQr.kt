@@ -31,7 +31,7 @@ object AgentQr {
     internal fun encode(text: String): Array<BooleanArray> {
         val bytes = text.toByteArray(StandardCharsets.UTF_8)
         val ver = selectVersion(bytes.size)
-        val dataCodewords = encodePayload(bytes, ver.dataCodewords)
+        val dataCodewords = encodePayload(bytes, ver.dataCodewords, ver.version)
         val allCodewords = generateCodewords(dataCodewords, ver)
 
         val side = 17 + ver.version * 4
@@ -71,15 +71,16 @@ object AgentQr {
 
     private fun selectVersion(byteCount: Int): VersionInfo {
         for (v in VERSIONS) {
-            if (byteCount + 3 <= v.dataCodewords) return v
+            val header = if (v.version < 10) 2 else 3
+            if (byteCount + header <= v.dataCodewords) return v
         }
         return VERSIONS.last()
     }
 
-    private fun encodePayload(bytes: ByteArray, capacity: Int): ByteArray {
+    private fun encodePayload(bytes: ByteArray, capacity: Int, version: Int): ByteArray {
         val bitBuffer = BitBuffer()
-        bitBuffer.append(4, 4) // Byte mode: 0100
-        bitBuffer.append(bytes.size, 8) // Length: 8 bits for v1-9
+        bitBuffer.append(4, 4)
+        bitBuffer.append(bytes.size, if (version < 10) 8 else 16)
         for (b in bytes) {
             bitBuffer.append(b.toInt() and 0xFF, 8)
         }
@@ -209,9 +210,13 @@ object AgentQr {
         }
 
         val coords = ver.alignments
+        val first = coords.firstOrNull()
+        val last = coords.lastOrNull()
         for (r in coords) {
             for (c in coords) {
-                if (f[r][c]) continue
+                val nearFinder = (r == first && c == first) || (r == first && c == last) ||
+                    (r == last && c == first)
+                if (nearFinder) continue
                 for (dr in -2..2) {
                     for (dc in -2..2) {
                         val dark = (dr == -2 || dr == 2 || dc == -2 || dc == 2 || (dr == 0 && dc == 0))
@@ -221,13 +226,30 @@ object AgentQr {
             }
         }
 
-        setMod(4 * ver.version + 9, 8, true) // Dark module
+        setMod(4 * ver.version + 9, 8, true)
+        placeVersionInfo(ver.version, side, ::setMod)
 
         for (i in 0..8) {
             f[8][i] = true
             f[i][8] = true
+        }
+        for (i in 0..7) {
             f[8][side - 1 - i] = true
             f[side - 1 - i][8] = true
+        }
+    }
+
+    private fun placeVersionInfo(version: Int, side: Int, setMod: (Int, Int, Boolean) -> Unit) {
+        if (version < 7) return
+        var remainder = version
+        repeat(12) { remainder = (remainder shl 1) xor ((remainder ushr 11) * 0x1F25) }
+        val bits = (version shl 12) or remainder
+        for (i in 0 until 18) {
+            val dark = (bits ushr i) and 1 == 1
+            val far = side - 11 + i % 3
+            val near = i / 3
+            setMod(near, far, dark)
+            setMod(far, near, dark)
         }
     }
 
@@ -331,12 +353,12 @@ object AgentQr {
 
         val bits = BooleanArray(15) { (format and (1 shl it)) != 0 }
 
-        // Top-left
-        m[8][0] = bits[0]; m[8][1] = bits[1]; m[8][2] = bits[2]; m[8][3] = bits[3]; m[8][4] = bits[4]; m[8][5] = bits[5]
-        m[8][7] = bits[6]; m[8][8] = bits[7]; m[7][8] = bits[8]; m[5][8] = bits[9]; m[4][8] = bits[10]
-        m[3][8] = bits[11]; m[2][8] = bits[12]; m[1][8] = bits[13]; m[0][8] = bits[14]
+        for (i in 0..5) m[i][8] = bits[i]
+        m[7][8] = bits[6]
+        m[8][8] = bits[7]
+        m[8][7] = bits[8]
+        for (i in 9..14) m[8][14 - i] = bits[i]
 
-        // Top-right and bottom-left
         for (i in 0..7) m[8][side - 1 - i] = bits[i]
         for (i in 0..6) m[side - 7 + i][8] = bits[8 + i]
     }

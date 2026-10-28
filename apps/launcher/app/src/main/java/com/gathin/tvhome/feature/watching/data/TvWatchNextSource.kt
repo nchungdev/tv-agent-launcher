@@ -59,11 +59,27 @@ class TvWatchNextSource(private val context: Context) {
                 (duration - position).coerceAtLeast(0), WatchSource.TV,
                 text(cursor, "_id"), number(cursor, "last_engagement_time_utc_millis"),
                 text(cursor, "intent_uri"), durationMs = duration,
-                posterAlternatives = altPosters
+                posterAlternatives = altPosters, details = details(cursor)
             ))
         }
         return items
     }
+
+    private fun details(cursor: Cursor): WatchDetails {
+        val season = digits(text(cursor, "season_display_number"))
+        val episode = digits(text(cursor, "episode_display_number"))
+        val year = digits(text(cursor, "release_date").take(YEAR_DIGITS))
+        val kind = when (number(cursor, "type", -1).toInt()) {
+            TvContract.PreviewPrograms.TYPE_MOVIE -> WatchDetails.MOVIE
+            TvContract.PreviewPrograms.TYPE_TV_SERIES, TvContract.PreviewPrograms.TYPE_TV_SEASON,
+            TvContract.PreviewPrograms.TYPE_TV_EPISODE -> WatchDetails.SERIES
+            TvContract.PreviewPrograms.TYPE_CLIP -> WatchDetails.VIDEO
+            else -> if (season > 0 || episode > 0) WatchDetails.SERIES else ""
+        }
+        return WatchDetails(kind, year, season, episode, text(cursor, "author"))
+    }
+
+    private fun digits(value: String): Int = value.filter { it.isDigit() }.take(4).toIntOrNull() ?: 0
 
     private fun text(cursor: Cursor, column: String): String {
         val index = cursor.getColumnIndex(column)
@@ -80,9 +96,11 @@ class TvWatchNextSource(private val context: Context) {
     companion object {
         const val MAX_ROWS = 512
         private const val MAX_TEXT = 8192
+        private const val YEAR_DIGITS = 4
         private val PROJECTION = arrayOf("_id", "package_name", "title", "episode_title",
             "short_description", "long_description", "watch_next_type", "poster_art_uri",
             "thumbnail_uri", "last_playback_position_millis", "duration_millis", "intent_uri",
-            "last_engagement_time_utc_millis")
+            "last_engagement_time_utc_millis", "type", "season_display_number",
+            "episode_display_number", "release_date", "author")
     }
 }

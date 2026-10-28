@@ -53,6 +53,11 @@ class AgentPanelViews(private val context: Context, private val actions: Actions
         buildChips(speakReplies)
         column.addView(chips, LinearLayout.LayoutParams(MATCH, WRAP))
         column.addView(answer, LinearLayout.LayoutParams(MATCH, 0, 1f))
+        answer.onResultsShown = { shown -> chips.visibility = if (shown) View.GONE else View.VISIBLE }
+        answer.onLeaveResults = {
+            chips.visibility = View.VISIBLE
+            speakChip.requestFocus()
+        }
         return column
     }
 
@@ -93,6 +98,10 @@ class AgentPanelViews(private val context: Context, private val actions: Actions
         line.animate().alpha(0f).setDuration(FADE_MS).withEndAction {
             showLine(message, color)
         }.start()
+    }
+
+    fun showChips(wanted: Boolean) {
+        chips.visibility = if (wanted && !answer.hasResults) View.VISIBLE else View.GONE
     }
 
     fun focusSpeak() {
@@ -240,7 +249,12 @@ class AgentPanelViews(private val context: Context, private val actions: Actions
     companion object {
         const val BOT_ACCENT = 0xFF00E5FF.toInt()
         const val TEXT_COLOR = 0xFFE6E6E6.toInt()
-        const val DIM_COLOR = 0xFF080B10.toInt()
+        private val SCRIM_COLORS = intArrayOf(
+            0xF5080B10.toInt(), 0xE6080B10.toInt(), 0xCC080B10.toInt()
+        )
+
+        fun scrim(): GradientDrawable =
+            GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, SCRIM_COLORS)
         private const val MATCH = ViewGroup.LayoutParams.MATCH_PARENT
         private const val WRAP = ViewGroup.LayoutParams.WRAP_CONTENT
         private const val FADE_MS = 160L

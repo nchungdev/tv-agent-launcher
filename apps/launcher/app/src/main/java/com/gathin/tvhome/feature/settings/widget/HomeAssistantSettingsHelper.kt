@@ -75,7 +75,7 @@ object HomeAssistantSettingsHelper {
             LocalPairingServer.ServiceType.HOME_ASSISTANT, serverUrl, onPaired
         )
         val port = s.start()
-        val portalUrl = "http://$tvIp:$port"
+        val portalUrl = "http://$tvIp:$port/${s.fragment}"
         return Pair(s, portalUrl)
     }
 }

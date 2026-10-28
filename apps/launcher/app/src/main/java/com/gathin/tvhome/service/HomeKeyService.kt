@@ -108,14 +108,7 @@ class HomeKeyService : AccessibilityService() {
     }
 
     private fun openHome() {
-        if (performGlobalAction(GLOBAL_ACTION_HOME)) return
-        val home = Intent(Intent.ACTION_MAIN)
-            .addCategory(Intent.CATEGORY_HOME)
-            .setPackage(packageName)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
-        try {
-            startActivity(home)
-        } catch (_: Exception) {}
+        RemoteGestures.openHome(this)
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
@@ -129,12 +122,14 @@ class HomeKeyService : AccessibilityService() {
     }
 
     override fun onDestroy() {
+        RemoteGestures.cancel(this)
         settle.removeCallbacks(replaceOtherHome)
         assistantShortcut?.close()
         super.onDestroy()
     }
 
     override fun onInterrupt() {
+        RemoteGestures.cancel(this)
         settle.removeCallbacks(replaceOtherHome)
     }
 

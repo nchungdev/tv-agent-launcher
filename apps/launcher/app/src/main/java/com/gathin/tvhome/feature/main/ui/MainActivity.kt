@@ -117,6 +117,11 @@ class MainActivity : Activity(), AppAdapter.TileListener {
         appRepo = AppRepositoryImpl(AppLocalDataSource(this))
         val notifRepo = NotificationRepositoryImpl.getInstance()
         presenter = MainPresenter(activityScope, appRepo, notifRepo)
+        if (homeConfig.backgroundColor != NO_COLOUR) {
+            Palette.publish(Palette.fromBackground(homeConfig.backgroundColor))
+        }
+        Palette.addListener(paletteListener)
+        paletteListener.run()
         notifRepo.addListener(unreadListener)
         Thread({ notifRepo.init(applicationContext) }, "notifications-init").start()
     }
@@ -152,9 +157,7 @@ class MainActivity : Activity(), AppAdapter.TileListener {
         tvInputCoordinator = HomeTvInputCoordinator(this) { intent ->
             startActivity(intent)
         }
-        agentCoordinator = HomeAgentCoordinator(this) {
-            presenter.processIntent(MainIntent.OpenNotifications)
-        }
+        agentCoordinator = HomeAgentCoordinator(this) { agentOverlay.open() }
         heroCoordinator = HomeHeroCoordinator()
         cardsCoordinator = HomeCardsCoordinator(this) { _, _ -> }
         appCoordinator = HomeAppCoordinator(this, AppRepositoryImpl(AppLocalDataSource(this)))
@@ -475,7 +478,15 @@ class MainActivity : Activity(), AppAdapter.TileListener {
         headerCoordinator.onActivityResult(requestCode, resultCode, data)
     }
 
+    private val paletteListener = Runnable {
+        val chosen = homeConfig.backgroundColor != NO_COLOUR
+        val palette = if (chosen) Palette.fromBackground(homeConfig.backgroundColor)
+        else Palette.currentOrBaseline()
+        presenter.processIntent(MainIntent.UpdatePalette(palette))
+    }
+
     override fun onDestroy() {
+        Palette.removeListener(paletteListener)
         NotificationRepositoryImpl.getInstance().removeListener(unreadListener)
         super.onDestroy()
     }
@@ -500,6 +511,7 @@ class MainActivity : Activity(), AppAdapter.TileListener {
     }
 
     companion object {
+        private const val NO_COLOUR = -0x1000000
         @Volatile
         var isHomeResumed: Boolean = false
 

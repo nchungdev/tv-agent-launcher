@@ -1,5 +1,7 @@
 package com.gathin.tvhome.feature.main.widget
 
+import android.util.TypedValue
+import com.gathin.tvhome.feature.agent.data.AgentEventHub
 import com.gathin.tvhome.feature.smarthome.data.HassClient
 import com.gathin.tvhome.feature.smarthome.widget.HomeTile
 import com.gathin.tvhome.feature.smarthome.widget.HomeTiles
@@ -31,6 +33,7 @@ import com.gathin.tvhome.R
 import com.gathin.tvhome.feature.settings.data.Config
 import com.gathin.tvhome.feature.watching.data.ContinueWatching
 import com.gathin.tvhome.feature.watching.data.WatchItem
+import com.gathin.tvhome.feature.watching.ui.PosterColumn
 import com.gathin.tvhome.feature.watching.ui.WatchFormat
 import com.gathin.tvhome.feature.agent.coordinator.AgentActionExecutor
 import com.gathin.tvhome.feature.system.data.AirQuality
@@ -79,6 +82,8 @@ class WidgetShelf(
     private val density: Float = activity.resources.displayMetrics.density
     private val prefs: SharedPreferences = activity.getSharedPreferences(Config.SETTINGS_NAME, Context.MODE_PRIVATE)
     private var homeTiles: List<HomeTile> = HomeTiles.load(prefs)
+    private val tvModes = TvModeTiles(activity, prefs) { paintHaConnection() }
+    private var modesShown = false
     private val configCity: String = activity.getString(R.string.weather_city).trim()
     private val main = Handler(Looper.getMainLooper())
     private val motion: Boolean = animations && !reducedMotion
@@ -137,6 +142,7 @@ class WidgetShelf(
     private val contPoster: ImageView
     private val contProgress: ProgressBar
     private val contRemaining: TextView
+    private val contAppIcon: ImageView
     private val watching = ContinueWatching(activity)
     private var continueDock: ((WatchItem?, Bitmap?) -> Unit)? = null
     private var watchIndex = 0
@@ -217,6 +223,12 @@ class WidgetShelf(
         contPoster = cards[2].findViewById(R.id.contPoster)
         contProgress = cards[2].findViewById(R.id.contProgress)
         contRemaining = cards[2].findViewById(R.id.contRemaining)
+        contAppIcon = cards[2].findViewById(R.id.contAppIcon)
+        contAppIcon.clipToOutline = true
+        shelf.findViewById<View>(R.id.smartHomeTiles)?.addOnLayoutChangeListener {
+                _, _, top, _, bottom, _, oldTop, _, oldBottom ->
+            if (top != oldTop || bottom != oldBottom) realignContinue()
+        }
         cards[2].findViewById<View>(R.id.contPosterFrame).clipToOutline = true
 
         airLabel = cards[3].findViewById(R.id.airLabel)
@@ -391,6 +403,10 @@ class WidgetShelf(
     }
 
     private fun runTile(index: Int) {
+        if (tvModes.activate(index)) {
+            tileValues[index].text = "…"
+            return
+        }
         val tile = homeTiles[index]
         val connection = AgentHomeConfig(activity)
         val configured = connection.homeAssistantConfigured
@@ -466,11 +482,15 @@ class WidgetShelf(
         }
         if (item == null) return
         contLabel.text = continueLabel(item)
+        val appIcon = WatchFormat.appIcon(activity, item.packageName)
+        contAppIcon.setImageDrawable(appIcon)
+        contAppIcon.visibility = if (appIcon == null) View.GONE else View.VISIBLE
         contCount.text = if (items.size > 1) "${watchIndex + 1}/${items.size}" else ""
         contTitle.text = item.title
-        val cleanSubtitle = if (item.subtitle.contains("<")) {
-            android.text.Html.fromHtml(item.subtitle, android.text.Html.FROM_HTML_MODE_LEGACY).trim()
-        } else item.subtitle.trim()
+        val subtitle = WatchFormat.subtitle(activity, item)
+        val cleanSubtitle = if (subtitle.contains("<")) {
+            android.text.Html.fromHtml(subtitle, android.text.Html.FROM_HTML_MODE_LEGACY).trim()
+        } else subtitle.trim()
         contSubtitle.text = cleanSubtitle
         contSubtitle.visibility = if (cleanSubtitle.isBlank()) View.GONE else View.VISIBLE
         paintPoster(item)
@@ -710,6 +730,7 @@ class WidgetShelf(
 
     private fun paintTiles() {
         HomeTileAppearance.style(tiles, Palette.dark(palette))
+        tvModes.tiles()?.let { paintModes(it) }
     }
 
     private fun city(): String = prefs.getString(CITY_KEY, configCity) ?: configCity
@@ -916,6 +937,11 @@ class WidgetShelf(
     }
 
     private fun paintHaConnection() {
+        tvModes.tiles()?.let { return paintModes(it) }
+        if (modesShown) {
+            TvModeAppearance.reset(smartHomeGroup(), tiles, tileCaptions, Palette.dark(palette))
+            modesShown = false
+        }
         val connection = AgentHomeConfig(activity)
         val configured = connection.homeAssistantConfigured
         val shown = withOutdoorFallback(if (configured) homeTiles else HomeTiles.EMPTY)
@@ -923,6 +949,19 @@ class WidgetShelf(
             paintTile(index, tile.icon, tile.value, tile.caption)
         }
     }
+
+    private fun paintModes(modes: List<TvModeTiles.Tile>) {
+        val darkP = Palette.dark(palette)
+        modes.forEachIndexed { index, mode ->
+            paintTile(index, mode.icon, mode.title, "")
+            tileValues[index].setTextSize(TypedValue.COMPLEX_UNIT_SP, MODE_TITLE_SP)
+        }
+        val active = modes.indexOfFirst { it.active }
+        TvModeAppearance.apply(smartHomeGroup(), tiles, tileCaptions, active, darkP)
+        modesShown = true
+    }
+
+    private fun smartHomeGroup(): View = shelf.findViewById(R.id.smartHomeTiles)
 
     private fun withOutdoorFallback(tiles: List<HomeTile>): List<HomeTile> {
         if (tiles[0].value != "—") return tiles
@@ -935,6 +974,7 @@ class WidgetShelf(
         val darkP = Palette.dark(palette)
         HomeTileAppearance.icon(tileIcons[index], icon, Palette.dark(palette).primary)
         tileValues[index].text = value
+        tileValues[index].setTextSize(TypedValue.COMPLEX_UNIT_SP, TILE_VALUE_SP)
         tileValues[index].setTextColor(0xFFFFFFFF.toInt())
         tileCaptions[index].text = caption
         tileCaptions[index].setTextColor(darkP.onSurfaceVariant)
@@ -1061,6 +1101,8 @@ class WidgetShelf(
         paintClockDate()
         paintHaConnection()
         refreshHaData(false)
+        tvModes.refresh()
+        AgentEventHub.tvModeListener = { main.post { tvModes.refresh() } }
         watching.start {
             watchIndex = 0
             paintContinue()
@@ -1074,6 +1116,7 @@ class WidgetShelf(
 
     fun stop() {
         watching.stop()
+        AgentEventHub.tvModeListener = null
         if (!started) return
         started = false
     }
@@ -1148,6 +1191,39 @@ class WidgetShelf(
         val actualHeader = maxOf(headerRow?.bottom ?: 0, greetingBlock?.bottom ?: 0)
         headerUnderlap = maxOf(gridUnderlap, actualHeader, minHeader)
         WidgetShelfPlacement.apply(shelf, headerUnderlap, dockTop, density, expandedHub)
+        if (slots.contains(cards[2])) fitContinueWidth()
+    }
+
+    private fun fitContinueWidth() {
+        val card = cards[2]
+        val column = card.findViewById<PosterColumn>(R.id.contColumn) ?: return
+        val lp = card.layoutParams as FrameLayout.LayoutParams
+        val top = ((shelf.layoutParams.height - lp.height) / 2).coerceAtLeast(0)
+        val tilesBottom = smartHomeBottom()
+        if (tilesBottom > top) lp.height = tilesBottom + card.paddingBottom - top
+        lp.gravity = Gravity.TOP or Gravity.START
+        lp.topMargin = top
+
+        val natural = column.widthFor(lp.height - card.paddingTop - card.paddingBottom) +
+            card.paddingLeft + card.paddingRight
+        if (natural in 1 until lp.width) {
+            lp.leftMargin += lp.width - natural
+            lp.width = natural
+        }
+        card.layoutParams = lp
+    }
+
+    private fun realignContinue() {
+        val grid = lastGrid ?: return
+        shelf.post { align(grid, lastColumns, lastDockTop) }
+    }
+
+    private fun smartHomeBottom(): Int {
+        val tiles = shelf.findViewById<View>(R.id.smartHomeTiles) ?: return -1
+        if (tiles.visibility != View.VISIBLE || tiles.height == 0) return -1
+        val bounds = Rect(0, 0, tiles.width, tiles.height)
+        (shelf as ViewGroup).offsetDescendantRectToMyCoords(tiles, bounds)
+        return bounds.bottom
     }
 
     fun onGridScrolled(grid: RecyclerView) {
@@ -1329,6 +1405,8 @@ class WidgetShelf(
     }
 
     companion object {
+        private const val TILE_VALUE_SP = 18f
+        private const val MODE_TITLE_SP = 13f
         const val PREF_KEY = "widgets"
         @JvmField val AGENT_WIDGET_KEY = Contract.Key.AGENT_WIDGET_ENABLED
         const val ORDER_KEY = "widget_order"

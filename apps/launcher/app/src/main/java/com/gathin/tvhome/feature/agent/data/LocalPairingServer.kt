@@ -14,7 +14,14 @@ import java.net.ServerSocket
 import java.net.Socket
 import java.net.URL
 import java.nio.charset.StandardCharsets
-import java.util.concurrent.Executors
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.ArrayBlockingQueue
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
+import java.security.SecureRandom
+import com.gathin.tvhome.core.util.EndpointPolicy
+import com.gathin.tvhome.core.util.ConnectionDeadline
 
 
 class LocalPairingServer(
@@ -26,7 +33,14 @@ class LocalPairingServer(
     enum class ServiceType { AGENT, HOME_ASSISTANT }
 
     private val main = Handler(Looper.getMainLooper())
-    private val worker = Executors.newCachedThreadPool()
+    private val worker = ThreadPoolExecutor(2, 2, 0L, TimeUnit.MILLISECONDS,
+        ArrayBlockingQueue<Runnable>(2))
+    private val clients = ConcurrentHashMap.newKeySet<Socket>()
+    private val consumed = AtomicBoolean(false)
+    private val session = ByteArray(16).also { SecureRandom().nextBytes(it) }
+        .joinToString("") { "%02x".format(it.toInt() and 255) }
+    val fragment: String get() = "#$session"
+    private val expiresAt = System.nanoTime() + TimeUnit.MINUTES.toNanos(5)
     private var serverSocket: ServerSocket? = null
     @Volatile
     private var running = false
@@ -40,13 +54,15 @@ class LocalPairingServer(
             val socket = ServerSocket(DEFAULT_PORT)
             serverSocket = socket
             running = true
-            worker.execute { acceptLoop(socket) }
+            Thread({ acceptLoop(socket) }, "pairing-accept").start()
+            main.postDelayed({ stop() }, 300_000L)
             socket.localPort
         } catch (_: Exception) {
             val fallback = ServerSocket(0)
             serverSocket = fallback
             running = true
-            worker.execute { acceptLoop(fallback) }
+            Thread({ acceptLoop(fallback) }, "pairing-accept").start()
+            main.postDelayed({ stop() }, 300_000L)
             fallback.localPort
         }
     }
@@ -55,13 +71,23 @@ class LocalPairingServer(
         running = false
         runCatching { serverSocket?.close() }
         serverSocket = null
+        main.removeCallbacksAndMessages(null)
+        clients.forEach { runCatching { it.close() } }
+        clients.clear()
+        worker.shutdownNow()
     }
 
     private fun acceptLoop(server: ServerSocket) {
         while (running && !server.isClosed) {
             try {
                 val client = server.accept()
-                worker.execute { handleClient(client) }
+                clients.add(client)
+                try {
+                    worker.execute { handleClient(client) }
+                } catch (_: java.util.concurrent.RejectedExecutionException) {
+                    clients.remove(client)
+                    client.close()
+                }
             } catch (_: Exception) {
                 break
             }
@@ -71,35 +97,28 @@ class LocalPairingServer(
     private fun handleClient(socket: Socket) {
         try {
             socket.soTimeout = 10_000
-            val reader = BufferedReader(InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8))
-            val line = reader.readLine() ?: return
-            val parts = line.split(" ")
-            val method = parts.getOrNull(0) ?: "GET"
-            val path = parts.getOrNull(1) ?: "/"
-
-            var contentLength = 0
-            while (true) {
-                val header = reader.readLine() ?: break
-                if (header.isEmpty()) break
-                if (header.lowercase().startsWith("content-length:")) {
-                    contentLength = header.substring(15).trim().toIntOrNull() ?: 0
-                }
+            val request = PairingRequest.read(socket.getInputStream())
+            val output = socket.getOutputStream()
+            val host = request.headers["host"].orEmpty()
+            val expectedHost = "${socket.localAddress.hostAddress}:${socket.localPort}"
+            val origin = request.headers["origin"]
+            if (host != expectedHost || (origin != null && origin != "http://$host")) {
+                sendJsonResponse(output, 403, false, "Không được phép")
+                return
             }
-
-            if (method == "POST" && path == "/save") {
-                val body = CharArray(contentLength)
-                var read = 0
-                while (read < contentLength) {
-                    val count = reader.read(body, read, contentLength - read)
-                    if (count <= 0) break
-                    read += count
+            if (request.method == "POST" && request.path == "/save") {
+                if (!running || System.nanoTime() > expiresAt ||
+                    request.headers["x-pairing-code"] != session || consumed.get()) {
+                    sendJsonResponse(output, 403, false, "Phiên ghép nối không hợp lệ")
+                    return
                 }
-                handleSave(socket.getOutputStream(), String(body))
-            } else {
-                sendHtml(socket.getOutputStream())
-            }
+                handleSave(output, request.body)
+            } else if (request.method == "GET" && request.path == "/") {
+                PairingPage.send(output, serviceType == ServiceType.AGENT, defaultUrl)
+            } else sendJsonResponse(output, 404, false, "Không tìm thấy")
         } catch (_: Exception) {
         } finally {
+            clients.remove(socket)
             runCatching { socket.close() }
         }
     }
@@ -115,6 +134,8 @@ class LocalPairingServer(
                 return
             }
 
+            require(rawToken.length <= 8192 && rawToken.none { it == '\r' || it == '\n' })
+            EndpointPolicy.validated(rawUrl)
             if (serviceType == ServiceType.AGENT) {
                 verifyAgent(output, rawUrl, rawToken)
             } else {
@@ -128,18 +149,22 @@ class LocalPairingServer(
     private fun verifyAgent(output: OutputStream, rawUrl: String, rawToken: String) {
         val normalized = if (rawUrl.endsWith("/")) rawUrl.dropLast(1) else rawUrl
         val startTime = System.currentTimeMillis()
-        val connection = URL("$normalized/health").openConnection() as HttpURLConnection
+        val connection = URL("$normalized/v2/suggestions").openConnection() as HttpURLConnection
+        connection.instanceFollowRedirects = false
         connection.connectTimeout = 4000
         connection.readTimeout = 4000
         connection.setRequestProperty("Authorization", "Bearer $rawToken")
-        val code = connection.responseCode
+        val deadline = ConnectionDeadline(connection, 10)
+        val code = try { connection.responseCode } finally {
+            deadline.close()
+            connection.disconnect()
+        }
         val latency = System.currentTimeMillis() - startTime
-        connection.disconnect()
 
         if (code == 200) {
             val detail = "$normalized · 200 OK (${latency}ms)"
             sendJsonResponse(output, 200, true, "Kết nối Agent thành công!")
-            main.post { onPaired(normalized, rawToken, detail) }
+            deliver(normalized, rawToken, detail)
         } else if (code == 401) {
             sendJsonResponse(output, 401, false, "Bearer Token sai hoặc không hợp lệ (401)")
         } else {
@@ -156,7 +181,16 @@ class LocalPairingServer(
         }
         val detail = "$normalized · 200 OK (${count} entity)"
         sendJsonResponse(output, 200, true, "Đã kết nối Home Assistant ($count entity)!")
-        main.post { onPaired(normalized, rawSecret, detail) }
+        deliver(normalized, rawSecret, detail)
+    }
+
+    private fun deliver(url: String, token: String, detail: String) {
+        if (!consumed.compareAndSet(false, true)) return
+        main.post {
+            if (!running || System.nanoTime() > expiresAt) return@post
+            stop()
+            onPaired(url, token, detail)
+        }
     }
 
     private fun sendJsonResponse(output: OutputStream, status: Int, ok: Boolean, message: String) {
@@ -167,7 +201,6 @@ class LocalPairingServer(
         val bytes = json.toString().toByteArray(StandardCharsets.UTF_8)
         val header = "HTTP/1.1 $status OK\r\n" +
             "Content-Type: application/json; charset=utf-8\r\n" +
-            "Access-Control-Allow-Origin: *\r\n" +
             "Content-Length: ${bytes.size}\r\n" +
             "Connection: close\r\n\r\n"
         output.write(header.toByteArray(StandardCharsets.UTF_8))
@@ -175,70 +208,6 @@ class LocalPairingServer(
         output.flush()
     }
 
-    private fun sendHtml(output: OutputStream) {
-        val isAgent = serviceType == ServiceType.AGENT
-        val title = if (isAgent) "Kết nối Duinch Agent" else "Kết nối Home Assistant"
-        val tokenLabel = if (isAgent) "Access Token (Bearer)" else "Long-Lived Access Token"
-        val hint = if (isAgent) {
-            "Mở giao diện Web Home Sentinel -> tab Authen Token để tạo hoặc sao chép token."
-        } else {
-            "Mở Home Assistant -> Profile -> Security -> Tạo Long-Lived Access Token."
-        }
-        val accentColor = if (isAgent) "#9A82DB" else "#03A9F4"
-
-        val html = "<!DOCTYPE html><html lang=\"vi\"><head><meta charset=\"utf-8\">" +
-            "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">" +
-            "<title>$title</title><style>" +
-            "*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,sans-serif}" +
-            "body{background:#121214;color:#fff;display:flex;justify-content:center;padding:24px 16px}" +
-            ".card{background:#1E1E24;border-radius:20px;max-width:440px;width:100%;padding:24px;box-shadow:0 8px 30px rgba(0,0,0,.5)}" +
-            "h1{font-size:20px;font-weight:700;margin-bottom:6px}" +
-            "p.sub{font-size:13px;color:#a1a1aa;margin-bottom:20px}" +
-            "label{display:block;font-size:13px;font-weight:600;color:#e4e4e7;margin-bottom:6px}" +
-            "input{width:100%;height:46px;background:#27272e;border:1px solid #3f3f46;border-radius:12px;padding:0 14px;color:#fff;font-size:14px;margin-bottom:14px;outline:none}" +
-            "input:focus{border-color:$accentColor}" +
-            ".hint{font-size:12px;color:#71717a;margin-top:-8px;margin-bottom:18px;line-height:1.4}" +
-            "button{width:100%;height:48px;background:$accentColor;border:none;border-radius:12px;color:#000;font-size:15px;font-weight:700;cursor:pointer}" +
-            "button:disabled{opacity:.5}" +
-            "#status{margin-top:16px;font-size:13px;text-align:center;line-height:1.4;display:none}" +
-            ".success{color:#4ade80}" +
-            ".error{color:#f87171}" +
-            "</style></head><body><div class=\"card\"><h1>$title</h1>" +
-            "<p class=\"sub\">Nhập thông tin bên dưới để kết nối trực tiếp tới TV</p>" +
-            "<label>URL Máy chủ</label>" +
-            "<input id=\"url\" type=\"url\" value=\"$defaultUrl\" placeholder=\"http://192.168.1.x:8788\">" +
-            "<label>$tokenLabel</label>" +
-            "<input id=\"token\" type=\"text\" placeholder=\"Dán token vào đây\">" +
-            "<div class=\"hint\">$hint</div>" +
-            "<button id=\"btn\" onclick=\"save()\">Xác thực & Kết nối tới TV</button>" +
-            "<div id=\"status\"></div></div><script>" +
-            "async function save(){" +
-            "const u=document.getElementById('url').value.trim()," +
-            "t=document.getElementById('token').value.trim()," +
-            "b=document.getElementById('btn')," +
-            "s=document.getElementById('status');" +
-            "if(!u||!t){s.className='error';s.style.display='block';s.innerText='Vui lòng nhập đầy đủ URL và Token';return;}" +
-            "b.disabled=true;b.innerText='Đang xác thực…';s.style.display='none';" +
-            "try{" +
-            "const r=await fetch('/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:u,token:t})})," +
-            "d=await r.json();" +
-            "s.style.display='block';" +
-            "if(d.ok){s.className='success';s.innerHTML='🎉 '+d.message+'<br>Màn hình TV đã được cập nhật!';b.innerText='Đã kết nối thành công';}" +
-            "else{s.className='error';s.innerText='Lỗi: '+d.message;b.disabled=false;b.innerText='Thử lại';}" +
-            "}catch(e){" +
-            "s.className='error';s.style.display='block';s.innerText='Không kết nối được tới TV: '+e.message;b.disabled=false;b.innerText='Thử lại';" +
-            "}" +
-            "}</script></body></html>"
-
-        val bytes = html.toByteArray(StandardCharsets.UTF_8)
-        val header = "HTTP/1.1 200 OK\r\n" +
-            "Content-Type: text/html; charset=utf-8\r\n" +
-            "Content-Length: ${bytes.size}\r\n" +
-            "Connection: close\r\n\r\n"
-        output.write(header.toByteArray(StandardCharsets.UTF_8))
-        output.write(bytes)
-        output.flush()
-    }
 
     companion object {
         private const val DEFAULT_PORT = 8791

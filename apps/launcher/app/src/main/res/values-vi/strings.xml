@@ -413,6 +413,10 @@
     <string name="widget_continue">Tiếp tục xem</string>
     <string name="continue_left_minutes">Còn %d phút</string>
     <string name="continue_left_hours">Còn %1$d giờ %2$d phút</string>
+    <string name="watch_kind_movie">Phim lẻ</string>
+    <string name="watch_kind_series">Phim bộ</string>
+    <string name="watch_season">Mùa %d</string>
+    <string name="watch_episode">Tập %d</string>
     <string name="restarting_launcher">Đang đóng mọi app và khởi động lại launcher…</string>
     <string name="now_playing_listener_name">Lịch sử xem</string>
     <string name="home_section">Ngôi nhà của bạn</string>
@@ -440,4 +444,16 @@
     <string name="watch_hide">Ẩn mục này</string>
     <string name="watch_open_failed">Không mở được nội dung hoặc ứng dụng</string>
     <string name="watch_filter_hint" formatted="false">Mục đã ẩn hoặc xem từ 95% sẽ không hiện. Lịch sử trên TV giữ 14 ngày, từ 3% nếu biết thời lượng.</string>
+    <string name="agent_login_title">Đăng nhập TV này</string>
+    <string name="agent_login_steps">1. Dùng điện thoại quét mã QR\n2. Kiểm tra mã trùng với mã bên dưới\n3. Bấm “Cho phép TV này”</string>
+    <string name="agent_login_waiting">Đang chờ duyệt trên điện thoại…</string>
+    <string name="agent_login_done">Đã đăng nhập</string>
+    <string name="agent_login_offline">Không kết nối được máy chủ. Đang thử lại…</string>
+    <string name="agent_login_renewing">Mã đã hết hạn, đang tạo mã mới…</string>
+    <string name="agent_login_save_failed">Không lưu được token trên TV</string>
+    <string name="tv_mode_normal">Bình thường</string>
+    <string name="tv_mode_offline">Máy chủ chưa sẵn sàng, thử lại sau</string>
+    <string name="agent_search_nothing">Không tìm thấy kết quả nào.</string>
+    <string name="agent_search_loading">Đang tìm…</string>
+    <string name="agent_search_empty_tab">Không có kết quả</string>
 </resources>

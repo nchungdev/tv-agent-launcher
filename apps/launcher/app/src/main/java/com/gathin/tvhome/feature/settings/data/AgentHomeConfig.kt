@@ -8,7 +8,6 @@ import android.security.keystore.KeyProperties
 import android.util.Base64
 import java.nio.charset.StandardCharsets
 import java.security.KeyStore
-import java.security.SecureRandom
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
@@ -28,7 +27,7 @@ class AgentHomeConfig(private val context: Context) {
         set(address) { preferences.edit().putString(KEY_AGENT_URL, address).apply() }
 
     var agentToken: String
-        get() = decryptSecret(preferences.getString(KEY_AGENT_TOKEN_ENC, ""))
+        get() = readSecret(KEY_AGENT_TOKEN_ENC)
         set(value) {
             val encrypted = encryptSecret(value)
             require(value.isEmpty() || encrypted.isNotEmpty()) { "Lỗi mã hóa token" }
@@ -40,7 +39,7 @@ class AgentHomeConfig(private val context: Context) {
         set(value) { preferences.edit().putString(KEY_HA_URL, value).apply() }
 
     var homeAssistantToken: String
-        get() = decryptSecret(preferences.getString(KEY_HA_TOKEN_ENC, ""))
+        get() = readSecret(KEY_HA_TOKEN_ENC)
         set(value) {
             val encrypted = encryptSecret(value)
             require(value.isEmpty() || encrypted.isNotEmpty()) { "Lỗi mã hóa token" }
@@ -148,22 +147,14 @@ class AgentHomeConfig(private val context: Context) {
 
     private fun encryptSecret(rawSecret: String?): String {
         if (rawSecret.isNullOrEmpty()) return ""
-        return try {
-            val secretKey = getOrCreateMasterKey()
-            encryptWithKey(rawSecret, secretKey, PREFIX_TEE)
-        } catch (_: Exception) {
-            val fallbackKey = getDeviceBoundKey()
-            encryptWithKey(rawSecret, fallbackKey, PREFIX_DEV)
-        }
+        return encryptWithKey(rawSecret, getOrCreateMasterKey(), PREFIX_TEE)
     }
 
     private fun encryptWithKey(rawSecret: String, secretKey: SecretKey, prefix: String): String {
         val cipher = Cipher.getInstance(CIPHER_TRANSFORMATION)
-        val initializationVector = ByteArray(GCM_IV_LENGTH)
-        SecureRandom().nextBytes(initializationVector)
-
-        val parameterSpec = GCMParameterSpec(GCM_TAG_LENGTH, initializationVector)
-        cipher.init(Cipher.ENCRYPT_MODE, secretKey, parameterSpec)
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey)
+        val initializationVector = cipher.iv
+        require(initializationVector.size == GCM_IV_LENGTH) { "unexpected IV length" }
 
         val cipherText = cipher.doFinal(rawSecret.toByteArray(StandardCharsets.UTF_8))
         val combined = ByteArray(initializationVector.size + cipherText.size)
@@ -171,6 +162,17 @@ class AgentHomeConfig(private val context: Context) {
         System.arraycopy(cipherText, 0, combined, initializationVector.size, cipherText.size)
 
         return prefix + Base64.encodeToString(combined, Base64.NO_WRAP)
+    }
+
+    private fun readSecret(key: String): String {
+        val payload = preferences.getString(key, "")
+        val value = decryptSecret(payload)
+        if (!value.isNullOrEmpty() && payload?.startsWith(PREFIX_TEE) != true) {
+            runCatching {
+                preferences.edit().putString(key, encryptSecret(value)).apply()
+            }
+        }
+        return value
     }
 
     private fun decryptSecret(payload: String?): String {

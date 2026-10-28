@@ -13,7 +13,8 @@ data class WatchEvent(
     val state: String,
     val artworkUrl: String,
     val at: Long,
-    val resumeUri: String = ""
+    val resumeUri: String = "",
+    val details: WatchDetails = WatchDetails()
 ) {
     val key: String get() = when {
         mediaId.isNotBlank() -> "$packageName|id:$mediaId"
@@ -21,7 +22,7 @@ data class WatchEvent(
         else -> "$packageName|text:$title|$subtitle"
     }
 
-    fun toJson(): JSONObject = JSONObject()
+    fun toJson(): JSONObject = details.putInto(JSONObject())
         .put("package_name", packageName)
         .put("app_label", appLabel)
         .put("title", title)
@@ -50,7 +51,8 @@ data class WatchEvent(
             state = json.optString("state"),
             artworkUrl = json.optString("artwork_url"),
             at = json.optLong("at"),
-            resumeUri = json.optString("resume_uri")
+            resumeUri = json.optString("resume_uri"),
+            details = WatchDetails.fromJson(json)
         )
     }
 }

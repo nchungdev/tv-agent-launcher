@@ -1,6 +1,8 @@
 package com.gathin.tvhome.feature.agent.data
 
+import com.gathin.tvhome.core.util.ConnectionDeadline
 import android.content.Context
+import com.gathin.tvhome.core.util.EndpointPolicy
 import com.gathin.tvhome.R
 import com.gathin.tvhome.feature.agent.data.AgentContractJsonHelper
 import com.gathin.tvhome.feature.agent.data.InputEvent
@@ -12,11 +14,7 @@ import java.io.BufferedReader
 import java.io.File
 import java.io.FileReader
 import java.io.IOException
-import java.io.InputStreamReader
-import java.net.DatagramPacket
-import java.net.DatagramSocket
 import java.net.HttpURLConnection
-import java.net.InetAddress
 import java.net.URL
 import java.nio.charset.StandardCharsets
 
@@ -29,9 +27,6 @@ object AgentClient {
 
     private const val TOKEN_FILE = "agent_token"
     private const val URL_FILE = "agent_url"
-    private const val DISCOVERY_PROBE = "TV_AGENT_DISCOVER"
-    private const val DISCOVERY_PORT = 8789
-    private const val DISCOVERY_TIMEOUT_MS = 1200
     private const val CONNECT_TIMEOUT_MS = 8000
     private const val ANSWER_TIMEOUT_MS = 330_000
     private const val PING_TIMEOUT_MS = 2500
@@ -39,8 +34,6 @@ object AgentClient {
     private const val HTTP_OK = 200
     private const val FIRST_ERROR = 400
 
-    @Volatile
-    private var discoveredBaseUrl: String? = null
 
     fun interface Listener {
         fun onChunk(text: String)
@@ -60,15 +53,14 @@ object AgentClient {
     @JvmStatic
     fun baseUrl(context: Context): String {
         val saved = AgentHomeConfig(context).agentUrl
-        if (saved.isNotEmpty()) return cleanUrl(saved)
+        if (saved.isNotEmpty()) return checkedUrl(saved)
 
         val override = fileUrl(context)
-        if (override != null) return override
+        if (override != null) return checkedUrl(override)
 
-        discoveredBaseUrl?.let { return it }
 
         val configUrl = context.getString(R.string.agent_url).trim()
-        return cleanUrl(configUrl)
+        return checkedUrl(configUrl)
     }
 
     private fun fileUrl(context: Context): String? {
@@ -86,37 +78,16 @@ object AgentClient {
         }
     }
 
+    private fun checkedUrl(raw: String): String = runCatching {
+        EndpointPolicy.validated(cleanUrl(raw)).toString()
+    }.getOrDefault("")
+
     private fun cleanUrl(raw: String): String =
         if (raw.endsWith("/")) raw.substring(0, raw.length - 1) else raw
 
     @JvmStatic
-    fun discover(@Suppress("UNUSED_PARAMETER") context: Context? = null): String? {
-        discoveredBaseUrl = null
-        return try {
-            DatagramSocket().use { socket ->
-                socket.broadcast = true
-                socket.soTimeout = DISCOVERY_TIMEOUT_MS
-                val probe = DISCOVERY_PROBE.toByteArray(StandardCharsets.UTF_8)
-                val broadcast = InetAddress.getByName("255.255.255.255")
-                val packet = DatagramPacket(probe, probe.size, broadcast, DISCOVERY_PORT)
-                socket.send(packet)
-
-                val buffer = ByteArray(256)
-                val reply = DatagramPacket(buffer, buffer.size)
-                socket.receive(reply)
-
-                val text = String(reply.data, 0, reply.length, StandardCharsets.UTF_8)
-                val json = JSONObject(text)
-                val port = json.optInt("port", 8788)
-                val host = reply.address.hostAddress
-                val url = "http://$host:$port"
-                discoveredBaseUrl = url
-                url
-            }
-        } catch (_: Exception) {
-            null
-        }
-    }
+    fun discover(@Suppress("UNUSED_PARAMETER") context: Context? = null): String? =
+        AgentDiscovery.discover()
 
     @JvmStatic
     fun token(context: Context): String? {
@@ -154,24 +125,17 @@ object AgentClient {
     fun ping(context: Context): Int {
         val tok = token(context) ?: return NO_TOKEN
 
-        if (discoveredBaseUrl == null && fileUrl(context) == null && AgentHomeConfig(context).agentUrl.isEmpty()) {
-            discover(context)
-        }
-
         val base = baseUrl(context)
         if (base.isEmpty()) return OFFLINE
 
         var connection: HttpURLConnection? = null
         return try {
-            connection = open(base + "/health", tok)
+            connection = open(base + "/v2/suggestions", tok)
             connection.connectTimeout = PING_TIMEOUT_MS
             connection.readTimeout = PING_TIMEOUT_MS
             val code = connection.responseCode
-            if (code == HTTP_OK) ONLINE else if (code == UNAUTHORISED) REFUSED else OFFLINE
+            if (code == HTTP_OK) ONLINE else if (code == UNAUTHORISED || code == 403) REFUSED else OFFLINE
         } catch (_: IOException) {
-            if (discoveredBaseUrl != null && fileUrl(context) == null) {
-                discoveredBaseUrl = null
-            }
             OFFLINE
         } finally {
             connection?.disconnect()
@@ -253,7 +217,9 @@ object AgentClient {
     }
 
     private fun open(address: String, token: String): HttpURLConnection {
+        EndpointPolicy.validated(address)
         val connection = URL(address).openConnection() as HttpURLConnection
+        connection.instanceFollowRedirects = false
         connection.setRequestProperty("Authorization", "Bearer $token")
         return connection
     }
@@ -288,6 +254,7 @@ object AgentClient {
         }
         val connection = open(base + path, tok)
         request.attach(connection)
+        val deadline = ConnectionDeadline(connection)
         try {
             connection.requestMethod = "POST"
             connection.connectTimeout = CONNECT_TIMEOUT_MS
@@ -301,74 +268,13 @@ object AgentClient {
             connection.outputStream.use { out ->
                 out.write(body.toByteArray(StandardCharsets.UTF_8))
             }
-            readV2Answer(connection, listener)
+            AgentResponseReader.readV2Answer(connection, listener)
         } finally {
+            deadline.close()
             connection.disconnect()
         }
     }
 
-    private fun readV2Answer(connection: HttpURLConnection, listener: V2StreamListener) {
-        val code = connection.responseCode
-        if (code == UNAUTHORISED) {
-            throw AgentException(R.string.agent_unauthorised, "401")
-        }
-        val failed = code >= FIRST_ERROR
-        val stream = if (failed) connection.errorStream else connection.inputStream
-        if (failed) {
-            val failure = StringBuilder()
-            InputStreamReader(stream, StandardCharsets.UTF_8).use { reader ->
-                val buffer = CharArray(1024)
-                var length: Int
-                while (reader.read(buffer).also { length = it } >= 0) {
-                    failure.append(buffer, 0, length)
-                }
-            }
-            val detail = if (failure.isNotEmpty()) failure.toString() else "HTTP $code"
-            throw IOException(detail)
-        }
-        BufferedReader(InputStreamReader(stream, StandardCharsets.UTF_8)).use { reader ->
-            var line: String?
-            while (reader.readLine().also { line = it } != null) {
-                val trimmed = line?.trim() ?: continue
-                if (trimmed.isEmpty()) continue
-                parseAndDispatchV2Event(trimmed, listener)
-            }
-        }
-    }
-
-    internal fun parseAndDispatchV2Event(line: String, listener: V2StreamListener) {
-        val obj = JSONObject(line)
-        val eventType = obj.optString("type", "")
-        val payload = obj.optJSONObject("payload") ?: JSONObject()
-        when (eventType) {
-            "accepted" -> {
-                listener.onAccepted(
-                    payload.optString("request_id"),
-                    payload.optString("session_id")
-                )
-            }
-            "progress" -> {
-                listener.onProgress(payload.optString("stage"))
-            }
-            "presentation" -> {
-                val presentation = PresentationResponse.fromJson(payload)
-                listener.onPresentation(presentation)
-            }
-            "client_action" -> {
-                listener.onClientAction(AgentContractJsonHelper.jsonObjectToMap(payload))
-            }
-            "completed" -> {
-                listener.onCompleted(
-                    payload.optString("request_id"),
-                    payload.optString("status")
-                )
-            }
-            "error" -> {
-                listener.onError(
-                    payload.optString("code", "pipeline_error"),
-                    payload.optString("message", "Unknown error")
-                )
-            }
-        }
-    }
+    internal fun parseAndDispatchV2Event(line: String, listener: V2StreamListener) =
+        AgentEventParser.dispatch(line, listener)
 }

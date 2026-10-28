@@ -61,6 +61,10 @@ data class FlowItem(
     val title: String = "",
     val url: String = "",
     val content: String = "",
+    val poster: String = "",
+    val year: Int = 0,
+    val season: Int = 0,
+    val episode: Int = 0,
     val actions: List<FlowAction> = emptyList()
 )
 
@@ -191,6 +195,10 @@ object FlowParser {
             title = json.optString("title", ""),
             url = json.optString("url", ""),
             content = json.optString("content", ""),
+            poster = json.optString("poster", ""),
+            year = json.optInt("year"),
+            season = json.optInt("season"),
+            episode = json.optInt("episode"),
             actions = actions
         )
     }

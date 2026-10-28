@@ -19,6 +19,7 @@ import com.gathin.tvhome.core.view.ShapeBadge
 import com.gathin.tvhome.core.design.M3Skin
 import com.gathin.tvhome.core.design.Palette
 import com.gathin.tvhome.feature.settings.data.AgentHomeConfig
+import com.gathin.tvhome.feature.agent.ui.AgentLogin
 import com.gathin.tvhome.feature.agent.ui.AgentQr
 import com.gathin.tvhome.feature.agent.ui.AgentVoiceReply
 import com.gathin.tvhome.feature.agent.data.LocalPairingServer
@@ -222,11 +223,23 @@ class AgentSettingsSheet(
 
         stopPairing()
         val (server, portal) = AgentSettingsHelper.startPairing(targetServerUrl) { u, t, d ->
-            agentConfig.agentUrl = u
-            agentConfig.agentToken = t
-            stopPairing()
-            showConnected(u, -1L, true)
-            subtitleText.text = d
+            if (activity.isFinishing || activity.isDestroyed) return@startPairing
+            android.app.AlertDialog.Builder(activity)
+                .setTitle("Xác nhận kết nối")
+                .setMessage("Lưu kết nối tới $u?")
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(android.R.string.ok) { _, _ ->
+                    runCatching {
+                        agentConfig.agentToken = t
+                        agentConfig.agentUrl = u
+                        stopPairing()
+                        showConnected(u, -1L, true)
+                        subtitleText.text = d
+                    }.onFailure {
+                        android.widget.Toast.makeText(activity,
+                            "Không thể lưu token an toàn trên TV", android.widget.Toast.LENGTH_LONG).show()
+                    }
+            }.show()
         }
         pairingServer = server
         sheetRoot.findViewById<TextView>(R.id.qrUrlText).text = portal
@@ -268,6 +281,9 @@ class AgentSettingsSheet(
                 if (dialog.isShowing) {
                     showConnected(rawUrl, -1L, false)
                     subtitleText.text = "$rawUrl · $msg"
+                    if (msg.contains("401")) AgentLogin.request(activity) {
+                        pingConnection(rawUrl, agentConfig.agentToken)
+                    }
                 }
             }
         )
@@ -275,12 +291,23 @@ class AgentSettingsSheet(
 
     private fun refreshVoiceOptions() {
         val mode = AgentVoiceReply.voiceMode(activity)
-        val modeName = AgentVoiceReply.voiceModeLabel(activity, mode)
-        sheetRoot.findViewById<TextView>(R.id.voiceChoice).text = "Loại giọng: $modeName"
         val speed = AgentVoiceReply.speedLabel(AgentVoiceReply.speedIndex(activity))
-        sheetRoot.findViewById<TextView>(R.id.speedChoice).text = "Tốc độ đọc: $speed"
+        voiceRow(R.id.voiceChoice, R.drawable.ic_mic, "Giọng đọc",
+            AgentVoiceReply.voiceModeLabel(activity, mode))
+        voiceRow(R.id.speedChoice, R.drawable.ic_speed, "Tốc độ đọc", speed)
+        voiceRow(R.id.btnTestVoice, R.drawable.ic_play_arrow, "Nghe thử",
+            "Phát một câu mẫu với giọng đã chọn")
         sheetRoot.findViewById<View>(R.id.btnTestVoice).visibility =
             if (mode == AgentVoiceReply.VOICE_OFF) View.GONE else View.VISIBLE
+    }
+
+    private fun voiceRow(id: Int, icon: Int, title: String, detail: String) {
+        val row = sheetRoot.findViewById<TextView>(id)
+        val palette = Palette.dark(Palette.currentOrBaseline())
+        row.text = SettingsChoiceDialog.item(activity, title, detail)
+        row.setCompoundDrawablesRelativeWithIntrinsicBounds(
+            SettingsIcons.icon(activity, palette, icon), null, null, null
+        )
     }
 
     private fun testVoice() {

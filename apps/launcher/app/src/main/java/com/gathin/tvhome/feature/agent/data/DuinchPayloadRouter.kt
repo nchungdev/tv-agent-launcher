@@ -25,6 +25,7 @@ class DuinchPayloadRouter(
         when (type) {
             "action" -> handleActionPayload(obj, isRunning)
             "notification" -> handleNotificationPayload(obj, isRunning)
+            "tv_mode" -> AgentEventHub.tvModeListener?.invoke()
             else -> handleGreetingPayload(obj, isRunning)
         }
     }
@@ -66,7 +67,14 @@ class DuinchPayloadRouter(
                 onGreetingReceived(accepted, DuinchView.EXCITED)
             }
         }
-        AgentActionExecutor.execute(appContext, stepId, actionType, params)
+        NotificationRepositoryImpl.getInstance().add(TvNotification(
+            id = stepId,
+            source = "Agent",
+            title = "Thao tác được đề xuất",
+            message = feedbackText.ifBlank { actionType },
+            actionType = actionType,
+            actionParams = params
+        ))
     }
 
     private fun handleNotificationPayload(obj: JSONObject, isRunning: () -> Boolean) {

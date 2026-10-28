@@ -6,12 +6,12 @@ import com.gathin.tvhome.feature.agent.ui.*
 import com.gathin.tvhome.core.view.AgentCardData
 import com.gathin.tvhome.core.view.NativeMarkdown
 import android.content.Context
-import android.graphics.Color
 import android.text.method.LinkMovementMethod
 import android.util.TypedValue
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.ScrollView
 import android.widget.TextView
 
@@ -22,18 +22,27 @@ class AgentAnswerView(context: Context) : FrameLayout(context) {
     private val contentContainer: LinearLayout
     private val plainText: TextView
     private val cardsContainer: LinearLayout
+    private val searchResults: SearchResultsView
+    private val spinner = ProgressBar(context).apply { visibility = GONE }
+    private var resultsShown = false
+    val hasResults: Boolean get() = resultsShown
+    var onResultsShown: (Boolean) -> Unit = {}
+    var onLeaveResults: () -> Unit
+        get() = searchResults.onLeaveTop
+        set(value) { searchResults.onLeaveTop = value }
     private var destroyed = false
     private var structuredCards: List<AgentCardData> = emptyList()
     private var lastText = ""
 
     init {
-        setBackgroundColor(Color.rgb(8, 11, 16))
         val density = context.resources.displayMetrics.density
         val padHorizontal = (56 * density).toInt()
         val padVertical = (16 * density).toInt()
 
         contentContainer = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
+            clipToPadding = false
+            clipChildren = false
             setPadding(padHorizontal, padVertical, padHorizontal, padVertical)
         }
 
@@ -57,22 +66,47 @@ class AgentAnswerView(context: Context) : FrameLayout(context) {
         }
         contentContainer.addView(cardsContainer)
 
+        searchResults = SearchResultsView(context).apply { visibility = GONE }
+        contentContainer.addView(searchResults, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+        ).apply { topMargin = (12 * density).toInt() })
+
         scroll = ScrollView(context).apply {
             isFillViewport = true
             addView(contentContainer)
         }
         addView(scroll, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+        spinner.indeterminateTintList = android.content.res.ColorStateList.valueOf(
+            com.gathin.tvhome.core.design.Palette.dark(
+                com.gathin.tvhome.core.design.Palette.currentOrBaseline()
+            ).primary
+        )
+        val spinnerSize = (48 * density).toInt()
+        addView(spinner, LayoutParams(spinnerSize, spinnerSize, android.view.Gravity.CENTER))
     }
 
     fun setCards(cards: List<AgentCardData>) {
         if (destroyed) return
-        structuredCards = cards
+        structuredCards = cards.take(24)
         render()
+    }
+
+    fun setSearch(tabs: List<SearchTab>) {
+        if (destroyed) return
+        searchResults.visibility = if (tabs.isEmpty()) GONE else VISIBLE
+        searchResults.setTabs(tabs)
+        val shown = tabs.any { it.cards.isNotEmpty() }
+        if (shown) spinner.visibility = GONE
+        if (shown == resultsShown) return
+        resultsShown = shown
+        onResultsShown(shown)
+        if (shown) searchResults.focusSelected()
     }
 
     fun setText(text: String) {
         if (destroyed) return
-        lastText = text
+        spinner.visibility = GONE
+        lastText = text.take(32_768)
         render()
     }
 
@@ -80,11 +114,15 @@ class AgentAnswerView(context: Context) : FrameLayout(context) {
         if (destroyed) return
         lastText = ""
         structuredCards = emptyList()
+        spinner.visibility = GONE
+        setSearch(emptyList())
         render()
     }
 
     private fun render() {
         cardsContainer.removeAllViews()
+        plainText.visibility = if (lastText.isBlank()) GONE else VISIBLE
+        cardsContainer.visibility = if (structuredCards.isEmpty()) GONE else VISIBLE
         if (lastText.isBlank() && structuredCards.isEmpty()) {
             plainText.text = ""
             return
@@ -92,9 +130,10 @@ class AgentAnswerView(context: Context) : FrameLayout(context) {
 
         val result = NativeMarkdown.parse(lastText)
         plainText.text = result.formattedText
+        if (result.cards.isNotEmpty()) cardsContainer.visibility = VISIBLE
 
         val density = context.resources.displayMetrics.density
-        for (card in result.cards + structuredCards) {
+        for (card in (result.cards + structuredCards).take(24)) {
             val cardView = AgentCardView(context, card).apply {
                 layoutParams = LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
@@ -107,8 +146,11 @@ class AgentAnswerView(context: Context) : FrameLayout(context) {
         }
     }
 
-    fun showLoading(message: String) {
-        setText(message)
+    fun showLoading(@Suppress("UNUSED_PARAMETER") message: String) {
+        if (destroyed) return
+        lastText = ""
+        render()
+        spinner.visibility = VISIBLE
     }
 
     fun onPause() {

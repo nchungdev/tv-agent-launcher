@@ -1,6 +1,9 @@
 package com.gathin.tvhome.feature.agent.data
 
+import com.gathin.tvhome.core.util.ConnectionDeadline
 import android.content.Context
+import com.gathin.tvhome.core.util.BoundedInput
+import com.gathin.tvhome.core.util.EndpointPolicy
 import com.gathin.tvhome.R
 import org.json.JSONObject
 import java.io.BufferedReader
@@ -43,7 +46,8 @@ object FlowClient {
         }
 
         val endpoint = "$base/v2/flow"
-        val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
+        val connection = (URL(EndpointPolicy.validated(endpoint).toString()).openConnection() as HttpURLConnection).apply {
+            instanceFollowRedirects = false
             requestMethod = "POST"
             connectTimeout = CONNECT_TIMEOUT_MS
             readTimeout = READ_TIMEOUT_MS
@@ -53,6 +57,7 @@ object FlowClient {
         }
         request.attach(connection)
 
+        val deadline = ConnectionDeadline(connection)
         try {
             val body = input.toJson().toString()
             connection.outputStream.use { out ->
@@ -69,14 +74,14 @@ object FlowClient {
                 return
             }
             if (code >= 400) {
-                val err = connection.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
+                val err = connection.errorStream?.bufferedReader()?.use { BoundedInput.text(it) } ?: ""
                 listener.onError("http_$code", "Máy chủ phản hồi lỗi $code: $err")
                 return
             }
 
             val contentType = connection.contentType.orEmpty()
             if (contentType.contains("application/json")) {
-                val text = connection.inputStream.bufferedReader(StandardCharsets.UTF_8).use { it.readText() }
+                val text = connection.inputStream.bufferedReader(StandardCharsets.UTF_8).use { BoundedInput.text(it) }
                 val json = runCatching { JSONObject(text) }.getOrNull()
                 if (json?.optString("status") == "legacy_route") {
                     listener.onLegacyFallback()
@@ -85,8 +90,15 @@ object FlowClient {
             }
 
             BufferedReader(InputStreamReader(connection.inputStream, StandardCharsets.UTF_8)).use { reader ->
+                var total = 0
+                val started = System.nanoTime()
                 var line: String?
-                while (reader.readLine().also { line = it } != null) {
+                while (BoundedInput.line(reader).also { line = it } != null) {
+                    total += line!!.length
+                    if (total > BoundedInput.MAX_STREAM ||
+                        System.nanoTime() - started > 120_000_000_000L) {
+                        throw java.io.IOException("Response budget exceeded")
+                    }
                     val raw = line!!.trim()
                     if (raw.isEmpty()) continue
                     if (raw.length > MAX_LINE_CHARS) continue
@@ -115,8 +127,9 @@ object FlowClient {
                 }
             }
         } catch (e: Exception) {
-            listener.onError("network_error", e.message ?: "Lỗi kết nối flow")
+            listener.onError("network_error", e.message ?: "Lỗi kết nối flow (${e.javaClass.simpleName})")
         } finally {
+            deadline.close()
             connection.disconnect()
         }
     }

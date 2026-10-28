@@ -215,11 +215,23 @@ class HomeAssistantSettingsSheet(
         val (server, portal) = HomeAssistantSettingsHelper.startPairing(
             targetServerUrl
         ) { u, t, d ->
-            agentConfig.homeAssistantUrl = u
-            agentConfig.homeAssistantToken = t
-            stopPairing()
-            showConnected(u, -1, true)
-            subtitleText.text = d
+            if (activity.isFinishing || activity.isDestroyed) return@startPairing
+            android.app.AlertDialog.Builder(activity)
+                .setTitle("Xác nhận kết nối")
+                .setMessage("Lưu kết nối tới $u?")
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(android.R.string.ok) { _, _ ->
+                    runCatching {
+                        agentConfig.homeAssistantToken = t
+                        agentConfig.homeAssistantUrl = u
+                        stopPairing()
+                        showConnected(u, -1, true)
+                        subtitleText.text = d
+                    }.onFailure {
+                        android.widget.Toast.makeText(activity,
+                            "Không thể lưu token an toàn trên TV", android.widget.Toast.LENGTH_LONG).show()
+                    }
+            }.show()
         }
         pairingServer = server
         sheetRoot.findViewById<TextView>(R.id.qrUrlText).text = portal

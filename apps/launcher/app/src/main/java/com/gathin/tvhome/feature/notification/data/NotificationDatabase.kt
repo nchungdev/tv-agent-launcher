@@ -117,6 +117,18 @@ class NotificationDatabase(
         )
     }
 
+    fun replaceAll(items: List<TvNotification>, limit: Int) {
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            db.delete(TABLE, null, null)
+            items.asReversed().forEach { upsert(it, limit) }
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+    }
+
     override fun markRead(id: String) {
         val values = ContentValues().apply { put("is_read", 1) }
         writableDatabase.update(TABLE, values, "id = ?", arrayOf(id))

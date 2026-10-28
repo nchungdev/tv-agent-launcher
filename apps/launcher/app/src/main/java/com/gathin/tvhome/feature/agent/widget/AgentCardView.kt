@@ -113,14 +113,17 @@ class AgentCardView(context: Context, private val card: AgentCardData) : LinearL
         val requested = card.status.equals(AgentCardData.STATUS_REQUESTED, ignoreCase = true)
         val downloading = card.status.equals(AgentCardData.STATUS_DOWNLOADING, ignoreCase = true)
         val isPlex = card.isPlex()
+        val web = card.isWeb()
         val badgeText = when {
             isPlex -> "PLEX"
+            web -> "WEB"
             downloading -> "ĐANG TẢI"
             requested -> "ĐÃ YÊU CẦU"
             else -> "THƯ VIỆN"
         }
         val badgeColor = when {
             isPlex -> 0xFFE5A00D.toInt()
+            web -> 0xFF3A4150.toInt()
             downloading || requested -> palette.tertiary
             else -> palette.primary
         }

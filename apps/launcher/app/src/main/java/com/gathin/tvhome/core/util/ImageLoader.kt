@@ -10,6 +10,14 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
+import android.view.View
+import java.lang.ref.WeakReference
+import java.util.WeakHashMap
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.net.HttpURLConnection
@@ -30,30 +38,51 @@ object ImageLoader {
         override fun sizeOf(key: String, value: Bitmap): Int = value.byteCount
     }
 
+    private val pending = HashMap<String, Deferred<Bitmap?>>()
+    private val slots = Semaphore(2)
+    private val targets = WeakHashMap<ImageView, Job>()
+
     fun load(url: String?, targetView: ImageView, reqWidth: Int, reqHeight: Int) {
+        targets.remove(targetView)?.cancel()
         val cleanUrl = url?.trim().orEmpty()
-        if (cleanUrl.isEmpty()) {
-            targetView.tag = null
-            targetView.setImageDrawable(null)
-            return
-        }
-
-        val cached = memoryCache.get(cleanUrl)
-        if (cached != null && !cached.isRecycled) {
-            targetView.tag = cleanUrl
-            targetView.setImageBitmap(cached)
-            return
-        }
-
         targetView.tag = cleanUrl
         targetView.setImageDrawable(null)
-        loaderScope.launch {
-            val bitmap = downloadAndDecode(cleanUrl, reqWidth, reqHeight) ?: return@launch
-            memoryCache.put(cleanUrl, bitmap)
-            withContext(Dispatchers.Main) {
-                if (targetView.tag == cleanUrl) {
-                    targetView.setImageBitmap(bitmap)
+        if (cleanUrl.isEmpty() || !EndpointPolicy.webLink(cleanUrl)) return
+        val width = reqWidth.coerceIn(1, 1024)
+        val height = reqHeight.coerceIn(1, 1024)
+        val key = "$cleanUrl|$width|$height"
+        memoryCache.get(key)?.let {
+            targetView.setImageBitmap(it)
+            return
+        }
+        val result = synchronized(pending) {
+            pending[key] ?: if (pending.size >= 16) null else {
+                loaderScope.async {
+                    slots.withPermit { downloadAndDecode(cleanUrl, width, height) }
+                }.also { task ->
+                    pending[key] = task
+                    task.invokeOnCompletion { synchronized(pending) { pending.remove(key) } }
                 }
+            }
+        } ?: return
+        val target = WeakReference(targetView)
+        val job = loaderScope.launch(Dispatchers.Main) {
+            val bitmap = result.await() ?: return@launch
+            memoryCache.put(key, bitmap)
+            target.get()?.takeIf { it.tag == cleanUrl && it.isAttachedToWindow }
+                ?.setImageBitmap(bitmap)
+        }
+        targets[targetView] = job
+        val listener = object : View.OnAttachStateChangeListener {
+            override fun onViewAttachedToWindow(view: View) {}
+            override fun onViewDetachedFromWindow(view: View) {
+                job.cancel()
+            }
+        }
+        targetView.addOnAttachStateChangeListener(listener)
+        job.invokeOnCompletion {
+            target.get()?.post {
+                target.get()?.removeOnAttachStateChangeListener(listener)
             }
         }
     }
@@ -71,7 +100,10 @@ object ImageLoader {
                 readTimeout = READ_TIMEOUT_MS
                 doInput = true
             }
-            val bytes = readBoundedStream(connection) ?: return null
+            val deadline = ConnectionDeadline(connection, 12)
+            val bytes = try {
+                readBoundedStream(connection) ?: return null
+            } finally { deadline.close() }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 decodeWithImageDecoder(bytes, reqWidth, reqHeight)
             } else {

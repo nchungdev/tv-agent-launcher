@@ -37,6 +37,23 @@ object SessionMetadata {
         return if (uri.startsWith("http")) uri else ""
     }
 
+    fun details(
+        packageName: String, metadata: MediaMetadata, title: String, subtitle: String
+    ): WatchDetails {
+        if (packageName in VIDEO_APPS) {
+            val channel = firstText(metadata, MediaMetadata.METADATA_KEY_ARTIST) ?: subtitle
+            return WatchDetails(kind = WatchDetails.VIDEO, channel = channel)
+        }
+        return WatchDetails.guess("$title $subtitle", year(metadata))
+    }
+
+    private fun year(metadata: MediaMetadata): Int {
+        val year = metadata.getLong(MediaMetadata.METADATA_KEY_YEAR).toInt()
+        if (year > 0) return year
+        val date = firstText(metadata, MediaMetadata.METADATA_KEY_DATE).orEmpty()
+        return YEAR.find(date)?.value?.toIntOrNull() ?: 0
+    }
+
     fun appLabel(context: Context, packageName: String): String = try {
         val info = context.packageManager.getApplicationInfo(packageName, 0)
         context.packageManager.getApplicationLabel(info).toString()
@@ -51,4 +68,13 @@ object SessionMetadata {
         }
         return null
     }
+
+    private val YEAR = Regex("""(19|20)\d{2}""")
+    private val VIDEO_APPS = setOf(
+        "com.google.android.youtube.tv",
+        "com.google.android.youtube",
+        "com.google.android.apps.youtube.kids",
+        "com.liskovsoft.smarttubetv.beta",
+        "com.teamsmart.videomanager.tv"
+    )
 }

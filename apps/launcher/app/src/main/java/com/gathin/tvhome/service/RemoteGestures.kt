@@ -14,6 +14,7 @@ import android.widget.Toast
 import com.gathin.tvhome.R
 import com.gathin.tvhome.feature.main.ui.MainActivity
 import com.gathin.tvhome.feature.runningapps.data.BackgroundApps
+import java.lang.ref.WeakReference
 
 object RemoteGestures {
     private const val BACK_HOLD_MS = 700L
@@ -26,16 +27,28 @@ object RemoteGestures {
     private var backHeld = false
     private var homeHeld = false
     private var injectedBackUntil = 0L
-    private var holder: AccessibilityService? = null
+    private var holder: WeakReference<AccessibilityService>? = null
 
     private val backHold = Runnable {
         backHeld = true
-        holder?.let { openHome(it) }
+        holder?.get()?.let { openHome(it) }
+        holder = null
     }
 
     private val homeHold = Runnable {
         homeHeld = true
-        holder?.let { reset(it) }
+        holder?.get()?.let { reset(it) }
+        holder = null
+    }
+
+    fun cancel(service: AccessibilityService) {
+        if (holder?.get() !== service) return
+        main.removeCallbacks(backHold)
+        main.removeCallbacks(homeHold)
+        holder = null
+        backHeld = false
+        homeHeld = false
+        lastEvent = ""
     }
 
     fun onKeyEvent(service: AccessibilityService, event: KeyEvent): Boolean {
@@ -51,14 +64,15 @@ object RemoteGestures {
     }
 
     fun openHome(service: AccessibilityService) {
-        if (service.performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME)) return
         val home = Intent(service, MainActivity::class.java)
             .setAction(Intent.ACTION_MAIN)
             .addCategory(Intent.CATEGORY_HOME)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
         try {
             service.startActivity(home)
-        } catch (_: Exception) {}
+        } catch (_: Exception) {
+            service.performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME)
+        }
     }
 
     private fun isRepeatOf(event: KeyEvent): Boolean {
@@ -71,26 +85,28 @@ object RemoteGestures {
     private fun onHome(service: AccessibilityService, event: KeyEvent) {
         if (event.action == KeyEvent.ACTION_DOWN) {
             if (event.repeatCount > 0) return
-            holder = service
+            holder = WeakReference(service)
             homeHeld = false
             main.removeCallbacks(homeHold)
             main.postDelayed(homeHold, RESET_HOLD_MS)
             return
         }
         main.removeCallbacks(homeHold)
+        holder = null
         if (!homeHeld && !event.isCanceled) openHome(service)
     }
 
     private fun onBack(service: AccessibilityService, event: KeyEvent) {
         if (event.action == KeyEvent.ACTION_DOWN) {
             if (event.repeatCount > 0) return
-            holder = service
+            holder = WeakReference(service)
             backHeld = false
             main.removeCallbacks(backHold)
             main.postDelayed(backHold, BACK_HOLD_MS)
             return
         }
         main.removeCallbacks(backHold)
+        holder = null
         if (backHeld || event.isCanceled) return
         injectedBackUntil = SystemClock.uptimeMillis() + INJECTED_BACK_MS
         service.performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK)

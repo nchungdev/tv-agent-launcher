@@ -52,27 +52,6 @@ class WallpaperPlayer(
                 }
                 root.addView(shade, 1, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
             }
-            showFirst()
-        }
-    }
-
-    private fun showFirst() {
-        val previous = preferences.getString("image", "") ?: ""
-        var first = WallpaperRotation.find(files, previous) ?: WallpaperRotation.pick(files, previous, random)
-        while (first != null) {
-            val bitmap = decode(first)
-            if (bitmap != null) {
-                image.setImageBitmap(bitmap)
-                publishPalette(bitmap)
-                displayed = first.name
-                if (displayed != previous) {
-                    preferences.edit().putString("image", displayed)
-                        .putLong("changed", System.currentTimeMillis()).apply()
-                }
-                return
-            }
-            files.remove(first)
-            first = WallpaperRotation.pick(files, previous, random)
         }
     }
 

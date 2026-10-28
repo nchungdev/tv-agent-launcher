@@ -436,6 +436,10 @@
     <string name="widget_continue">Continue watching</string>
     <string name="continue_left_minutes">%d min left</string>
     <string name="continue_left_hours">%1$d h %2$d min left</string>
+    <string name="watch_kind_movie">Movie</string>
+    <string name="watch_kind_series">Series</string>
+    <string name="watch_season">Season %d</string>
+    <string name="watch_episode">Episode %d</string>
     <string name="restarting_launcher">Closing all apps and restarting the launcher…</string>
     <string name="now_playing_listener_name">Watch history</string>
     <string name="home_section">Your home</string>
@@ -463,4 +467,16 @@
     <string name="watch_hide">Hide this item</string>
     <string name="watch_open_failed">Cannot open this content or app</string>
     <string name="watch_filter_hint" formatted="false">Hidden and completed items (95% or more) are excluded. TV history lasts 14 days and starts at 3% when duration is known.</string>
+    <string name="agent_login_title">Sign in this TV</string>
+    <string name="agent_login_steps">1. Scan the QR code with your phone\n2. Check the code matches\n3. Tap “Allow this TV”</string>
+    <string name="agent_login_waiting">Waiting for approval on your phone…</string>
+    <string name="agent_login_done">Signed in</string>
+    <string name="agent_login_offline">Cannot reach the server. Retrying…</string>
+    <string name="agent_login_renewing">Code expired, making a new one…</string>
+    <string name="agent_login_save_failed">Could not save the token on this TV</string>
+    <string name="tv_mode_normal">Normal</string>
+    <string name="tv_mode_offline">Server is not ready, try again</string>
+    <string name="agent_search_nothing">No results found.</string>
+    <string name="agent_search_loading">Searching…</string>
+    <string name="agent_search_empty_tab">Nothing here</string>
 </resources>

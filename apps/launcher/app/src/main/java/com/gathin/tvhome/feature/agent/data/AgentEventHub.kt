@@ -18,6 +18,9 @@ object AgentEventHub {
     @Volatile
     var greetingListener: ((String, Int) -> Unit)? = null
 
+    @Volatile
+    var tvModeListener: (() -> Unit)? = null
+
     val isRunning: Boolean get() = job?.isActive == true
 
     fun ensureStarted(context: Context) {
@@ -26,13 +29,13 @@ object AgentEventHub {
         val appContext = context.applicationContext
         if (AgentClient.baseUrl(appContext).isBlank()) return
 
-        NotificationRepositoryImpl.getInstance().init(appContext)
         val repository: AgentEventRepository =
             AgentEventRepositoryImpl(AgentWebSocketDataSource(appContext))
         val router = DuinchPayloadRouter(appContext) { text, mood ->
             greetingListener?.invoke(text, mood)
         }
         job = scope.launch(Dispatchers.IO) {
+            NotificationRepositoryImpl.getInstance().init(appContext)
             repository.observeEvents().collect { payload ->
                 withContext(Dispatchers.Main) {
                     router.handleJson(payload) { isRunning }

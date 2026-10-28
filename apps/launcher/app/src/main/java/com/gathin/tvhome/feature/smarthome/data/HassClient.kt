@@ -1,5 +1,9 @@
 package com.gathin.tvhome.feature.smarthome.data
 
+import com.gathin.tvhome.core.util.EndpointPolicy
+import com.gathin.tvhome.core.util.BoundedInput
+import com.gathin.tvhome.core.util.ConnectionDeadline
+
 import com.gathin.tvhome.feature.smarthome.data.SmartHomeAction
 import com.gathin.tvhome.feature.smarthome.data.SmartHomeDevice
 import org.json.JSONArray
@@ -114,7 +118,10 @@ class HassClient(address: String, private val token: String) : AutoCloseable {
 
     private fun request(method: String, path: String, body: JSONObject? = null): String {
         check(!closed) { "Kết nối đã đóng" }
+        EndpointPolicy.validated(base)
         val connection = URL(base + path).openConnection() as HttpURLConnection
+        connection.instanceFollowRedirects = false
+        val deadline = ConnectionDeadline(connection, 30)
         connections.add(connection)
         try {
             check(!closed) { "Kết nối đã đóng" }
@@ -153,6 +160,7 @@ class HassClient(address: String, private val token: String) : AutoCloseable {
             }
         } finally {
             connections.remove(connection)
+            deadline.close()
             connection.disconnect()
         }
     }

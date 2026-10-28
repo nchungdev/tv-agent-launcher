@@ -1,6 +1,7 @@
 package com.gathin.tvhome.feature.notification.data
 
 import android.content.Context
+import com.gathin.tvhome.core.util.LatestWorkQueue
 import com.gathin.tvhome.feature.notification.data.NotificationDatabase
 import com.gathin.tvhome.feature.notification.data.NotificationStore
 import com.gathin.tvhome.feature.notification.data.TvNotification
@@ -17,6 +18,7 @@ class NotificationRepositoryImpl(
     private val listeners = CopyOnWriteArrayList<(Int) -> Unit>()
     private var store: NotificationStore? = initialStore
     private var initialized = false
+    private val writes = LatestWorkQueue(1)
 
     init {
         if (initialStore != null) {
@@ -38,7 +40,7 @@ class NotificationRepositoryImpl(
         store = targetStore
         initialized = true
         notifications.clear()
-        notifications.addAll(targetStore.loadAll(MAX_CAPACITY))
+        notifications.addAll(targetStore.loadAll(MAX_CAPACITY).map { it.bounded() })
         notifyListeners()
     }
 
@@ -52,7 +54,9 @@ class NotificationRepositoryImpl(
         prefs.edit().remove(LEGACY_KEY).apply()
     }
 
-    override fun add(notification: TvNotification) {
+    override fun add(notification: TvNotification) = addBounded(notification.bounded())
+
+    private fun addBounded(notification: TvNotification) {
         val existingIndex = notifications.indexOfFirst { it.id == notification.id }
         if (existingIndex >= 0) {
             notifications.removeAt(existingIndex)
@@ -62,7 +66,7 @@ class NotificationRepositoryImpl(
             notifications.removeAt(notifications.size - 1)
         }
         try {
-            store?.upsert(notification, MAX_CAPACITY)
+            persist()
         } catch (_: Exception) {}
         notifyListeners()
     }
@@ -86,7 +90,7 @@ class NotificationRepositoryImpl(
         }
         if (changed) {
             try {
-                store?.markRead(id)
+                persist()
             } catch (_: Exception) {}
             notifyListeners()
         }
@@ -102,7 +106,7 @@ class NotificationRepositoryImpl(
         }
         if (changed) {
             try {
-                store?.markAllRead()
+                persist()
             } catch (_: Exception) {}
             notifyListeners()
         }
@@ -112,7 +116,7 @@ class NotificationRepositoryImpl(
         val hadItems = notifications.isNotEmpty()
         notifications.clear()
         try {
-            store?.clearAll()
+            persist()
         } catch (_: Exception) {}
         if (hadItems) notifyListeners()
     }
@@ -121,7 +125,7 @@ class NotificationRepositoryImpl(
         val removed = notifications.removeAll { it.id == id }
         if (removed) {
             try {
-                store?.delete(id)
+                persist()
             } catch (_: Exception) {}
             notifyListeners()
         }
@@ -158,6 +162,17 @@ class NotificationRepositoryImpl(
             result
         } catch (_: Exception) {
             emptyList()
+        }
+    }
+
+    private fun persist() {
+        val target = store ?: return
+        val snapshot = notifications.map { it.copy() }
+        if (target is NotificationDatabase) {
+            writes.submit("snapshot") { target.replaceAll(snapshot, MAX_CAPACITY) }
+        } else {
+            target.clearAll()
+            snapshot.asReversed().forEach { target.upsert(it, MAX_CAPACITY) }
         }
     }
 
