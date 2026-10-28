@@ -169,7 +169,10 @@ class WidgetShelf(
             shelf.findViewById(R.id.widgetAir),
             shelf.findViewById(R.id.widgetCalendar)
         )
-        for (c in cards) c.setMotion(motion)
+        for (c in cards) {
+            c.setMotion(motion)
+            c.setFlat(true)
+        }
         cards[0].isFocusable = false
         cards[0].isClickable = false
 
@@ -192,6 +195,7 @@ class WidgetShelf(
         weatherTemp = cards[1].findViewById(R.id.weatherTemp)
         weatherDetail = cards[1].findViewById(R.id.weatherDetail)
         weatherIcon = cards[1].findViewById(R.id.weatherIcon)
+        weatherIcon.setFlatBadge(true)
 
         tiles = listOf(R.id.tileTemp, R.id.tileLight, R.id.tileSwitch)
             .map { cards[0].findViewById<View>(it) }
@@ -215,6 +219,7 @@ class WidgetShelf(
         airValue = cards[3].findViewById(R.id.airValue)
         airDetail = cards[3].findViewById(R.id.airDetail)
         airBadge = cards[3].findViewById(R.id.airBadge)
+        airBadge.setFlatBadge(true)
 
         lunarLabel = cards[4].findViewById(R.id.lunarLabel)
         lunarDate = cards[4].findViewById(R.id.lunarDate)
@@ -367,9 +372,14 @@ class WidgetShelf(
     private fun paintContinue() {
         val items = watching.items
         val item = items.getOrNull(watchIndex)
-        contProgress.progressTintList = ColorStateList.valueOf(palette.primary)
+        val darkP = Palette.dark(palette)
+        contTitle.setTextColor(0xFFFFFFFF.toInt())
+        contLabel.setTextColor(0xFFFFFFFF.toInt())
+        contSubtitle.setTextColor(darkP.onSurfaceVariant)
+        contCount.setTextColor(darkP.onSurfaceVariant)
+        contProgress.progressTintList = ColorStateList.valueOf(darkP.primary)
         contProgress.progressBackgroundTintList =
-            ColorStateList.valueOf(Palette.alpha(palette.onSurfaceVariant, 0x40))
+            ColorStateList.valueOf(Palette.alpha(darkP.onSurfaceVariant, 0x40))
         if ((item != null) != continueShown) {
             continueShown = item != null
             lastGrid?.let { align(it, lastColumns, lastDockTop) }
@@ -606,16 +616,18 @@ class WidgetShelf(
     }
 
     private fun paintTiles() {
+        val dp = activity.resources.displayMetrics.density
+        val darkP = Palette.dark(palette)
         val resting = GradientDrawable().apply {
-            cornerRadius = 16 * activity.resources.displayMetrics.density
-            setColor(Palette.alpha(palette.onSurface, 0x14))
-            setStroke(Math.round(activity.resources.displayMetrics.density), Palette.alpha(palette.onSurface, 0x2E))
+            cornerRadius = 16 * dp
+            setColor(0x26FFFFFF.toInt())
+            setStroke(Math.round(dp), 0x33FFFFFF.toInt())
         }
         for (tile in tiles) {
             val focused = GradientDrawable().apply {
-                cornerRadius = 16 * activity.resources.displayMetrics.density
-                setColor(Palette.alpha(palette.primary, 0x33))
-                setStroke(Math.round(2 * activity.resources.displayMetrics.density), palette.primary)
+                cornerRadius = 16 * dp
+                setColor(Palette.alpha(darkP.primary, 0x4D))
+                setStroke(Math.round(2 * dp), darkP.primary)
             }
             tile.background = android.graphics.drawable.StateListDrawable().apply {
                 addState(intArrayOf(android.R.attr.state_focused), focused)
@@ -797,15 +809,17 @@ class WidgetShelf(
             java.util.Locale.getDefault(),
             "EEEEdMMMM"
         )
+        val darkP = Palette.dark(palette)
         clockDay.text = today.format(java.time.format.DateTimeFormatter.ofPattern(weekdayPattern))
-        clockDay.setTextColor(palette.onSurface)
-        clockLunar.setTextColor(palette.primary)
+        clockDay.setTextColor(0xFFFFFFFF.toInt())
+        clockLunar.setTextColor(darkP.primary)
         clockLunar.text = "Âm lịch $lunarStr  ·  $canChi"
 
         val connection = com.gathin.tvhome.feature.settings.data.AgentHomeConfig(activity)
         val haEvent = connection.cachedHaCalendarEvent()
         if (!haEvent.isNullOrBlank()) {
             clockDate.text = haEvent
+            clockDate.setTextColor(darkP.onSurfaceVariant)
         } else {
             val upcoming = LunarCalendar.upcoming(today)
             if (upcoming.isNotEmpty()) {
@@ -816,6 +830,7 @@ class WidgetShelf(
                     1 -> activity.getString(R.string.holiday_tomorrow, name)
                     else -> activity.getString(R.string.holiday_in_days, name, u.days.toInt())
                 }
+                clockDate.setTextColor(darkP.onSurfaceVariant)
             } else {
                 clockDate.text = ""
             }
@@ -843,11 +858,12 @@ class WidgetShelf(
     }
 
     private fun paintTile(index: Int, icon: String, value: String, caption: String) {
+        val darkP = Palette.dark(palette)
         tileIcons[index].text = icon
         tileValues[index].text = value
-        tileValues[index].setTextColor(palette.onSurface)
+        tileValues[index].setTextColor(0xFFFFFFFF.toInt())
         tileCaptions[index].text = caption
-        tileCaptions[index].setTextColor(palette.onSurfaceVariant)
+        tileCaptions[index].setTextColor(darkP.onSurfaceVariant)
     }
 
     private var fetchingHa = false
@@ -1059,22 +1075,23 @@ class WidgetShelf(
 
     fun setPalette(p: Palette) {
         palette = p
-        for (c in allCards()) c.setPalette(p)
-        highlight.setColor(if (editing) p.tertiary else p.primary)
-        addLabel.setTextColor(p.onSurfaceVariant)
-        addIcon.imageTintList = ColorStateList.valueOf(p.onSurfaceVariant)
+        val darkP = Palette.dark(p)
+        for (c in allCards()) c.setPalette(darkP)
+        highlight.setColor(if (editing) darkP.tertiary else darkP.primary)
+        addLabel.setTextColor(darkP.onSurfaceVariant)
+        addIcon.imageTintList = ColorStateList.valueOf(darkP.onSurfaceVariant)
         for (t in arrayOf(clockAmPm, weatherPlace, airLabel, lunarLabel)) {
-            t.setTextColor(p.onSurfaceVariant)
+            t.setTextColor(darkP.onSurfaceVariant)
         }
         for (t in arrayOf(clockTime, weatherTemp, lunarDate, airValue, contTitle, contLabel)) {
-            t.setTextColor(p.onSurface)
+            t.setTextColor(0xFFFFFFFF.toInt())
         }
         for (t in arrayOf(clockDate, weatherDetail, airDetail, holiday, contSubtitle, contCount)) {
-            t.setTextColor(p.onSurfaceVariant)
+            t.setTextColor(darkP.onSurfaceVariant)
         }
-        val dividerColor = Palette.alpha(p.outlineVariant, 0x66)
+        val dividerColor = 0x33FFFFFF.toInt()
         shelf.findViewById<View>(R.id.clockDividerLine)?.setBackgroundColor(dividerColor)
-        weatherIcon.setPalette(p)
+        weatherIcon.setPalette(darkP)
         paintClockDate()
         paintHaConnection()
         paintContinue()
@@ -1112,6 +1129,10 @@ class WidgetShelf(
     }
 
     private fun paintWeather() {
+        val darkP = Palette.dark(palette)
+        weatherTemp.setTextColor(0xFFFFFFFF.toInt())
+        weatherPlace.setTextColor(0xFFFFFFFF.toInt())
+        weatherDetail.setTextColor(darkP.onSurfaceVariant)
         val rep = report
         if (rep == null) {
             weatherPlace.setText(R.string.weather)
@@ -1175,6 +1196,10 @@ class WidgetShelf(
     }
 
     private fun paintAir() {
+        val darkP = Palette.dark(palette)
+        airLabel.setTextColor(darkP.onSurfaceVariant)
+        airValue.setTextColor(0xFFFFFFFF.toInt())
+        airDetail.setTextColor(darkP.onSurfaceVariant)
         airBadge.visibility = View.VISIBLE
         airBadge.setIcon(activity.getDrawable(R.drawable.ic_air))
         val a = air
@@ -1182,7 +1207,7 @@ class WidgetShelf(
             airLabel.setText(R.string.air_quality)
             airValue.text = "–"
             airDetail.text = if (airFailure > 0) activity.getString(R.string.air_offline) else ""
-            airBadge.setColors(palette.surfaceContainerHighest, palette.onSurfaceVariant)
+            airBadge.setColors(darkP.surfaceContainerHighest, 0xFFFFFFFF.toInt())
             return
         }
         val aqi = if (airTomorrow && a.tomorrowMax >= 0) a.tomorrowMax else a.aqi
@@ -1207,6 +1232,10 @@ class WidgetShelf(
     }
 
     private fun paintCalendar() {
+        val darkP = Palette.dark(palette)
+        lunarLabel.setTextColor(darkP.onSurfaceVariant)
+        lunarDate.setTextColor(0xFFFFFFFF.toInt())
+        holiday.setTextColor(darkP.onSurfaceVariant)
         val today = LocalDate.now()
         val l = LunarCalendar.toLunar(today)
         lunarLabel.text = activity.getString(R.string.lunar_year, LunarCalendar.canChi(l.year))

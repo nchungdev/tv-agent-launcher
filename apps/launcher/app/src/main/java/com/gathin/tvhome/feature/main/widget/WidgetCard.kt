@@ -106,11 +106,12 @@ open class WidgetCard @JvmOverloads constructor(
     }
 
     fun setPalette(p: Palette) {
-        palette = p
-        fill.color = if (glass) Palette.alpha(p.onSurface, 0x14) else p.surfaceContainer
-        outline.color = p.outlineVariant
-        hole.color = p.surface
-        innerStroke.color = Palette.alpha(if (glass) p.onSurface else p.outlineVariant, if (glass) 0x2E else 0x4D)
+        val darkP = Palette.dark(p)
+        palette = darkP
+        fill.color = if (glass) Palette.alpha(darkP.onSurface, 0x14) else if (flat) Palette.alpha(darkP.primary, 0x33) else darkP.surfaceContainer
+        outline.color = darkP.primary
+        hole.color = darkP.surface
+        innerStroke.color = Palette.alpha(if (glass) darkP.onSurface else darkP.outlineVariant, if (glass) 0x2E else 0x4D)
         invalidate()
     }
 
@@ -125,6 +126,17 @@ open class WidgetCard @JvmOverloads constructor(
         val w = width.toFloat()
         val h = height.toFloat()
         if (flat && !isFocused) return
+        if (flat && isFocused) {
+            val half = outline.strokeWidth / 2f
+            c.drawRoundRect(inset, inset, w - inset, h - inset, radius, radius, fill)
+            c.drawRoundRect(
+                inset + half, inset + half,
+                w - inset - half, h - inset - half,
+                radius - half, radius - half,
+                outline
+            )
+            return
+        }
         if (ghost && !isFocused) {
             val half = outline.strokeWidth / 2f
             c.drawRoundRect(inset, inset, w - inset, h - inset, radius, radius, hole)

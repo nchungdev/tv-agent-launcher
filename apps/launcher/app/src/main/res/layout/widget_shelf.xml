@@ -46,6 +46,9 @@
                         android:format12Hour="h:mm"
                         android:format24Hour="HH:mm"
                         android:includeFontPadding="false"
+                        android:shadowColor="#80000000"
+                        android:shadowDy="2"
+                        android:shadowRadius="8"
                         android:textColor="#FFFFFFFF"
                         android:textSize="100sp" />
 
@@ -60,6 +63,9 @@
                         android:format24Hour=""
                         android:letterSpacing="0.06"
                         android:textAllCaps="true"
+                        android:shadowColor="#80000000"
+                        android:shadowDy="1"
+                        android:shadowRadius="4"
                         android:textColor="#B3FFFFFF"
                         android:textSize="20sp" />
                 </LinearLayout>
@@ -73,6 +79,9 @@
                     android:includeFontPadding="false"
                     android:maxLines="1"
                     android:ellipsize="end"
+                    android:shadowColor="#80000000"
+                    android:shadowDy="1"
+                    android:shadowRadius="4"
                     android:textColor="#FFFFFFFF"
                     android:textSize="24sp" />
 
@@ -83,6 +92,9 @@
                     android:layout_marginTop="4dp"
                     android:maxLines="1"
                     android:ellipsize="end"
+                    android:shadowColor="#80000000"
+                    android:shadowDy="1"
+                    android:shadowRadius="4"
                     android:textSize="17sp" />
 
                 <TextView
@@ -272,6 +284,9 @@
                     style="@style/WidgetValue"
                     android:layout_width="0dp"
                     android:layout_weight="1"
+                    android:shadowColor="#80000000"
+                    android:shadowDy="2"
+                    android:shadowRadius="6"
                     android:text="–" />
 
                 <com.gathin.tvhome.core.view.ShapeBadge

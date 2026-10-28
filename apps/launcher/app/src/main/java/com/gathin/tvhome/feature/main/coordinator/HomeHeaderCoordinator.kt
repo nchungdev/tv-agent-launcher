@@ -92,6 +92,7 @@ class HomeHeaderCoordinator(
 
     fun updateWeather(report: Weather.Report?) {
         val tv = btnWeather ?: return
+        if (tv.visibility == View.GONE) return
         if (report != null) {
             tv.visibility = View.VISIBLE
             tv.text = "${report.temp.toInt()}°"

@@ -6,6 +6,7 @@ import android.accounts.OnAccountsUpdateListener
 import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
@@ -14,6 +15,7 @@ import android.widget.Toast
 import com.gathin.tvhome.R
 import com.gathin.tvhome.core.util.activityScope
 import com.gathin.tvhome.feature.account.data.GoogleAccountSelection
+import com.gathin.tvhome.feature.account.ui.AccountAvatarDrawable
 import com.gathin.tvhome.feature.account.ui.GoogleAccountSheet
 import com.gathin.tvhome.feature.settings.data.Config
 import com.gathin.tvhome.feature.system.data.TvSettings
@@ -37,6 +39,7 @@ class GoogleAccountCoordinator(
     private var selectedName: String? = null
 
     init {
+        button.text = ""
         button.setOnClickListener { sheet.show(selectedName) }
     }
 
@@ -80,12 +83,38 @@ class GoogleAccountCoordinator(
             selectedName = GoogleAccountSelection.select(
                 visibleNames, preferences.getString(SELECTED_NAME, null)
             )
-            button.text = selectedName ?: ""
+            button.text = ""
             button.contentDescription = selectedName?.let {
                 activity.getString(R.string.google_account_selected, it)
             } ?: activity.getString(R.string.google_account)
+            updateAvatar(selectedName)
             sheet.update(selectedName)
         }
+    }
+
+    private fun updateAvatar(name: String?) {
+        if (name.isNullOrBlank()) {
+            button.compoundDrawableTintList = ColorStateList.valueOf(0xFFFFFFFF.toInt())
+            button.setCompoundDrawablesWithIntrinsicBounds(
+                activity.getDrawable(R.drawable.ic_person), null, null, null
+            )
+            return
+        }
+        val initial = name.firstOrNull { it.isLetterOrDigit() }?.uppercaseChar()?.toString() ?: "G"
+        val density = activity.resources.displayMetrics.density
+        val size = (22 * density).toInt()
+        val colors = intArrayOf(
+            0xFF1A73E8.toInt(), // Google Blue
+            0xFFEA4335.toInt(), // Google Red
+            0xFF34A853.toInt(), // Google Green
+            0xFFFBBC05.toInt(), // Google Yellow
+            0xFF8E24AA.toInt(), // Google Purple
+            0xFF0097A7.toInt()  // Google Teal
+        )
+        val color = colors[Math.abs(name.hashCode()) % colors.size]
+        val avatar = AccountAvatarDrawable(initial, color, 0xFFFFFFFF.toInt(), size)
+        button.compoundDrawableTintList = null
+        button.setCompoundDrawablesWithIntrinsicBounds(avatar, null, null, null)
     }
 
     private fun chooseAccount() {

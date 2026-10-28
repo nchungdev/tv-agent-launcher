@@ -20,15 +20,21 @@ class ShapeBadge @JvmOverloads constructor(
     private val path = Path()
     private var icon: Drawable? = null
     private var iconColor = Palette.currentOrBaseline().onPrimaryContainer
+    private var flatBadge = false
 
     init {
         fill.color = Palette.currentOrBaseline().primaryContainer
         icon = context.getDrawable(R.drawable.ic_home_settings)
     }
 
+    fun setFlatBadge(flat: Boolean) {
+        flatBadge = flat
+        invalidate()
+    }
+
     fun setColors(fillColor: Int, iconColor: Int) {
         fill.color = fillColor
-        this.iconColor = iconColor
+        this.iconColor = if (flatBadge) 0xFFFFFFFF.toInt() else iconColor
         invalidate()
     }
 
@@ -39,7 +45,7 @@ class ShapeBadge @JvmOverloads constructor(
 
     fun setPalette(p: Palette) {
         fill.color = p.primaryContainer
-        iconColor = p.onPrimaryContainer
+        iconColor = if (flatBadge) 0xFFFFFFFF.toInt() else p.onPrimaryContainer
         invalidate()
     }
 
@@ -47,13 +53,20 @@ class ShapeBadge @JvmOverloads constructor(
         val cx = width / 2f
         val cy = height / 2f
         val r = minOf(cx, cy)
-        ExpressiveBackdrop.shapePath(path, cx, cy, r, 9, 0.07f, 0f)
-        c.drawPath(path, fill)
+        if (!flatBadge) {
+            ExpressiveBackdrop.shapePath(path, cx, cy, r, 9, 0.07f, 0f)
+            c.drawPath(path, fill)
+        }
         val ic = icon
         if (ic != null) {
-            val s = Math.round(r * 0.9f)
-            ic.setBounds(Math.round(cx - s / 2f), Math.round(cy - s / 2f), Math.round(cx + s / 2f), Math.round(cy + s / 2f))
-            ic.setTint(iconColor)
+            val s = Math.round(r * (if (flatBadge) 1.5f else 0.9f))
+            ic.setBounds(
+                Math.round(cx - s / 2f),
+                Math.round(cy - s / 2f),
+                Math.round(cx + s / 2f),
+                Math.round(cy + s / 2f)
+            )
+            ic.setTint(if (flatBadge) 0xFFFFFFFF.toInt() else iconColor)
             ic.draw(c)
         }
     }
