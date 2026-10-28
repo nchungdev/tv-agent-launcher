@@ -135,7 +135,7 @@ class TypingGreetingView @JvmOverloads constructor(
                     wrapperLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
                     changed = true
                 }
-                if (botLp != null && wrapperLp.topMargin != botLp.topMargin) {
+                if (botLp != null && wrapper.parent === bot.parent && wrapperLp.topMargin != botLp.topMargin) {
                     wrapperLp.topMargin = botLp.topMargin
                     changed = true
                 }
@@ -151,7 +151,7 @@ class TypingGreetingView @JvmOverloads constructor(
         while (current is ViewGroup) {
             if (current.clipChildren) current.clipChildren = false
             if (current.clipToPadding) current.clipToPadding = false
-            if (current.id == R.id.headerRow) break
+            if (current.id == R.id.root || current.id == R.id.headerRow) break
             current = current.parent
         }
     }
