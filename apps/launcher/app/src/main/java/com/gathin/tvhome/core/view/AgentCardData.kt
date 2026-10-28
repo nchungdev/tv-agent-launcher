@@ -28,6 +28,7 @@ data class AgentCardData(
     val sourceId: String = "",
     val automaticActions: Boolean = true,
     val summary: String = "",
+    val source: String = "",
     val season: Int = 0,
     val episode: Int = 0
 ) {
@@ -41,6 +42,8 @@ data class AgentCardData(
             else -> listOf(requestMedia())
         }
     }
+
+    fun isWeb(): Boolean = status.equals(STATUS_WEB, ignoreCase = true)
 
     fun isPlex(): Boolean {
         return status.equals(STATUS_PLEX, ignoreCase = true) ||
@@ -70,6 +73,11 @@ data class AgentCardData(
         const val STATUS_AVAILABLE = "available"
         const val STATUS_DOWNLOADING = "downloading"
         const val STATUS_REQUESTED = "requested"
+        const val STATUS_WEB = "web"
+
+        fun siteOf(url: String): String = runCatching {
+            java.net.URI(url).host.orEmpty().removePrefix("www.")
+        }.getOrDefault("")
         private const val ID_OPEN = "open"
         private const val ID_REQUEST = "request"
         private const val LABEL_OPEN = "Mở trong Plex"

@@ -6,7 +6,11 @@ import com.gathin.tvhome.feature.agent.data.AgentClient
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.isActive
 import java.io.BufferedInputStream
 import java.io.EOFException
@@ -22,71 +26,73 @@ import java.security.SecureRandom
 class AgentWebSocketDataSource(private val context: Context) {
     private val appContext = context.applicationContext
     private val scratchBuffer = ByteArray(MAX_PAYLOAD_BYTES)
-    private val pongFrame = byteArrayOf(
-        0x8A.toByte(), 0x80.toByte(), 0x12, 0x34, 0x56, 0x78
-    )
-
-    fun observeEvents(): Flow<String> = flow {
-        var activeSocket: Socket? = null
-        try {
-            var backoffMs = RECONNECT_DELAY_MS
-            while (currentCoroutineContext().isActive) {
-                var connected = false
-                try {
-                    val base = AgentClient.baseUrl(appContext)
-                    if (base.isBlank()) {
-                        delay(backoffMs)
-                        continue
-                    }
-                    val parsed = URI.create(base)
-                    val host = parsed.host ?: run {
-                        delay(backoffMs)
-                        return@flow
-                    }
-                    val port = if (parsed.port > 0) parsed.port else DEFAULT_PORT
-
-                    val socket = Socket()
-                    activeSocket = socket
-                    socket.receiveBufferSize = SOCKET_RX_BYTES
-                    socket.sendBufferSize = SOCKET_TX_BYTES
-                    socket.tcpNoDelay = true
-                    socket.soTimeout = READ_TIMEOUT_MS
-                    socket.connect(InetSocketAddress(host, port), CONNECT_TIMEOUT_MS)
-
-                    val input = BufferedInputStream(socket.getInputStream(), SOCKET_RX_BYTES)
-                    val output = socket.getOutputStream()
-
-                    sendHandshake(output, host, port, AgentClient.token(appContext))
-                    if (readHandshakeResponse(input)) {
-                        connected = true
-                        backoffMs = RECONNECT_DELAY_MS
-                        while (currentCoroutineContext().isActive && !socket.isClosed) {
-                            var framePayload: String? = null
-                            val readOk = readNextFrame(input, output) { payload ->
-                                framePayload = payload
-                            }
-                            if (!readOk) break
-                            framePayload?.let { emit(it) }
+    fun observeEvents(): Flow<String> = channelFlow {
+        val socketRef = AtomicReference<Socket?>()
+        val reader = launch(Dispatchers.IO) {
+            var activeSocket: Socket? = null
+            try {
+                var backoffMs = RECONNECT_DELAY_MS
+                while (currentCoroutineContext().isActive) {
+                    var connected = false
+                    try {
+                        val base = AgentClient.baseUrl(appContext)
+                        if (base.isBlank()) {
+                            delay(backoffMs)
+                            continue
                         }
+                        val parsed = URI.create(base)
+                        val host = parsed.host ?: run {
+                            delay(backoffMs)
+                            return@launch
+                        }
+                        val port = AgentSocketTransport.port(parsed)
+    
+                        val socket = AgentSocketTransport.connect(base) {
+                            activeSocket = it
+                            socketRef.set(it)
+                        }
+                        val input = BufferedInputStream(socket.getInputStream(), SOCKET_RX_BYTES)
+                        val output = socket.getOutputStream()
+    
+                        val key = sendHandshake(output, host, port, AgentClient.token(appContext))
+                        if (readHandshakeResponse(input, key)) {
+                            connected = true
+                            backoffMs = RECONNECT_DELAY_MS
+                            while (currentCoroutineContext().isActive && !socket.isClosed) {
+                                var framePayload: String? = null
+                                val readOk = readNextFrame(input, output) { payload ->
+                                    framePayload = payload
+                                }
+                                if (!readOk) break
+                                framePayload?.let { send(it) }
+                            }
+                        }
+                    } catch (_: Exception) {
+                    } finally {
+                        try { activeSocket?.close() } catch (_: Exception) {}
+                        activeSocket = null
                     }
-                } catch (_: Exception) {
-                } finally {
-                    try { activeSocket?.close() } catch (_: Exception) {}
-                    activeSocket = null
+    
+                    if (!currentCoroutineContext().isActive) break
+                    delay(backoffMs)
+                    if (!connected) {
+                        backoffMs = minOf(backoffMs * 2, MAX_BACKOFF_MS)
+                    }
                 }
-
-                if (!currentCoroutineContext().isActive) break
-                delay(backoffMs)
-                if (!connected) {
-                    backoffMs = minOf(backoffMs * 2, MAX_BACKOFF_MS)
-                }
+            } finally {
+                try { activeSocket?.close() } catch (_: Exception) {}
             }
-        } finally {
-            try { activeSocket?.close() } catch (_: Exception) {}
+        }
+        awaitClose {
+            runCatching { socketRef.getAndSet(null)?.close() }
+            reader.cancel()
         }
     }
 
-    private fun sendHandshake(output: OutputStream, host: String, port: Int, token: String?) {
+    private fun sendHandshake(
+        output: OutputStream, host: String, port: Int, token: String?
+    ): String {
+        require(token == null || token.none { it == '\r' || it == '\n' })
         val nonce = ByteArray(16)
         SecureRandom().nextBytes(nonce)
         val secKey = Base64.encodeToString(nonce, Base64.NO_WRAP)
@@ -99,13 +105,14 @@ class AgentWebSocketDataSource(private val context: Context) {
             authorizationHeader(token) + "\r\n"
         output.write(request.toByteArray(StandardCharsets.US_ASCII))
         output.flush()
+        return secKey
     }
 
     private fun authorizationHeader(token: String?): String {
         return if (token.isNullOrEmpty()) "" else "Authorization: Bearer $token\r\n"
     }
 
-    private fun readHandshakeResponse(input: InputStream): Boolean {
+    private fun readHandshakeResponse(input: InputStream, key: String): Boolean {
         var length = 0
         var matched = 0
         while (length < MAX_PAYLOAD_BYTES) {
@@ -123,7 +130,7 @@ class AgentWebSocketDataSource(private val context: Context) {
             }
             if (matched == 4) {
                 val header = String(scratchBuffer, 0, length, StandardCharsets.US_ASCII)
-                return header.startsWith("HTTP/1.1 101")
+                return AgentSocketTransport.accepts(header, key)
             }
         }
         return false
@@ -138,6 +145,7 @@ class AgentWebSocketDataSource(private val context: Context) {
         val secondByte = input.read()
         if (firstByte < 0 || secondByte < 0) return false
 
+        if (firstByte and 0x70 != 0 || firstByte and 0x80 == 0) return false
         val opcode = firstByte and 0x0F
         val masked = (secondByte and 0x80) != 0
         var payloadLength = secondByte and 0x7F
@@ -152,7 +160,7 @@ class AgentWebSocketDataSource(private val context: Context) {
         }
 
         val maskKey = ByteArray(4)
-        if (masked) readFully(input, maskKey, 4)
+        if (masked) return false
 
         if (payloadLength > MAX_PAYLOAD_BYTES) {
             skipFully(input, payloadLength)
@@ -175,7 +183,13 @@ class AgentWebSocketDataSource(private val context: Context) {
                 }
             }
             OPCODE_PING -> {
-                output.write(pongFrame)
+                if (payloadLength > 125) return false
+                SecureRandom().nextBytes(maskKey)
+                output.write(byteArrayOf(0x8A.toByte(), (payloadLength or 0x80).toByte()))
+                output.write(maskKey)
+                for (index in 0 until payloadLength) {
+                    output.write(scratchBuffer[index].toInt() xor maskKey[index and 3].toInt())
+                }
                 output.flush()
             }
             OPCODE_CLOSE -> return false

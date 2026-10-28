@@ -15,6 +15,16 @@ data class TvNotification(
     var isRead: Boolean = false,
     val imageUrl: String? = null
 ) {
+    fun bounded(): TvNotification = copy(
+        id = id.take(256), source = source.take(128), title = title.take(512),
+        message = message.take(4096), severity = severity.take(32),
+        actionType = actionType?.take(128),
+        actionParams = actionParams?.takeIf {
+            it.size <= 32 && JSONObject(it).toString().length <= 8192
+        },
+        imageUrl = imageUrl?.takeIf { it.length <= 2048 }
+    )
+
     fun hasAction(): Boolean = !actionType.isNullOrBlank()
 
     fun toJson(): JSONObject {

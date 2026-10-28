@@ -43,7 +43,6 @@ class BottomDockView @JvmOverloads constructor(
 
     private val density = resources.displayMetrics.density
     private val dockBar = LinearLayout(context)
-    private val tooltip = DockTooltip(this)
     private val barBackground = GradientDrawable()
     private val slotViews = ArrayList<View>()
     private val boundItems = ArrayList<DockItem>()
@@ -203,9 +202,8 @@ class BottomDockView @JvmOverloads constructor(
             }
             if (hasFocus) {
                 lastFocusedIndex = index
-                tooltip.show(view, label(), animations)
                 listener?.onItemFocused(index, item)
-            } else post { if (!hasFocus()) tooltip.hide(animations) }
+            }
         }
     }
 
@@ -236,7 +234,6 @@ class BottomDockView @JvmOverloads constructor(
     private fun applyColors() {
         barBackground.setColor(Palette.alpha(palette.surfaceContainerHigh, 0xD9))
         barBackground.setStroke(dp(1), Palette.alpha(palette.outlineVariant, 0x66))
-        tooltip.setPalette(palette)
         dividerView?.setBackgroundColor(Palette.alpha(palette.outlineVariant, 0x55))
         watchDivider?.setBackgroundColor(Palette.alpha(palette.outlineVariant, 0x55))
         watchNext.setPalette(palette)

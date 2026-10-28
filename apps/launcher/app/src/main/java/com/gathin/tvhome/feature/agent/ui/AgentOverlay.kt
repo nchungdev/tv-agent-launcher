@@ -6,6 +6,7 @@ import android.os.SystemClock
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import com.gathin.tvhome.R
 
 class AgentOverlay(private val activity: Activity, private val container: ViewGroup) :
     AgentPanel.Host {
@@ -25,6 +26,7 @@ class AgentOverlay(private val activity: Activity, private val container: ViewGr
         panel = created
         val fill = FrameLayout.LayoutParams.MATCH_PARENT
         container.addView(created, FrameLayout.LayoutParams(fill, fill))
+        showHomeHeader(false)
         created.start()
     }
 
@@ -33,8 +35,14 @@ class AgentOverlay(private val activity: Activity, private val container: ViewGr
         panel = null
         closing.release()
         container.removeView(closing)
+        showHomeHeader(true)
         previousFocus?.requestFocus()
         previousFocus = null
+    }
+
+    private fun showHomeHeader(visible: Boolean) {
+        val alpha = if (visible) 1f else 0f
+        for (id in HOME_HEADER) container.findViewById<View>(id)?.animate()?.alpha(alpha)
     }
 
     fun onPermissionResult(requestCode: Int, results: IntArray) {
@@ -58,6 +66,7 @@ class AgentOverlay(private val activity: Activity, private val container: ViewGr
     }
 
     companion object {
+        private val HOME_HEADER = intArrayOf(R.id.headerRow, R.id.greetingBlock)
         private const val RECENT_PAUSE_MS = 1_500L
 
         @Volatile

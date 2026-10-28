@@ -373,20 +373,19 @@
                         style="@style/SettingsSheetLabel"
                         android:text="Giọng nói &amp; Tốc độ" />
 
-                    <TextView
-                        android:id="@+id/voiceChoice"
-                        style="@style/SettingsListItem"
-                        android:layout_marginBottom="8dp" />
+                    <LinearLayout style="@style/SettingsSheetGroup">
+                        <TextView
+                            android:id="@+id/voiceChoice"
+                            style="@style/SettingsListItem" />
 
-                    <TextView
-                        android:id="@+id/speedChoice"
-                        style="@style/SettingsListItem"
-                        android:layout_marginBottom="8dp" />
+                        <TextView
+                            android:id="@+id/speedChoice"
+                            style="@style/SettingsListItem" />
 
-                    <TextView
-                        android:id="@+id/btnTestVoice"
-                        style="@style/SettingsListItem"
-                        android:text="Nghe thử giọng nói" />
+                        <TextView
+                            android:id="@+id/btnTestVoice"
+                            style="@style/SettingsListItem" />
+                    </LinearLayout>
                 </LinearLayout>
             </LinearLayout>
         </com.gathin.tvhome.core.motion.FocusScrollView>

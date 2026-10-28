@@ -25,10 +25,14 @@ val Dialog.dialogScope: CoroutineScope
         val job = SupervisorJob()
         val scope = CoroutineScope(job + Dispatchers.Main.immediate)
         decor?.setTag(R.id.coroutine_scope_tag, scope)
-        setOnDismissListener {
-            scope.cancel()
-            decor?.setTag(R.id.coroutine_scope_tag, null)
-        }
+        decor?.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+            override fun onViewAttachedToWindow(view: View) {}
+            override fun onViewDetachedFromWindow(view: View) {
+                scope.cancel()
+                view.setTag(R.id.coroutine_scope_tag, null)
+                view.removeOnAttachStateChangeListener(this)
+            }
+        })
         return scope
     }
 

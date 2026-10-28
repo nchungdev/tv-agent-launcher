@@ -2,6 +2,7 @@ package com.gathin.tvhome.feature.settings.widget
 import com.gathin.tvhome.feature.settings.data.*
 import com.gathin.tvhome.feature.settings.ui.*
 
+import com.gathin.tvhome.core.util.EndpointPolicy
 import android.app.Activity
 import android.app.AlertDialog
 import android.os.Handler
@@ -26,7 +27,9 @@ object AgentSettingsHelper {
             val startTime = System.currentTimeMillis()
             val url = if (rawUrl.endsWith("/")) rawUrl.dropLast(1) else rawUrl
             try {
-                val conn = URL("$url/health").openConnection() as HttpURLConnection
+                EndpointPolicy.validated(url)
+                val conn = URL("$url/v2/suggestions").openConnection() as HttpURLConnection
+                conn.instanceFollowRedirects = false
                 conn.connectTimeout = 3000
                 conn.readTimeout = 3000
                 if (rawToken.isNotEmpty()) {
@@ -82,7 +85,7 @@ object AgentSettingsHelper {
             LocalPairingServer.ServiceType.AGENT, serverUrl, onPaired
         )
         val port = s.start()
-        val portalUrl = "http://$tvIp:$port"
+        val portalUrl = "http://$tvIp:$port/${s.fragment}"
         return Pair(s, portalUrl)
     }
 }

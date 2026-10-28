@@ -32,6 +32,10 @@ import com.gathin.tvhome.core.motion.FocusScrollView
 import com.gathin.tvhome.feature.agent.coordinator.AgentActionExecutor
 import com.gathin.tvhome.core.util.dialogScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
 
 
@@ -41,7 +45,8 @@ class NotificationSheet(
     private val onDismissed: (() -> Unit)? = null
 ) {
     private val dialog = Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar_Fullscreen)
-    private val presenter by lazy { NotificationPresenter(dialog.dialogScope) }
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val presenter by lazy { NotificationPresenter(scope) }
 
     private val scrim: View
     private val panel: LinearLayout
@@ -77,6 +82,8 @@ class NotificationSheet(
         dialog.setOnCancelListener { sideSheet.close() }
         dialog.setOnDismissListener {
             liveListener?.let { NotificationRepositoryImpl.getInstance().removeListener(it) }
+            liveListener = null
+            scope.cancel()
         }
         reskinPanel()
     }
@@ -85,12 +92,13 @@ class NotificationSheet(
 
     fun show() {
         NotificationHudOverlay.dismiss()
-        NotificationRepositoryImpl.getInstance().init(activity)
+        val appContext = activity.applicationContext
+        scope.launch(Dispatchers.IO) { NotificationRepositoryImpl.getInstance().init(appContext) }
 
-        dialog.dialogScope.launch {
+        scope.launch {
             presenter.state.collect { state -> render(state) }
         }
-        dialog.dialogScope.launch {
+        scope.launch {
             presenter.effects.collect { effect ->
                 when (effect) {
                     is NotificationEffect.ExecuteAction -> AgentActionExecutor.execute(

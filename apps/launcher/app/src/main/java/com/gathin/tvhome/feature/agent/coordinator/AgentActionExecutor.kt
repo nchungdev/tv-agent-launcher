@@ -4,6 +4,7 @@ import com.gathin.tvhome.feature.agent.ui.*
 import com.gathin.tvhome.feature.agent.widget.*
 
 import android.content.Context
+import com.gathin.tvhome.core.util.EndpointPolicy
 import android.content.Intent
 import android.net.Uri
 import com.gathin.tvhome.feature.notification.data.TvNotification
@@ -103,6 +104,9 @@ object AgentActionExecutor {
             }
             "web.open", "web_link", "url.open" -> {
                 val url = resolveUri(parameters)
+                if (url == null || !EndpointPolicy.webLink(url)) {
+                    return failed(stepId, "INVALID_URL", "Chỉ hỗ trợ liên kết HTTP/HTTPS")
+                }
                 if (!url.isNullOrBlank()) {
                     try {
                         val target = java.net.URI(url)

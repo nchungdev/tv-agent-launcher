@@ -108,6 +108,7 @@ open class InputKeyService : AccessibilityService() {
     }
 
     override fun onDestroy() {
+        RemoteGestures.cancel(this)
         if (screenOffRegistered) {
             try {
                 unregisterReceiver(screenOffReceiver)
@@ -119,7 +120,9 @@ open class InputKeyService : AccessibilityService() {
         super.onDestroy()
     }
 
-    override fun onInterrupt() {}
+    override fun onInterrupt() {
+        RemoteGestures.cancel(this)
+    }
 
     companion object {
         private const val ACTION_VIEW_INPUTS = "com.android.tv.action.VIEW_INPUTS"

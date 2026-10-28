@@ -1,6 +1,9 @@
 package com.gathin.tvhome.feature.agent.data
 
+import com.gathin.tvhome.core.util.ConnectionDeadline
 import android.content.Context
+import com.gathin.tvhome.core.util.BoundedInput
+import com.gathin.tvhome.core.util.EndpointPolicy
 import com.gathin.tvhome.R
 import org.json.JSONObject
 import java.io.BufferedReader
@@ -45,7 +48,8 @@ object FlowClient {
         }
 
         val endpoint = "$base/v2/flow"
-        val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
+        val connection = (URL(EndpointPolicy.validated(endpoint).toString()).openConnection() as HttpURLConnection).apply {
+            instanceFollowRedirects = false
             requestMethod = "POST"
             connectTimeout = CONNECT_TIMEOUT_MS
             readTimeout = READ_TIMEOUT_MS
@@ -53,6 +57,7 @@ object FlowClient {
             setRequestProperty("Authorization", "Bearer $token")
             setRequestProperty("Content-Type", "application/json; charset=utf-8")
         }
+        val deadline = ConnectionDeadline(connection)
         try {
             request.attach(connection)
             val body = input.toJson().toString()
@@ -88,8 +93,15 @@ object FlowClient {
 
             val state = FlowSearchState()
             BufferedReader(InputStreamReader(connection.inputStream, StandardCharsets.UTF_8)).use { reader ->
+                var total = 0
+                val started = System.nanoTime()
                 var line: String?
-                while (readLine(reader).also { line = it } != null) {
+                while (BoundedInput.line(reader).also { line = it } != null) {
+                    total += line!!.length
+                    if (total > BoundedInput.MAX_STREAM ||
+                        System.nanoTime() - started > 120_000_000_000L) {
+                        throw java.io.IOException("Response budget exceeded")
+                    }
                     val raw = line!!.trim()
                     if (raw.isEmpty()) continue
                     if (raw.length > MAX_LINE_CHARS) continue
@@ -121,8 +133,9 @@ object FlowClient {
             }
             if (!state.finished) throw IOException("Flow ended before completion")
         } catch (e: Exception) {
-            listener.onError("network_error", e.message ?: "Lỗi kết nối flow")
+            listener.onError("network_error", e.message ?: "Lỗi kết nối flow (${e.javaClass.simpleName})")
         } finally {
+            deadline.close()
             connection.disconnect()
         }
     }

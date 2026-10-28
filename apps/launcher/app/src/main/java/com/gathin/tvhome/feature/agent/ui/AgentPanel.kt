@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import com.gathin.tvhome.R
 import com.gathin.tvhome.core.view.AgentCardData
+import com.gathin.tvhome.feature.agent.data.SearchTab
 import com.gathin.tvhome.feature.agent.coordinator.DuinchBrain
 import com.gathin.tvhome.feature.agent.widget.DuinchView
 
@@ -34,7 +35,7 @@ class AgentPanel(private val activity: Activity, private val host: Host) :
     private var released = false
 
     init {
-        setBackgroundColor(AgentPanelViews.DIM_COLOR)
+        background = AgentPanelViews.scrim()
         addView(views.build(replyPreference.speakReplies), LayoutParams(MATCH, MATCH))
         voiceReply = AgentVoiceReply(activity) { onSpeechFinished() }.also { it.setBot(views.bot) }
     }
@@ -107,10 +108,10 @@ class AgentPanel(private val activity: Activity, private val host: Host) :
         state = next
         val answering = next == THINKING || next == SPEAKING
         views.bot.setMood(moodFor(next))
-        views.chips.visibility = if (answering) View.GONE else View.VISIBLE
+        views.showChips(!answering)
         if (answering) {
             views.hideInput()
-        } else if (!views.isTyping() && !views.hasChipFocus()) {
+        } else if (!views.isTyping() && !views.hasChipFocus() && !views.answer.hasResults) {
             views.focusSpeak()
         }
     }
@@ -164,9 +165,10 @@ class AgentPanel(private val activity: Activity, private val host: Host) :
     }
 
     override fun onCards(cards: List<AgentCardData>) {
-        if (released || !active) return
-        views.answer.setCards(cards)
+        if (!released && active) views.answer.setCards(cards)
     }
+
+    override fun onSearchResults(tabs: List<SearchTab>) = views.answer.setSearch(tabs)
 
     override fun onFinished(error: String?, answer: String) {
         if (released || !active) return

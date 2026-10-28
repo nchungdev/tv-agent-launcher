@@ -33,6 +33,8 @@ object HomeTileAppearance {
             "🌡" -> R.drawable.ic_thermostat
             "❄" -> R.drawable.ic_snowflake
             "💡" -> R.drawable.ic_light
+            "🎬", "🎥", "🍿" -> R.drawable.ic_movie
+            "🍚", "🍜", "🍽", "🍲" -> R.drawable.ic_restaurant
             else -> 0
         }
         if (resource == 0) {
