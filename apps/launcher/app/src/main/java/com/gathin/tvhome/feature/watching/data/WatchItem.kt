@@ -16,7 +16,8 @@ data class WatchItem(
     val deepLink: String = "",
     val identityKeys: Set<String> = emptySet(),
     val durationMs: Long = 0,
-    val posterAlternatives: List<String> = emptyList()
+    val posterAlternatives: List<String> = emptyList(),
+    val details: WatchDetails = WatchDetails()
 ) {
     fun matchKeys(): Set<String> = if (contentId.isBlank() && deepLink.isBlank()) identityKeys
     else keys()

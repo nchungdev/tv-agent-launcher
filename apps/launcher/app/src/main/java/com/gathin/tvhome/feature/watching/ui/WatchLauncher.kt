@@ -66,6 +66,9 @@ object WatchLauncher {
             item.parameters["video_id"]?.toString()?.takeIf { it.isNotBlank() }?.let {
                 return "https://www.youtube.com/watch?v=${Uri.encode(it)}"
             }
+            if (item.title.isNotBlank()) {
+                return "https://www.youtube.com/results?search_query=${Uri.encode(item.title)}"
+            }
         }
         return ""
     }

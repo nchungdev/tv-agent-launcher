@@ -5,6 +5,8 @@ import android.graphics.Bitmap
 import android.media.MediaMetadata
 import android.net.Uri
 import java.io.File
+import java.io.ByteArrayOutputStream
+import android.util.AtomicFile
 
 class ArtworkStore(context: Context) {
 
@@ -25,21 +27,33 @@ class ArtworkStore(context: Context) {
         return metadata.description?.iconBitmap
     }
 
-    private fun save(bitmap: Bitmap, file: File): Boolean = try {
-        folder.mkdirs()
-        prune()
-        val scaled = scale(bitmap)
-        file.outputStream().use { scaled.compress(Bitmap.CompressFormat.JPEG, QUALITY, it) }
-        true
-    } catch (_: Exception) {
-        file.delete()
-        false
-    }
-
-    private fun scale(bitmap: Bitmap): Bitmap {
-        if (bitmap.width <= MAX_WIDTH) return bitmap
-        val height = bitmap.height * MAX_WIDTH / bitmap.width
-        return Bitmap.createScaledBitmap(bitmap, MAX_WIDTH, height, true)
+    private fun save(bitmap: Bitmap, file: File): Boolean {
+        var scaled: Bitmap? = null
+        return try {
+            folder.mkdirs()
+            prune()
+            val ratio = minOf(1f, MAX_WIDTH.toFloat() / maxOf(bitmap.width, bitmap.height))
+            scaled = if (ratio < 1f) Bitmap.createScaledBitmap(bitmap,
+                maxOf(1, (bitmap.width * ratio).toInt()),
+                maxOf(1, (bitmap.height * ratio).toInt()), true) else bitmap
+            val bytes = ByteArrayOutputStream()
+            if (!scaled.compress(Bitmap.CompressFormat.JPEG, QUALITY, bytes) ||
+                bytes.size() > 256 * 1024) return false
+            val atomic = AtomicFile(file)
+            val stream = atomic.startWrite()
+            try {
+                stream.write(bytes.toByteArray())
+                atomic.finishWrite(stream)
+            } catch (error: Exception) {
+                atomic.failWrite(stream)
+                throw error
+            }
+            true
+        } catch (_: Exception) {
+            false
+        } finally {
+            if (scaled !== bitmap) scaled?.recycle()
+        }
     }
 
     private fun prune() {

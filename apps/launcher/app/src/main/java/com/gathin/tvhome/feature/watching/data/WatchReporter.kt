@@ -1,6 +1,9 @@
 package com.gathin.tvhome.feature.watching.data
 
 import android.content.Context
+import com.gathin.tvhome.core.util.LatestWorkQueue
+import com.gathin.tvhome.core.util.EndpointPolicy
+import com.gathin.tvhome.core.util.ConnectionDeadline
 import com.gathin.tvhome.feature.agent.data.AgentClient
 import org.json.JSONArray
 import org.json.JSONObject
@@ -15,7 +18,7 @@ class WatchReporter(context: Context) {
     private val history = LocalWatchHistory(appContext)
 
     fun report(event: WatchEvent) {
-        worker.execute {
+        worker.submit(event.key) {
             history.record(event)
             runCatching { send(event) }
         }
@@ -28,7 +31,10 @@ class WatchReporter(context: Context) {
 
         val protocolEvent = event.toJson().apply { remove("resume_uri") }
         val body = JSONObject().put("events", JSONArray().put(protocolEvent))
-        val connection = URL("$base$EVENTS_PATH").openConnection() as HttpURLConnection
+        val address = EndpointPolicy.validated("$base$EVENTS_PATH")
+        val connection = URL(address.toString()).openConnection() as HttpURLConnection
+        connection.instanceFollowRedirects = false
+        val deadline = ConnectionDeadline(connection, 10)
         try {
             connection.requestMethod = "POST"
             connection.connectTimeout = TIMEOUT_MS
@@ -40,6 +46,7 @@ class WatchReporter(context: Context) {
             connection.outputStream.use { it.write(bytes) }
             connection.responseCode
         } finally {
+            deadline.close()
             connection.disconnect()
         }
     }
@@ -47,6 +54,6 @@ class WatchReporter(context: Context) {
     private companion object {
         const val EVENTS_PATH = "/v2/watch/events"
         const val TIMEOUT_MS = 4000
-        val worker = Executors.newSingleThreadExecutor()
+        val worker = LatestWorkQueue(20)
     }
 }

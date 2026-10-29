@@ -1,6 +1,7 @@
 package com.gathin.tvhome.feature.watching.data
 
 import android.content.Context
+import com.gathin.tvhome.core.util.ConnectionDeadline
 import com.gathin.tvhome.feature.agent.data.AgentClient
 import org.json.JSONObject
 import java.io.IOException
@@ -15,7 +16,9 @@ class ServerContinueSource(private val context: Context) {
             return WatchResult(WatchAvailability.UNSUPPORTED)
         }
         val connection = URL("$base/v2/watch/continue").openConnection() as HttpURLConnection
+        connection.instanceFollowRedirects = false
         request.attach(connection)
+        val deadline = ConnectionDeadline(connection, 12)
         try {
             connection.connectTimeout = 4000
             connection.readTimeout = 4000
@@ -27,6 +30,7 @@ class ServerContinueSource(private val context: Context) {
             val bytes = stream.use { it.readBytesBounded(1024 * 1024) }
             return WatchResult.loaded(parse(bytes.toString(Charsets.UTF_8)))
         } finally {
+            deadline.close()
             connection.disconnect()
         }
     }
@@ -59,7 +63,8 @@ class ServerContinueSource(private val context: Context) {
                 action?.optString("action_type").orEmpty().ifBlank { "app.open" }, parameters,
                 row.optLong("remaining_ms").coerceAtLeast(0), WatchSource.SERVER,
                 row.optString("id"), row.optLong("updated_at_ms", row.optLong("at")),
-                link.take(8192), durationMs = row.optLong("duration_ms").coerceAtLeast(0)
+                link.take(8192), durationMs = row.optLong("duration_ms").coerceAtLeast(0),
+                details = WatchDetails.fromJson(row)
             )
         }
     }

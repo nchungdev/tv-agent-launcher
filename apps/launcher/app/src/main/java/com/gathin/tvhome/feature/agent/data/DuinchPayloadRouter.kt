@@ -25,6 +25,7 @@ class DuinchPayloadRouter(
         when (type) {
             "action" -> handleActionPayload(obj, isRunning)
             "notification" -> handleNotificationPayload(obj, isRunning)
+            "tv_mode" -> AgentEventHub.tvModeListener?.invoke()
             else -> handleGreetingPayload(obj, isRunning)
         }
     }

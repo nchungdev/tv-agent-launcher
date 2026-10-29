@@ -18,6 +18,9 @@ object AgentEventHub {
     @Volatile
     var greetingListener: ((String, Int) -> Unit)? = null
 
+    @Volatile
+    var tvModeListener: (() -> Unit)? = null
+
     val isRunning: Boolean get() = job?.isActive == true
 
     fun ensureStarted(context: Context) {
