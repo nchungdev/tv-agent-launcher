@@ -1,181 +1,170 @@
 package com.gathin.tvhome.feature.agent.widget
 
 import android.content.Context
-import android.graphics.drawable.GradientDrawable
+import android.graphics.Typeface
 import android.util.TypedValue
-import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
+import android.view.ViewTreeObserver
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.gathin.tvhome.R
 import com.gathin.tvhome.core.design.Palette
+import com.gathin.tvhome.core.view.AgentCardData
 import com.gathin.tvhome.feature.agent.data.SearchTab
 
 class SearchResultsView(context: Context) : LinearLayout(context) {
 
     private val density = context.resources.displayMetrics.density
-    private val chips = LinearLayout(context)
-    private val posters = LinearLayout(context)
-    private val status = TextView(context)
+    private val sections = LinearLayout(context)
+    private val searchFilters = SearchFiltersView(context) { renderSections() }
     private var tabs: List<SearchTab> = emptyList()
-    private var selected = ""
-    private var picked = false
-    private var focusingFirst = false
+    private var pendingTabs: List<SearchTab>? = null
+    private var firstPoster: View? = null
+    private val focusChanged = ViewTreeObserver.OnGlobalFocusChangeListener { _, _ ->
+        if (!sections.hasFocus()) pendingTabs?.let { next ->
+            pendingTabs = null
+            post { setTabs(next) }
+        }
+    }
     var onLeaveTop: () -> Unit = {}
 
     init {
         orientation = VERTICAL
         clipChildren = false
         clipToPadding = false
-        addView(scroller(chips), LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
-        posters.clipChildren = false
-        posters.clipToPadding = false
-        posters.setPadding(dp(FOCUS_ROOM), dp(FOCUS_ROOM), dp(FOCUS_ROOM), dp(FOCUS_ROOM))
-        addView(scroller(posters).apply { clipChildren = false },
-            LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
-                topMargin = dp(TABS_GAP)
-                marginStart = -dp(FOCUS_ROOM)
-                marginEnd = -dp(FOCUS_ROOM)
-            })
-        status.setTextColor(0xB3FFFFFF.toInt())
-        status.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
-        addView(status, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
-            topMargin = dp(12)
-        })
+        searchFilters.onMoveDown = { firstPoster?.requestFocus() }
+        searchFilters.onLeaveTop = { onLeaveTop() }
+        addView(searchFilters, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+        sections.orientation = VERTICAL
+        sections.clipChildren = false
+        sections.clipToPadding = false
+        addView(sections, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        viewTreeObserver.addOnGlobalFocusChangeListener(focusChanged)
+    }
+
+    override fun onDetachedFromWindow() {
+        viewTreeObserver.removeOnGlobalFocusChangeListener(focusChanged)
+        super.onDetachedFromWindow()
     }
 
     fun setTabs(next: List<SearchTab>) {
+        if (next.isNotEmpty() && sections.hasFocus()) {
+            pendingTabs = next
+            return
+        }
+        pendingTabs = null
         tabs = next
-        val current = tabs.firstOrNull { it.source == selected }
-        if (current == null || (!picked && current.cards.isEmpty())) selected = firstReady()
-        if (tabs.isEmpty()) picked = false
-        val focusedIndex = (0 until chips.childCount).firstOrNull { chips.getChildAt(it).hasFocus() }
-        renderChips()
-        focusedIndex?.let { chips.getChildAt(it.coerceAtMost(chips.childCount - 1))?.requestFocus() }
-        renderPosters()
+        searchFilters.update(tabs)
+        renderSections()
     }
 
     fun focusSelected() {
-        val index = tabs.indexOfFirst { it.source == selected }.coerceAtLeast(0)
-        focusingFirst = true
-        chips.getChildAt(index)?.requestFocus()
-        focusingFirst = false
+        searchFilters.focusSelected()
     }
 
-    private fun firstReady(): String =
-        (tabs.firstOrNull { it.state == SearchTab.State.READY } ?: tabs.firstOrNull())?.source.orEmpty()
-
-    private fun renderChips() {
-        chips.removeAllViews()
+    private fun renderSections() {
+        sections.removeAllViews()
+        firstPoster = null
         for (tab in tabs) {
-            chips.addView(chip(tab), LayoutParams(LayoutParams.WRAP_CONTENT, dp(40)).apply {
-                marginEnd = dp(10)
+            val cards = tab.cards.filter {
+                it.type != "status" && searchFilters.matches(it.type)
+            }
+            if (cards.isEmpty() && tab.state == SearchTab.State.EMPTY && tabs.size > 1) continue
+            renderSection(tab, cards)
+        }
+    }
+
+    private fun renderSection(tab: SearchTab, cards: List<AgentCardData>) {
+        val section = LinearLayout(context).apply {
+            orientation = VERTICAL
+            clipChildren = false
+            clipToPadding = false
+            layoutParams = LayoutParams(
+                LayoutParams.MATCH_PARENT,
+                LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = dp(SECTION_GAP) }
+        }
+        if (!tab.source.equals("tmdb", ignoreCase = true)) {
+            section.addView(TextView(context).apply {
+                text = label(tab.source)
+                setTextColor(Palette.dark(Palette.currentOrBaseline()).onSurface)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f)
+                setTypeface(typeface, Typeface.BOLD)
+                setPadding(0, 0, dp(CARD_GAP), dp(8))
             })
         }
-    }
 
-    private fun renderPosters() {
-        posters.removeAllViews()
-        val tab = tabs.firstOrNull { it.source == selected }
-        if (tab == null || tab.cards.isEmpty()) {
-            status.visibility = if (tab == null) View.GONE else View.VISIBLE
-            status.setText(if (tab?.state == SearchTab.State.LOADING) R.string.agent_search_loading
-                else R.string.agent_search_empty_tab)
-            return
-        }
-        status.visibility = View.GONE
-        for (card in tab.cards) {
-            val poster = SearchPosterCard(context, card)
-            poster.setOnKeyListener { _, keyCode, event ->
-                val up = keyCode == KeyEvent.KEYCODE_DPAD_UP
-                if (up && event.action == KeyEvent.ACTION_DOWN) focusSelected()
-                up
+        if (cards.isEmpty()) {
+            section.addView(TextView(context).apply {
+                text = when (tab.state) {
+                    SearchTab.State.LOADING -> context.getString(R.string.agent_search_loading)
+                    else -> tab.detail.ifBlank {
+                        context.getString(R.string.agent_search_empty_tab)
+                    }
+                }
+                setTextColor(0xB3FFFFFF.toInt())
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                setPadding(0, 0, dp(CARD_GAP), dp(8))
+            })
+        } else {
+            val row = LinearLayout(context).apply {
+                orientation = HORIZONTAL
+                clipChildren = false
+                clipToPadding = false
+                setPadding(0, dp(FOCUS_ROOM), dp(FOCUS_ROOM), dp(FOCUS_ROOM))
             }
-            posters.addView(poster, LayoutParams(
-                LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply { marginEnd = dp(18) })
+            for (card in cards) {
+                val poster = SearchPosterCard(context, card)
+                val identity = card.id.ifBlank { card.link.ifBlank { card.title } }
+                poster.tag = "${card.sourceId}|$identity"
+                poster.setOnKeyListener { _, keyCode, event ->
+                    if (keyCode == KeyEvent.KEYCODE_DPAD_UP &&
+                        event.action == KeyEvent.ACTION_DOWN
+                    ) {
+                        focusSelected()
+                        true
+                    } else {
+                        false
+                    }
+                }
+                if (firstPoster == null) firstPoster = poster
+                val posterParams = poster.layoutParams as LayoutParams
+                posterParams.marginEnd = dp(CARD_GAP)
+                row.addView(poster, posterParams)
+            }
+            val scroller = HorizontalScrollView(context).apply {
+                isHorizontalScrollBarEnabled = false
+                isFillViewport = false
+                clipChildren = false
+                addView(row)
+            }
+            section.addView(scroller, LayoutParams(
+                LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT
+            ))
         }
-    }
 
-    private fun chip(tab: SearchTab): TextView = TextView(context).apply {
-        val count = when (tab.state) {
-            SearchTab.State.LOADING -> "…"
-            else -> tab.cards.size.toString()
-        }
-        text = "${label(tab.source)} ($count)"
-        gravity = Gravity.CENTER
-        setPadding(dp(18), 0, dp(18), 0)
-        setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
-        isFocusable = true
-        isClickable = true
-        paint(this, tab.source == selected, false)
-        setOnKeyListener { _, keyCode, event ->
-            val down = event.action == KeyEvent.ACTION_DOWN
-            when (keyCode) {
-                KeyEvent.KEYCODE_DPAD_UP -> {
-                    if (down) onLeaveTop()
-                    true
-                }
-                KeyEvent.KEYCODE_DPAD_DOWN -> {
-                    if (down) posters.getChildAt(0)?.requestFocus()
-                    posters.childCount > 0
-                }
-                else -> false
-            }
-        }
-        setOnFocusChangeListener { view, focused ->
-            if (focused && selected != tab.source) {
-                selected = tab.source
-                if (!focusingFirst) picked = true
-                for (index in 0 until chips.childCount) {
-                    val other = chips.getChildAt(index) as TextView
-                    paint(other, tabs.getOrNull(index)?.source == selected, other === view)
-                }
-                renderPosters()
-            } else paint(this, tab.source == selected, focused)
-        }
-    }
-
-    private fun paint(chip: TextView, active: Boolean, focused: Boolean) {
-        val primary = Palette.dark(Palette.currentOrBaseline()).primary
-        chip.background = GradientDrawable().apply {
-            cornerRadius = dp(20).toFloat()
-            when {
-                focused -> setColor(FOCUSED)
-                active -> {
-                    setColor(Palette.alpha(primary, 0x33))
-                    setStroke(dp(1), Palette.alpha(primary, 0x99))
-                }
-                else -> setColor(RESTING)
-            }
-        }
-        chip.setTextColor(when {
-            focused -> 0xFF1C1B1F.toInt()
-            active -> primary
-            else -> 0xFFFFFFFF.toInt()
-        })
+        sections.addView(section)
     }
 
     private fun label(source: String): String = LABELS[source]
         ?: source.replaceFirstChar { it.uppercaseChar() }
 
-    private fun scroller(content: View) = HorizontalScrollView(context).apply {
-        isHorizontalScrollBarEnabled = false
-        isFillViewport = false
-        addView(content)
-    }
-
     private fun dp(value: Int): Int = Math.round(value * density)
 
     private companion object {
+        const val CARD_GAP = 22
         const val FOCUS_ROOM = 16
-        const val TABS_GAP = 12
-        const val RESTING = 0xFF262B33.toInt()
-        const val FOCUSED = 0xFFE6E1EC.toInt()
+        const val SECTION_GAP = 10
         val LABELS = mapOf(
             "plex" to "Plex", "jellyfin" to "Jellyfin", "phimapi" to "PhimAPI",
-            "radarr" to "Radarr", "sonarr" to "Sonarr", "tmdb" to "TMDb", "internet" to "Internet"
+            "radarr" to "Radarr", "sonarr" to "Sonarr", "tmdb" to "TMDb",
+            "internet" to "Internet"
         )
     }
 }

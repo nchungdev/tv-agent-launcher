@@ -11,6 +11,7 @@ import com.gathin.tvhome.R
 import com.gathin.tvhome.feature.agent.data.AgentClient
 import com.gathin.tvhome.feature.agent.data.CatalogClient
 import com.gathin.tvhome.feature.agent.coordinator.CatalogEpisodeSheet
+import com.gathin.tvhome.feature.agent.coordinator.MediaDetailSheet
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -42,8 +43,12 @@ object PlaybackRouter {
         val store = PlaybackStore(host)
         store.remember(identity.sourceId)
         val preference = store.preferred(identity.sourceId)
-        if (preference.isBlank()) PlaybackChoices.choose(host, identity.sourceId) {
-            resolve(host, identity, it)
+        if (preference.isBlank()) {
+            if (ExternalPlayback.hasCompatibleApp(host, identity.sourceId)) {
+                PlaybackChoices.choose(host, identity.sourceId) { resolve(host, identity, it) }
+            } else {
+                resolve(host, identity, "launcher")
+            }
         } else resolve(host, identity, preference)
     }
 
@@ -60,7 +65,13 @@ object PlaybackRouter {
         }
         val store = PlaybackStore(host)
         val preferred = store.preferred(source)
-        if (preferred.isEmpty()) PlaybackChoices.choose(host, source, choose) else choose(preferred)
+        if (preferred.isEmpty()) {
+            if (ExternalPlayback.hasCompatibleApp(host, source)) {
+                PlaybackChoices.choose(host, source, choose)
+            } else {
+                choose("launcher")
+            }
+        } else choose(preferred)
     }
 
     private fun resolve(host: Activity, identity: PlaybackIdentity, preference: String) {
@@ -130,7 +141,7 @@ object PlaybackRouter {
                 val episodes: (() -> Unit)? = if (identity.kind == "movie") null else {
                     {
                         val titleId = response.getOrNull()?.episode?.titleId.orEmpty()
-                        val detail = com.gathin.tvhome.feature.agent.coordinator.MediaDetailSheet
+                        val detail = MediaDetailSheet
                         if (titleId.isNotBlank() && !detail.contains(host, titleId)) {
                             CatalogEpisodeSheet.show(host, titleId,
                                 identity.sourceId, identity.poster)

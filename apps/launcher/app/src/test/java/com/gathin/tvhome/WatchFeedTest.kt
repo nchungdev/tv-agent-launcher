@@ -123,7 +123,8 @@ class WatchFeedTest {
             withTimeout(3000) {
                 while (feed.state(WatchSource.TV) != WatchAvailability.READY ||
                     feed.state(WatchSource.SERVER) != WatchAvailability.ERROR ||
-                    feed.state(WatchSource.LOCAL) != WatchAvailability.EMPTY) {
+                    feed.state(WatchSource.LOCAL) != WatchAvailability.EMPTY ||
+                    feed.items.none { it.title == "TV Show" }) {
                     changes.receive()
                 }
             }

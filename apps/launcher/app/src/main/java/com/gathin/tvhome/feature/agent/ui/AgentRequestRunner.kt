@@ -8,11 +8,12 @@ import android.os.Looper
 import android.os.SystemClock
 import com.gathin.tvhome.core.view.AgentCards
 import com.gathin.tvhome.core.view.AgentCardData
-import com.gathin.tvhome.core.view.CardAction
 import com.gathin.tvhome.feature.agent.data.AgentClient
 import com.gathin.tvhome.feature.agent.data.FlowClient
 import com.gathin.tvhome.feature.agent.data.FlowInput
-import com.gathin.tvhome.feature.agent.data.FlowItem
+import com.gathin.tvhome.feature.agent.data.FlowSearchResults
+import com.gathin.tvhome.feature.agent.data.FlowInputContext
+import com.gathin.tvhome.feature.agent.data.SearchSelection
 import com.gathin.tvhome.feature.agent.data.FlowPlan
 import com.gathin.tvhome.feature.agent.data.FlowResult
 import com.gathin.tvhome.feature.agent.data.PresentationResponse
@@ -76,7 +77,10 @@ class AgentRequestRunner(context: Context, private val callbacks: Callbacks) {
         val lastDelivery = longArrayOf(0)
         var fallbackToLegacy = false
 
-        val input = FlowInput(text = request)
+        val selection = SearchSelection(appContext)
+        val input = FlowInput(request, FlowInputContext(selection.title(), selection.sources()))
+        val results = FlowSearchResults()
+        var inputQuestion = ""
         val tabs = SearchTabs()
         FlowClient.execute(appContext, input, object : FlowClient.FlowListener {
             override fun onPlanReady(plan: FlowPlan) {
@@ -87,14 +91,22 @@ class AgentRequestRunner(context: Context, private val callbacks: Callbacks) {
 
             override fun onTaskResult(result: FlowResult) {
                 if (requestGeneration != generation) return
-                val cards = result.items.take(24).mapNotNull { mapFlowItemToCard(it, result.source) }
-                tabs.result(result.source, result.status, cards)
+                results.update(result)
+                tabs.result(result.source, result.status, results.cards(result.source),
+                    result.errorCode)
+                received.clear()
+                appendBounded(received, listOf(results.answer(), inputQuestion)
+                    .filter { it.isNotBlank() }.joinToString("\n"), connection)
+                deliverSnapshot(received, lastDelivery, requestGeneration)
                 deliverTabs(tabs, requestGeneration)
             }
 
             override fun onNeedsInput(question: String) {
                 if (requestGeneration != generation) return
-                appendBounded(received, question, connection)
+                inputQuestion = question
+                received.clear()
+                appendBounded(received, listOf(results.answer(), inputQuestion)
+                    .filter { it.isNotBlank() }.joinToString("\n"), connection)
                 deliverSnapshot(received, lastDelivery, requestGeneration)
             }
 
@@ -105,7 +117,9 @@ class AgentRequestRunner(context: Context, private val callbacks: Callbacks) {
                     if (requestGeneration != generation) return@post
                     main.removeCallbacks(renderPending)
                     pendingAnswer = null
-                    callbacks.onFinished(null, finalAnswer)
+                    val failure = if (status in setOf("completed", "needs_input")) null
+                        else status
+                    callbacks.onFinished(failure, finalAnswer)
                 }
             }
 
@@ -162,63 +176,6 @@ class AgentRequestRunner(context: Context, private val callbacks: Callbacks) {
             pendingAnswer = null
             callbacks.onFinished(failure, finalAnswer)
         }
-    }
-
-    private fun mapFlowItemToCard(item: FlowItem, source: String): AgentCardData? {
-        val title = item.title.ifBlank { item.url }
-        if (title.isBlank()) return null
-        val actions = ArrayList<CardAction>()
-
-        val plexApp = item.actions.firstOrNull {
-            it.type == OPEN_APP && it.url.startsWith(PLEX_SCHEME)
-        }
-        if (plexApp != null) {
-            actions.add(CardAction("plex", plexApp.label.ifBlank { "Mở trong Plex" },
-                CardAction.KIND_CLIENT, "plex.open", mapOf("uri" to plexApp.url)))
-        }
-        val catalog = item.actions.any { it.type == "catalog_detail" }
-        for (action in if (plexApp == null) item.actions else emptyList()) {
-            when (action.type) {
-                "catalog_detail" -> {
-                    val params = mapOf<String, Any?>("title_id" to action.itemId.ifBlank { item.id })
-                    actions.add(CardAction("detail", action.label.ifBlank { "Xem chi tiết" }, CardAction.KIND_CLIENT, "catalog_detail", params))
-                }
-                "catalog_playback" -> {
-                    val params = mapOf<String, Any?>("url" to action.url, "id" to action.itemId)
-                    actions.add(CardAction("play", action.label.ifBlank { "Phát ngay" }, CardAction.KIND_CLIENT, "catalog_playback", params))
-                }
-                else -> {
-                    if (catalog) continue
-                    val url = action.url.ifBlank { item.url }
-                    if (url.isNotBlank()) {
-                        actions.add(CardAction("open", action.label.ifBlank { "Mở" }, CardAction.KIND_CLIENT, "web.open", mapOf("url" to url)))
-                    }
-                }
-            }
-        }
-
-        if (actions.isEmpty() && item.url.isNotBlank()) {
-            actions.add(CardAction("open_web", "Mở liên kết", CardAction.KIND_CLIENT, "web.open", mapOf("url" to item.url)))
-        }
-
-        val web = item.kind == WEB_LINK || source == INTERNET
-        return AgentCardData(
-            status = when {
-                source == PLEX -> AgentCardData.STATUS_PLEX
-                web -> AgentCardData.STATUS_WEB
-                else -> ""
-            },
-            title = title,
-            type = if (web) AgentCardData.siteOf(item.url) else "",
-            year = if (item.year > 0) item.year.toString() else "",
-            link = item.url,
-            posterUrl = item.poster,
-            id = item.id,
-            actions = actions,
-            source = source,
-            season = item.season,
-            episode = item.episode
-        )
     }
 
     private fun requestLogin() {
@@ -279,10 +236,5 @@ class AgentRequestRunner(context: Context, private val callbacks: Callbacks) {
         private const val RENDER_INTERVAL_MS = 150L
         private const val ANSWER_TOO_LONG = "Câu trả lời vượt giới hạn hiển thị"
         private const val UNAUTHORIZED = "unauthorized"
-        private const val WEB_LINK = "web_link"
-        private const val INTERNET = "internet"
-        private const val PLEX = "plex"
-        private const val OPEN_APP = "open_app"
-        private const val PLEX_SCHEME = "plex://"
     }
 }

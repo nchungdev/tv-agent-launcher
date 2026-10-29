@@ -7,5 +7,6 @@ object MediaDetailsPolicy {
     fun isSeries(kind: String): Boolean = kind.lowercase() in setOf("series", "show", "season")
     fun showEntries(title: CatalogTitle): Boolean = isSeries(title.kind) || title.episodes.size > 1
     fun playbackTitle(title: CatalogTitle, episode: CatalogEpisode): String =
-        if (isSeries(title.kind)) title.name + " · " + episode.label else title.name
+        if (isSeries(title.kind) && episode.label.isNotBlank()) title.name + " · " + episode.label
+        else title.name
 }

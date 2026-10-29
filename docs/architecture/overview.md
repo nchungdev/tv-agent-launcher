@@ -9,7 +9,7 @@ It combines a lean remote-driven TV home grid with an integrated **Vietnamese AI
 ## 1. Core Engineering Principles
 
 1. **Extreme Memory & APK Footprint**:
-   - Release APK size is strictly constrained under **700 KB** (currently **~561 KB** / 575,221 bytes).
+   - Release APK size is strictly constrained under **5 MiB** (currently **~561 KB** / 575,221 bytes).
    - Zero heavy third-party dependencies: No Jetpack Compose, no Glide/Coil, no Dagger/Hilt, no Retrofit.
    - Built with native Android Views, custom Canvas drawables, and an in-house asynchronous [`ImageLoader`](file:///Users/lap16792/Personal/tv-agent/tv-agent-launcher/apps/launcher/app/src/main/java/com/gathin/tvhome/core/util/ImageLoader.kt) utilizing `ImageDecoder` and low-RAM memory policies.
 

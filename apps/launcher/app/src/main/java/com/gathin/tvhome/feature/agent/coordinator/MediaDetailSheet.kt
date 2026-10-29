@@ -6,6 +6,7 @@ import android.app.Dialog
 import android.content.Context
 import android.os.Bundle
 import com.gathin.tvhome.R
+import com.gathin.tvhome.core.design.Palette
 import com.gathin.tvhome.core.motion.FocusScrollView
 import com.gathin.tvhome.core.view.AgentCardData
 import com.gathin.tvhome.feature.agent.data.AgentClient
@@ -38,7 +39,7 @@ object MediaDetailSheet {
         val view = MediaDetailView(activity, card)
         val scroll = FocusScrollView(activity).apply {
             isFillViewport = true
-            setBackgroundColor(com.gathin.tvhome.core.design.Palette.currentOrBaseline().surface)
+            setBackgroundColor(Palette.currentOrBaseline().surface)
             addView(view)
         }
         val dialog = Dialog(activity, android.R.style.Theme_Material_NoActionBar_Fullscreen)
@@ -74,13 +75,23 @@ object MediaDetailSheet {
         dialog.show()
         dialog.window?.setLayout(-1, -1)
         view.focusInitial()
-        if (detail == null) return
-        val titleId = detail.parameters["title_id"]?.toString().orEmpty()
+
+        val rawId = detail?.parameters?.get("title_id")?.toString().orEmpty()
+            .ifBlank { card.id }
+            .ifBlank { card.title }
+        if (rawId.isBlank()) return
+        val titleId = if (card.sourceId == "tmdb" && !rawId.contains(":") &&
+            rawId != card.title) "tmdb:$rawId" else rawId
+
         dialog.window?.decorView?.tag = titleId
         val status = view.status(activity.getString(R.string.media_loading_detail))
         scope.launch {
             val title = withContext(Dispatchers.IO) {
                 runCatching { CatalogClient.getTitle(activity, titleId, request) }.getOrNull()
+                    ?: if (titleId != card.title && card.title.isNotBlank()) {
+                        runCatching { CatalogClient.getTitle(activity, card.title, request) }
+                            .getOrNull()
+                    } else null
             }
             if (!dialog.isShowing) return@launch
             view.content.removeView(status)

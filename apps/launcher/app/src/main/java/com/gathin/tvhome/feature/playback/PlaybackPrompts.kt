@@ -9,11 +9,17 @@ import java.util.WeakHashMap
 
 object PlaybackPrompts {
     private val open = WeakHashMap<Activity, Dialog>()
-    fun close(activity: Activity) { open.remove(activity)?.dismiss() }
+
+    fun close(activity: Activity) {
+        open.remove(activity)?.dismiss()
+    }
 
     fun show(activity: Activity, builder: AlertDialog.Builder) {
+        showDialog(activity, builder.create())
+    }
+
+    fun showDialog(activity: Activity, dialog: Dialog) {
         close(activity)
-        val dialog = builder.create()
         val lifecycle = object : Application.ActivityLifecycleCallbacks {
             override fun onActivityStopped(host: Activity) {
                 if (host === activity) dialog.dismiss()

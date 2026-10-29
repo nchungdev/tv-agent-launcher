@@ -40,9 +40,10 @@ object FlowCards {
                     mapOf("url" to item.url)))
             } else emptyList()
         }
-        return AgentCardData("information", item.title.ifBlank { item.url }, item.kind,
+        val status = if (item.kind == "web_link") AgentCardData.STATUS_WEB else "information"
+        return AgentCardData(status, item.title.ifBlank { item.url }, item.kind,
             item.year.takeIf { it > 0 }?.toString().orEmpty(), item.url, item.poster,
-            item.id, actions, source, false, item.content, item.season, item.episode)
+            item.id, actions, source, false, item.content, item.season, item.episode, source)
     }
 
     fun contentType(kind: String): String = when (kind.lowercase()) {

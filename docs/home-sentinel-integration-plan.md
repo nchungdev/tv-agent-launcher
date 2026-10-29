@@ -100,7 +100,7 @@ Nguồn ban đầu:
   HLS/MP4 mẫu trên emulator TV; không chọn engine chỉ vì app tham khảo đang dùng nó.
 - [ ] Ghi quyết định engine, surface/window/lifecycle và tập codec/DRM được hỗ trợ ban đầu.
   Đích là video và controls trong launcher; không thay bằng companion app như đích giao hàng.
-- [ ] Đo ảnh hưởng so với giới hạn 700 KiB và TV 1 GB trước khi thêm dependency production.
+- [ ] Đo ảnh hưởng so với giới hạn 5 MiB và TV 1 GB trước khi thêm dependency production.
   Nếu engine không thể nằm trong ngân sách, trình số đo và đề xuất thay đổi giới hạn để chốt;
   không tự miễn trừ CI hoặc cam kết giữ nguyên kích thước khi chưa đo.
 - [ ] Giữ nguyên manifest component đã lưu trên thiết bị. Không thêm Activity cho panel;

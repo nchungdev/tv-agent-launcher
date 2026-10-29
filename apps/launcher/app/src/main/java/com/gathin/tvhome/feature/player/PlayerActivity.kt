@@ -10,8 +10,6 @@ import android.view.KeyEvent
 import android.view.WindowManager
 import android.widget.FrameLayout
 import androidx.annotation.OptIn
-import androidx.media3.common.MediaItem
-import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
@@ -21,6 +19,7 @@ import androidx.media3.ui.PlayerView
 import com.gathin.tvhome.R
 import com.gathin.tvhome.feature.agent.data.CatalogClient
 import com.gathin.tvhome.feature.agent.data.CatalogEpisode
+import com.gathin.tvhome.feature.playback.ExoPlayerHelper
 import java.util.concurrent.Executors
 
 @OptIn(markerClass = [UnstableApi::class])
@@ -53,7 +52,7 @@ class PlayerActivity : Activity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         resume = PlayerResume(this)
 
-        val exo = ExoPlayer.Builder(this).build()
+        val exo = ExoPlayerHelper.createPlayer(this)
         player = exo
         exo.addListener(listener)
         val view = PlayerView(this).apply {
@@ -159,10 +158,8 @@ class PlayerActivity : Activity() {
 
     private fun start(episode: CatalogEpisode, url: String, mime: String?) {
         val exo = player ?: return
-        val item = MediaItem.Builder().setUri(url)
-        val hls = mime?.contains("mpegurl", true) == true || url.contains(".m3u8", true)
-        if (hls) item.setMimeType(MimeTypes.APPLICATION_M3U8)
-        exo.setMediaItem(item.build(), resume.position(episode.id))
+        val item = ExoPlayerHelper.buildMediaItem(url, mime)
+        exo.setMediaItem(item, resume.position(episode.id))
         exo.prepare()
         exo.play()
     }

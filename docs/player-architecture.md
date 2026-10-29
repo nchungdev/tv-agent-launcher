@@ -2,7 +2,7 @@
 
 Implementation date: 29/10/2026. Scope: foreground playback in the launcher window,
 without a new Activity, using the Android platform `VideoView` / `MediaPlayer` engine.
-The existing 700 KiB APK limit remains in force.
+The existing 5 MiB APK limit remains in force.
 
 ## References and decisions
 

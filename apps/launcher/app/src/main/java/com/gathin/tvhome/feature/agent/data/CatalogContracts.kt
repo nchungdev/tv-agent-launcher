@@ -64,6 +64,8 @@ object CatalogParser {
         }
 
         val episodesArray = json.optJSONArray("episodes")
+            ?: json.optJSONArray("items")
+            ?: json.optJSONArray("sources")
         val episodes = ArrayList<CatalogEpisode>()
         if (episodesArray != null) {
             for (i in 0 until episodesArray.length()) {
@@ -74,25 +76,31 @@ object CatalogParser {
         }
 
         return CatalogTitle(
-            id = json.optString("id", ""),
-            sourceId = json.optString("source_id", ""),
-            name = json.optString("name", ""),
-            kind = json.optString("kind", ""),
+            id = json.optString("id", json.optString("title_id", "")),
+            sourceId = json.optString("source_id", json.optString("source", "")),
+            name = json.optString("name", json.optString("title", "")),
+            kind = json.optString("kind", json.optString("type", "")),
             year = json.optInt("year", 0),
             seasons = seasons,
             episodes = episodes
         )
     }
 
-    fun parseEpisode(json: JSONObject): CatalogEpisode = CatalogEpisode(
-        id = json.optString("id", ""),
-        titleId = json.optString("title_id", ""),
-        label = json.optString("label", ""),
-        group = json.optString("group", ""),
-        order = json.optInt("order", 0),
-        seasonId = json.optString("season_id", ""),
-        playable = json.optBoolean("playable", true)
-    )
+    fun parseEpisode(json: JSONObject): CatalogEpisode {
+        val rawId = json.optString("id", json.optString("episode_id", json.optString("url", "")))
+        val rawLabel = json.optString("label", json.optString("title", json.optString("name", "")))
+            .ifBlank { "Full" }
+        val rawGroup = json.optString("group", json.optString("source_id", json.optString("source", "")))
+        return CatalogEpisode(
+            id = rawId,
+            titleId = json.optString("title_id", ""),
+            label = rawLabel,
+            group = rawGroup,
+            order = json.optInt("order", 0),
+            seasonId = json.optString("season_id", ""),
+            playable = json.optBoolean("playable", true)
+        )
+    }
 
     fun parsePlaybackResponse(json: JSONObject): CatalogPlaybackResponse {
         val episodeObj = json.optJSONObject("episode")

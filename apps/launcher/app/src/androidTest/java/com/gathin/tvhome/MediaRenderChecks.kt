@@ -7,7 +7,8 @@ import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import android.widget.VideoView
+import androidx.media3.exoplayer.ExoPlayer
+import com.gathin.tvhome.feature.agent.data.SearchTab
 import com.gathin.tvhome.core.view.AgentCardData
 import com.gathin.tvhome.feature.agent.coordinator.CatalogEpisodeSheet
 import com.gathin.tvhome.feature.agent.ui.AgentRequestRunner
@@ -23,8 +24,7 @@ import java.util.concurrent.TimeUnit
 class MediaRenderChecks(private val runner: AgentRenderInstrumentation) {
     private val context = runner.targetContext
     private lateinit var activity: Activity
-    private var answerDialog: Dialog? = null
-    private var requestRunner: AgentRequestRunner? = null
+    private var search: MediaSearchChecks? = null
 
     fun run(): String {
         val config = AgentHomeConfig(context)
@@ -47,7 +47,8 @@ class MediaRenderChecks(private val runner: AgentRenderInstrumentation) {
                 PlaybackStore(context).prefer("phimapi", "launcher")
                 PlaybackStore(context).prefer("jellyfin", "app")
             }
-            search()
+            search = MediaSearchChecks(runner, activity)
+            search!!.run()
             report("search tabs, source sections, metadata and focus passed")
             MediaMovieChecks(runner, activity).run()
             report("Movie single-version and multi-version detail differ from Series")
@@ -60,77 +61,13 @@ class MediaRenderChecks(private val runner: AgentRenderInstrumentation) {
             return "search/detail, 500 episodes, MP4/HLS, seek, resume and Home release passed"
         } finally {
             main {
-                requestRunner?.destroy()
-                answerDialog?.dismiss()
+                search?.close()
                 player()?.close()
                 config.agentUrl = originalUrl
                 config.agentToken = originalToken
                 MediaTestPreferences.restore(prefs, original)
                 MediaTestPreferences.restore(selection, originalSelection)
             }
-        }
-    }
-
-    private fun search() {
-        val done = CountDownLatch(1)
-        var failure: String? = null
-        var cards = emptyList<AgentCardData>()
-        lateinit var answer: AgentAnswerView
-        main {
-            answer = AgentAnswerView(activity)
-            answerDialog = Dialog(activity, android.R.style.Theme_Material_NoActionBar_Fullscreen)
-                .apply { setContentView(answer); show(); window?.setLayout(-1, -1) }
-            requestRunner = AgentRequestRunner(activity, object : AgentRequestRunner.Callbacks {
-                override fun onPartialAnswer(soFar: String) { answer.setText(soFar) }
-                override fun onCards(items: List<AgentCardData>) {
-                    cards = items
-                    answer.setCards(items)
-                }
-                override fun onFinished(error: String?, text: String) {
-                    failure = error
-                    done.countDown()
-                }
-            })
-            requestRunner!!.send("fixture media search")
-        }
-        check(done.await(12, TimeUnit.SECONDS)) { "Search did not complete" }
-        check(failure == null) { "Search failed: $failure" }
-        main {
-            check(cards.size == 2 && cards.map { it.sourceId }.toSet().size == 2)
-            check(cards.first().year == "2026")
-            val view = field(answer, "searchResults") as SearchResultsView
-            val tabs = field(view, "tabs") as ViewGroup
-            check(tabs.childCount == 4)
-            val row = descendants(view).first { it.tag == "phimapi|film" }
-            row.requestFocus()
-            answer.setCards(cards + cards.last().copy(id = "another", title = "Another"))
-            check(row.hasFocus()) { "Source update stole focus" }
-            tabs.getChildAt(1).performClick()
-            check(row.visibility == View.GONE)
-            tabs.getChildAt(0).performClick()
-        }
-        screenshot("search.png")
-        main {
-            val view = field(answer, "searchResults") as SearchResultsView
-            descendants(view).first { it.tag == "phimapi|film" }.apply {
-                requestFocus()
-                performClick()
-            }
-        }
-        await("Media detail") {
-            val map = field(com.gathin.tvhome.feature.agent.coordinator.MediaDetailSheet,
-                "open") as Map<*, *>
-            val detail = map[activity] as? Dialog
-            detail?.window?.decorView?.let { root ->
-                descendants(root).filterIsInstance<TextView>().any { it.text.contains("Episode 1") }
-            } == true
-        }
-        screenshot("detail.png")
-        main {
-            com.gathin.tvhome.feature.agent.coordinator.MediaDetailSheet.close(activity)
-            val view = field(answer, "searchResults") as SearchResultsView
-            check(descendants(view).first { it.tag == "phimapi|film" }.hasFocus())
-            answerDialog?.dismiss()
         }
     }
 
@@ -194,7 +131,7 @@ class MediaRenderChecks(private val runner: AgentRenderInstrumentation) {
         await("Replacement playback") {
             val active = player() ?: return@await false
             (field(active, "identity") as PlaybackIdentity).episodeId == "episode-1" &&
-                (field(active, "video") as VideoView).isPlaying
+                (field(active, "video") as ExoPlayer).isPlaying
         }
         Thread.sleep(3200)
         main {
@@ -209,19 +146,19 @@ class MediaRenderChecks(private val runner: AgentRenderInstrumentation) {
         main { PlaybackRouter.open(activity, identity) }
         await("$suffix playback", 20_000) {
             val player = player() ?: return@await false
-            val video = field(player, "video") as VideoView
+            val video = field(player, "video") as ExoPlayer
             video.isPlaying && video.currentPosition > 500
         }
         main {
             val player = player()!!
-            val video = field(player, "video") as VideoView
+            val video = field(player, "video") as ExoPlayer
             val controls = field(player, "controls") as PlaybackControls
             controls.buttons.getChildAt(2).performClick()
             check(video.duration > 30_000)
         }
-        await("$suffix seek") { (field(player()!!, "video") as VideoView).currentPosition > 9000 }
+        await("$suffix seek") { (field(player()!!, "video") as ExoPlayer).currentPosition > 9000 }
         await("$suffix advancing after seek", 15_000) {
-            (field(player()!!, "video") as VideoView).currentPosition > 11_000
+            (field(player()!!, "video") as ExoPlayer).currentPosition > 11_000
         }
         screenshot("player-$suffix.png")
         main { player()!!.close() }
@@ -235,7 +172,7 @@ class MediaRenderChecks(private val runner: AgentRenderInstrumentation) {
         }
         await("$suffix resume") {
             val active = player() ?: return@await false
-            val video = field(active, "video") as VideoView
+            val video = field(active, "video") as ExoPlayer
             video.isPlaying && video.currentPosition > 9000
         }
         runner.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_HOME)

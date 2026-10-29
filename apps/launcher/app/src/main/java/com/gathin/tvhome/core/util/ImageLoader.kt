@@ -5,32 +5,34 @@ import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
 import android.os.Build
 import android.util.LruCache
+import android.view.View
 import android.widget.ImageView
+import androidx.annotation.RequiresApi
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
-import android.view.View
-import java.lang.ref.WeakReference
-import java.util.WeakHashMap
-import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
+import java.lang.ref.WeakReference
 import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.ByteBuffer
+import java.util.WeakHashMap
 
 object ImageLoader {
 
     private const val MAX_CACHE_BYTES = 4 * 1024 * 1024
-    private const val CONNECT_TIMEOUT_MS = 4000
-    private const val READ_TIMEOUT_MS = 4000
+    private const val CONNECT_TIMEOUT_MS = 6000
+    private const val READ_TIMEOUT_MS = 6000
     private const val MAX_DOWNLOAD_BYTES = 5 * 1024 * 1024
     private const val BUFFER_SIZE = 16 * 1024
+    private const val USER_AGENT =
+        "Mozilla/5.0 (SmartTV; Linux; Android 11; TV) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36"
 
     private val loaderScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -39,15 +41,16 @@ object ImageLoader {
     }
 
     private val pending = HashMap<String, Deferred<Bitmap?>>()
-    private val slots = Semaphore(2)
+    private val slots = Semaphore(4)
     private val targets = WeakHashMap<ImageView, Job>()
 
     fun load(url: String?, targetView: ImageView, reqWidth: Int, reqHeight: Int) {
         targets.remove(targetView)?.cancel()
-        val cleanUrl = url?.trim().orEmpty()
+        var cleanUrl = url?.trim().orEmpty()
+        if (cleanUrl.startsWith("//")) cleanUrl = "https:$cleanUrl"
         targetView.tag = cleanUrl
         targetView.setImageDrawable(null)
-        if (cleanUrl.isEmpty() || !EndpointPolicy.webLink(cleanUrl)) return
+        if (!cleanUrl.startsWith("http://") && !cleanUrl.startsWith("https://")) return
         val width = reqWidth.coerceIn(1, 1024)
         val height = reqHeight.coerceIn(1, 1024)
         val key = "$cleanUrl|$width|$height"
@@ -56,7 +59,7 @@ object ImageLoader {
             return
         }
         val result = synchronized(pending) {
-            pending[key] ?: if (pending.size >= 16) null else {
+            pending[key] ?: if (pending.size >= 32) null else {
                 loaderScope.async {
                     slots.withPermit { downloadAndDecode(cleanUrl, width, height) }
                 }.also { task ->
@@ -98,10 +101,14 @@ object ImageLoader {
             connection = (connectionUrl.openConnection() as HttpURLConnection).apply {
                 connectTimeout = CONNECT_TIMEOUT_MS
                 readTimeout = READ_TIMEOUT_MS
+                instanceFollowRedirects = true
                 doInput = true
+                setRequestProperty("User-Agent", USER_AGENT)
+                setRequestProperty("Accept", "image/webp,image/apng,image/*,*/*;q=0.8")
             }
             val deadline = ConnectionDeadline(connection, 12)
             val bytes = try {
+                if (connection.responseCode != 200) return null
                 readBoundedStream(connection) ?: return null
             } finally { deadline.close() }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -132,7 +139,7 @@ object ImageLoader {
         return if (totalBytesRead > 0) outputStream.toByteArray() else null
     }
 
-    @androidx.annotation.RequiresApi(Build.VERSION_CODES.P)
+    @RequiresApi(Build.VERSION_CODES.P)
     private fun decodeWithImageDecoder(bytes: ByteArray, reqWidth: Int, reqHeight: Int): Bitmap {
         val buffer = ByteBuffer.wrap(bytes)
         val source = ImageDecoder.createSource(buffer)

@@ -33,6 +33,7 @@ public final class AgentRenderInstrumentation extends Instrumentation {
     }
 
     private boolean mediaScenario;
+    private boolean voiceScenario;
     private boolean riskScenario;
     private boolean dockScenario;
     private boolean weatherScenario;
@@ -47,6 +48,7 @@ public final class AgentRenderInstrumentation extends Instrumentation {
     @Override
     public void onCreate(Bundle arguments) {
         super.onCreate(arguments);
+        voiceScenario = arguments != null && "voice".equals(arguments.getString("scenario"));
         mediaScenario = arguments != null && "media".equals(arguments.getString("scenario"));
         riskScenario = arguments != null && "risk".equals(arguments.getString("scenario"));
         dockScenario = arguments != null && "dock".equals(arguments.getString("scenario"));
@@ -59,6 +61,15 @@ public final class AgentRenderInstrumentation extends Instrumentation {
     public void onStart() {
         Bundle result = new Bundle();
         try {
+            if (voiceScenario) {
+                if (!SpeechRecognizer.isRecognitionAvailable(getTargetContext())) {
+                    throw new IllegalStateException(
+                            "Android speech recognition service is not visible to the launcher");
+                }
+                result.putString("result", "Android speech recognition service is available");
+                finish(Activity.RESULT_OK, result);
+                return;
+            }
             if (mediaScenario) {
                 result.putString("result", new MediaRenderChecks(this).run());
                 finish(Activity.RESULT_OK, result);

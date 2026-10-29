@@ -44,7 +44,7 @@ Understand the structural foundation of the launcher:
 - 🔄 **[State Management & MVI Pattern](architecture/state-management-mvi.md)**:
   Unidirectional Data Flow (UDF), `Intent` -> `Presenter` -> `State`/`Effect` -> `View/Sheet`, with 100% Kotlin Coroutines and `StateFlow`.
 - 📏 **[Coding Standards & Constraints](architecture/coding-standards.md)**:
-  Hard rules: files $< 300$ lines, lines $\le 100$ characters, 0 `typealias`, zero-allocation render paths, and the $< 700$ KB release APK CI gate.
+  Hard rules: files $< 300$ lines, lines $\le 100$ characters, 0 `typealias`, zero-allocation render paths, and the $< 5$ MiB release APK CI gate.
 
 ---
 

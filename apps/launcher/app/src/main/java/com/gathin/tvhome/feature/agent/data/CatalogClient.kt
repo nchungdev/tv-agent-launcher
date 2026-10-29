@@ -1,12 +1,11 @@
 package com.gathin.tvhome.feature.agent.data
 
-import com.gathin.tvhome.core.util.ConnectionDeadline
 import android.content.Context
 import com.gathin.tvhome.core.util.BoundedInput
+import com.gathin.tvhome.core.util.ConnectionDeadline
 import com.gathin.tvhome.core.util.EndpointPolicy
-import org.json.JSONObject
 import com.gathin.tvhome.feature.playback.PlaybackUrls
-import com.gathin.tvhome.feature.watching.data.readBytesBounded
+import org.json.JSONObject
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
@@ -15,8 +14,8 @@ import java.nio.charset.StandardCharsets
 
 object CatalogClient {
 
-    private const val CONNECT_TIMEOUT_MS = 6000
-    private const val READ_TIMEOUT_MS = 20_000
+    private const val CONNECT_TIMEOUT_MS = 10_000
+    private const val READ_TIMEOUT_MS = 60_000
 
     @JvmStatic
     @Throws(Exception::class)
@@ -38,7 +37,7 @@ object CatalogClient {
         }
 
         request.attach(connection)
-        val deadline = ConnectionDeadline(connection, 30)
+        val deadline = ConnectionDeadline(connection, 65)
         try {
             val code = connection.responseCode
             if (code != 200) {
@@ -75,7 +74,7 @@ object CatalogClient {
         }
 
         request.attach(connection)
-        val deadline = ConnectionDeadline(connection, 30)
+        val deadline = ConnectionDeadline(connection, 65)
         try {
             connection.outputStream.use { out ->
                 out.write("{}".toByteArray(StandardCharsets.UTF_8))

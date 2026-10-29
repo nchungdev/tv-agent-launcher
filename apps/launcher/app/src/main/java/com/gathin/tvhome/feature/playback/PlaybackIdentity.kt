@@ -14,8 +14,10 @@ data class PlaybackIdentity(
 }
 
 object PlaybackUrls {
-    private val mimeTypes = setOf("video/mp4", "video/webm", "video/x-matroska",
-        "application/x-mpegurl", "application/vnd.apple.mpegurl", "video/*")
+    private val mimeTypes = setOf(
+        "video/mp4", "video/webm", "video/x-matroska",
+        "application/x-mpegurl", "application/vnd.apple.mpegurl", "video/*"
+    )
 
     fun resolve(base: String, value: String): String {
         val uri = URI(value.trim())
@@ -27,5 +29,13 @@ object PlaybackUrls {
         return resolved.toASCIIString()
     }
 
-    fun supported(mime: String): Boolean = mime.lowercase() in mimeTypes
+    fun supported(mime: String): Boolean {
+        val clean = mime.lowercase().trim()
+        if (clean.isBlank() || clean == "video/*" || clean == "audio/*" ||
+            clean == "application/octet-stream") return true
+        if (clean.startsWith("video/") || clean.startsWith("audio/")) return true
+        if (clean.contains("mpegurl") || clean.contains("dash") ||
+            clean.contains("smoothstreaming")) return true
+        return clean in mimeTypes
+    }
 }

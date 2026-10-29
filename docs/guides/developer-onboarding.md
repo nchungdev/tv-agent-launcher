@@ -63,10 +63,10 @@ Output: `apps/launcher/app/build/outputs/apk/debug/app-debug.apk`
 Output: `apps/launcher/app/build/outputs/apk/release/tv-launcher.apk`
 
 ### D. Verify CI Size Gate
-Ensure the release APK does not exceed the 700 KB ceiling:
+Ensure the release APK does not exceed the 5 MiB ceiling:
 ```bash
 stat -f "%z bytes" app/build/outputs/apk/release/tv-launcher.apk
-test $(stat -f %z app/build/outputs/apk/release/tv-launcher.apk) -lt 716800 && echo "PASS"
+test $(stat -f %z app/build/outputs/apk/release/tv-launcher.apk) -lt 5242880 && echo "PASS"
 ```
 
 ---

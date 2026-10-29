@@ -30,6 +30,11 @@
          apps that declare a module card (docs/specs/card.md). -->
     <queries>
         <provider android:authorities="android.media.tv" />
+        <package android:name="com.google.android.katniss" />
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+            <category android:name="android.intent.category.DEFAULT" />
+        </intent>
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:mimeType="video/*" />

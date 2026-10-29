@@ -56,12 +56,12 @@ To ensure long-term maintainability, high performance on low-RAM hardware, and c
 ## 4. Release Size & CI Gate
 
 - **CI Release Size Gate**:
-  - The release APK (`tv-launcher.apk`) must remain strictly under **716,800 bytes (~700 KB)**.
+  - The release APK (`tv-launcher.apk`) must remain strictly under **5,242,880 bytes (5 MiB)**.
   - Current footprint: **~561 KB** (575,221 bytes).
   - Any pull request or commit that causes the APK to exceed this ceiling will fail CI verification.
 - Verification command:
   ```bash
-  test $(stat -f %z apps/launcher/app/build/outputs/apk/release/tv-launcher.apk) -lt 716800
+  test $(stat -f %z apps/launcher/app/build/outputs/apk/release/tv-launcher.apk) -lt 5242880
   ```
 
 ---

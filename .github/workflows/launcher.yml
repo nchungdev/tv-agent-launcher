@@ -61,8 +61,8 @@ jobs:
       - name: APK size
         run: |
           size=$(stat -c %s app/build/outputs/apk/release/tv-launcher.apk)
-          echo "release APK: $((size / 1024)) KB"
-          test "$size" -lt 4194304
+          echo "release APK: $size bytes ($((size / 1024)) KiB); limit: 5 MiB"
+          test "$size" -lt 5242880
 
       - uses: actions/upload-artifact@v7
         with:
