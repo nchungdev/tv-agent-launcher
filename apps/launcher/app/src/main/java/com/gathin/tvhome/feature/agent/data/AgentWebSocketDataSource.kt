@@ -46,14 +46,14 @@ class AgentWebSocketDataSource(private val context: Context) {
                             return@launch
                         }
                         val port = AgentSocketTransport.port(parsed)
-    
+
                         val socket = AgentSocketTransport.connect(base) {
                             activeSocket = it
                             socketRef.set(it)
                         }
                         val input = BufferedInputStream(socket.getInputStream(), SOCKET_RX_BYTES)
                         val output = socket.getOutputStream()
-    
+
                         val key = sendHandshake(output, host, port, AgentClient.token(appContext))
                         if (readHandshakeResponse(input, key)) {
                             connected = true
@@ -72,7 +72,7 @@ class AgentWebSocketDataSource(private val context: Context) {
                         try { activeSocket?.close() } catch (_: Exception) {}
                         activeSocket = null
                     }
-    
+
                     if (!currentCoroutineContext().isActive) break
                     delay(backoffMs)
                     if (!connected) {

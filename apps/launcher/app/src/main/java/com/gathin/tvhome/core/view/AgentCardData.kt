@@ -28,9 +28,9 @@ data class AgentCardData(
     val sourceId: String = "",
     val automaticActions: Boolean = true,
     val summary: String = "",
-    val source: String = "",
     val season: Int = 0,
-    val episode: Int = 0
+    val episode: Int = 0,
+    val source: String = ""
 ) {
     fun resolvedActions(): List<CardAction> {
         if (actions.isNotEmpty()) return actions

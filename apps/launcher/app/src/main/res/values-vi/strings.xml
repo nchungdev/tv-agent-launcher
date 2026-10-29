@@ -467,10 +467,6 @@
     <string name="media_play">Phát</string>
     <string name="media_loading_detail">Đang tải thông tin…</string>
     <string name="media_versions">Phiên bản &amp; nguồn phát</string>
-    <string name="watch_kind_movie">Phim lẻ</string>
-    <string name="watch_kind_series">Phim bộ</string>
-    <string name="watch_season">Mùa %d</string>
-    <string name="watch_episode">Tập %d</string>
     <string name="tv_mode_normal">Bình thường</string>
     <string name="tv_mode_offline">Máy chủ chưa sẵn sàng, thử lại sau</string>
     <string name="agent_login_title">Đăng nhập TV này</string>

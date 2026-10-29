@@ -490,10 +490,6 @@
     <string name="media_play">Play</string>
     <string name="media_loading_detail">Loading details…</string>
     <string name="media_versions">Versions &amp; sources</string>
-    <string name="watch_kind_movie">Movie</string>
-    <string name="watch_kind_series">Series</string>
-    <string name="watch_season">Season %d</string>
-    <string name="watch_episode">Episode %d</string>
     <string name="tv_mode_normal">Normal</string>
     <string name="tv_mode_offline">Server is not ready, try again</string>
     <string name="agent_login_title">Sign in this TV</string>
