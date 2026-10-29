@@ -10,6 +10,7 @@ import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.gathin.tvhome.R
+import com.gathin.tvhome.core.design.Palette
 import com.gathin.tvhome.feature.agent.data.SearchTab
 
 class SearchResultsView(context: Context) : LinearLayout(context) {
@@ -137,15 +138,23 @@ class SearchResultsView(context: Context) : LinearLayout(context) {
     }
 
     private fun paint(chip: TextView, active: Boolean, focused: Boolean) {
+        val primary = Palette.dark(Palette.currentOrBaseline()).primary
         chip.background = GradientDrawable().apply {
             cornerRadius = dp(20).toFloat()
             when {
                 focused -> setColor(FOCUSED)
-                active -> setColor(SELECTED)
+                active -> {
+                    setColor(Palette.alpha(primary, 0x33))
+                    setStroke(dp(1), Palette.alpha(primary, 0x99))
+                }
                 else -> setColor(RESTING)
             }
         }
-        chip.setTextColor(if (focused) 0xFF1C1B1F.toInt() else 0xFFFFFFFF.toInt())
+        chip.setTextColor(when {
+            focused -> 0xFF1C1B1F.toInt()
+            active -> primary
+            else -> 0xFFFFFFFF.toInt()
+        })
     }
 
     private fun label(source: String): String = LABELS[source]
@@ -164,7 +173,6 @@ class SearchResultsView(context: Context) : LinearLayout(context) {
         const val TABS_GAP = 12
         const val RESTING = 0xFF262B33.toInt()
         const val FOCUSED = 0xFFE6E1EC.toInt()
-        const val SELECTED = 0xFFD32F2F.toInt()
         val LABELS = mapOf(
             "plex" to "Plex", "jellyfin" to "Jellyfin", "phimapi" to "PhimAPI",
             "radarr" to "Radarr", "sonarr" to "Sonarr", "tmdb" to "TMDb", "internet" to "Internet"

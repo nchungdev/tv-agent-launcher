@@ -54,6 +54,8 @@ object AgentCardDialog {
     private fun panel(context: Context, density: Float, color: Int): LinearLayout {
         val panel = LinearLayout(context)
         panel.orientation = LinearLayout.VERTICAL
+        panel.clipChildren = false
+        panel.clipToPadding = false
         val padding = (PADDING_DP * density).toInt()
         panel.setPadding(padding, padding, padding, padding)
         panel.background = GradientDrawable().apply {
@@ -92,6 +94,8 @@ object AgentCardDialog {
     private fun buttonRow(context: Context, density: Float): LinearLayout {
         val row = LinearLayout(context)
         row.orientation = LinearLayout.HORIZONTAL
+        row.clipChildren = false
+        row.clipToPadding = false
         row.gravity = Gravity.END
         row.layoutParams = LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
