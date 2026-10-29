@@ -4,7 +4,6 @@ import android.app.Activity
 import android.view.FocusFinder
 import android.view.KeyEvent
 import android.view.View
-import android.view.ViewGroup
 import android.widget.FrameLayout
 import com.gathin.tvhome.R
 import com.gathin.tvhome.core.view.AgentCardData
@@ -84,6 +83,12 @@ class AgentPanel(private val activity: Activity, private val host: Host) :
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (isVoiceKey(event.keyCode)) {
+            if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
+                speakRequested()
+            }
+            return true
+        }
         if (keys.owns(event.keyCode)) return keys.consume(event)
 
         val pressed = event.action == KeyEvent.ACTION_DOWN
@@ -91,6 +96,12 @@ class AgentPanel(private val activity: Activity, private val host: Host) :
         if (super.dispatchKeyEvent(event)) return true
         return pressed && keys.fallback(event.keyCode)
     }
+
+    private fun isVoiceKey(keyCode: Int): Boolean = keyCode in setOf(
+        KeyEvent.KEYCODE_VOICE_ASSIST,
+        KeyEvent.KEYCODE_ASSIST,
+        KeyEvent.KEYCODE_SEARCH
+    )
 
     private fun resetState() {
         runner.cancel()

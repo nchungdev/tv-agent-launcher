@@ -2,6 +2,7 @@ package com.gathin.tvhome.feature.agent.ui
 
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import com.gathin.tvhome.service.ClockDream
 
@@ -19,6 +20,9 @@ class AgentActivity : Activity(), AgentPanel.Host {
         panel = created
         setContentView(created)
         created.start()
+        if (isVoiceIntent(intent)) {
+            created.speakRequested()
+        }
     }
 
     override fun onResume() {
@@ -35,6 +39,9 @@ class AgentActivity : Activity(), AgentPanel.Host {
         super.onNewIntent(intent)
         setIntent(intent)
         panel?.restart()
+        if (isVoiceIntent(intent)) {
+            panel?.speakRequested()
+        }
     }
 
     override fun onRequestPermissionsResult(
@@ -53,12 +60,23 @@ class AgentActivity : Activity(), AgentPanel.Host {
         super.onDestroy()
     }
 
+    private fun isVoiceIntent(intent: Intent?): Boolean {
+        if (intent == null) return false
+        val action = intent.action.orEmpty()
+        return action in setOf(
+            Intent.ACTION_ASSIST,
+            "android.intent.action.VOICE_ASSIST",
+            "android.speech.action.WEB_SEARCH",
+            "android.speech.action.RECOGNIZE_SPEECH"
+        ) || intent.getBooleanExtra("start_listening", false)
+    }
+
     private fun finishWithoutAnimation() {
         finish()
         overridePendingTransition(0, 0)
     }
 
     companion object {
-        private const val PERMISSION_GRANTED = android.content.pm.PackageManager.PERMISSION_GRANTED
+        private const val PERMISSION_GRANTED = PackageManager.PERMISSION_GRANTED
     }
 }
