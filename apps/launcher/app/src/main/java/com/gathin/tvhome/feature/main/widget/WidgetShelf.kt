@@ -350,17 +350,6 @@ class WidgetShelf(
         cards[2].setOnFocusChangeListener { _, focused ->
             if (!focused) paintContinue()
         }
-        cards[2].setOnKeyListener { _, code, event ->
-            val step = when (code) {
-                KeyEvent.KEYCODE_DPAD_RIGHT -> 1
-                KeyEvent.KEYCODE_DPAD_LEFT -> if (watchIndex > 0) -1 else 0
-                else -> 0
-            }
-            val count = watching.items.size
-            if (step == 0 || count < 2 || !expandedHub) return@setOnKeyListener false
-            if (event.action == KeyEvent.ACTION_DOWN) stepWatching(step, count)
-            true
-        }
         cards[3].setOnClickListener {
             cards[3].turn {
                 airTomorrow = !airTomorrow
@@ -454,11 +443,19 @@ class WidgetShelf(
         if (force) watching.refresh() else watching.tick()
     }
 
-    private fun stepWatching(step: Int, count: Int) {
+    private fun stepWatching(keyCode: Int): Boolean {
+        val count = watching.items.size
+        val step = when (keyCode) {
+            KeyEvent.KEYCODE_DPAD_RIGHT -> 1
+            KeyEvent.KEYCODE_DPAD_LEFT -> if (watchIndex > 0) -1 else 0
+            else -> 0
+        }
+        if (step == 0 || count < 2 || !expandedHub) return false
         watchIndex = (watchIndex + step + count) % count
         watchRotatedAt = System.currentTimeMillis()
         paintedWatchItem = null
         paintContinue()
+        return true
     }
 
     private fun rotateWatching() {
