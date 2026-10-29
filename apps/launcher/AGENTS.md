@@ -3,7 +3,7 @@
 Android TV home screen, package `com.gathin.tvhome`, minSdk 26, target 34. Kotlin and Java with AndroidX
 RecyclerView and DynamicAnimation plus `app/libs/material-color-utilities` (no Compose).
 Built for 1 GB TVs: no blur, no video, no polling, no background work beyond what is listed here.
-Release APK: `app/build/outputs/apk/release/tv-launcher.apk`, R8 on, debug-signed, CI fails over 700 KB. A `v*` tag publishes it to a GitHub release (`.github/workflows/release.yml`), signed with the key in the `TV_KEYSTORE_BASE64` secret and the `TV_KEYSTORE_PASSWORD`, `TV_KEY_ALIAS`, `TV_KEY_PASSWORD` secrets; `-PtvVersion` sets versionName from the tag.
+Release APK: `app/build/outputs/apk/release/tv-launcher.apk`, R8 on, debug-signed, CI fails over 4 MB (Media3 ExoPlayer is the bulk). A `v*` tag publishes it to a GitHub release (`.github/workflows/release.yml`), signed with the key in the `TV_KEYSTORE_BASE64` secret and the `TV_KEYSTORE_PASSWORD`, `TV_KEY_ALIAS`, `TV_KEY_PASSWORD` secrets; `-PtvVersion` sets versionName from the tag.
 Locales: English and Vietnamese only.
 
 ## Components (names are stored on TVs, never rename or move)
@@ -16,6 +16,7 @@ Locales: English and Vietnamese only.
 | `.InputKeyService` | Accessibility: Input button (`KEYCODE_TV`, `KEYCODE_TV_INPUT`, `input_key_keycodes`, Menu if `menu_opens_inputs`), `app_keys`, `running_apps_keycodes`; no system switcher: Home's Inputs menu |
 | `.HomeKeyService` | Accessibility: Home that sends `KEYCODE_ALL_APPS`, `settings_key_*`, `app_keys`; stands in for Home where the firmware keeps it (Xiaomi CN): `KEYCODE_HOME` and any other HOME activity coming to the front (the stock launcher, or Settings' FallbackHome once the stock one is disabled) open this one, 300 ms after it settles |
 | `.NowPlayingListener` | Notification listener (`tvctl install` allows it): follows apps' media sessions for the watch history |
+| `.feature.player.PlayerActivity` | Not exported: in-app Media3 player for catalog streams (servers, episodes, resume) |
 | `.ClockDream` | Clock screensaver; style from Launcher settings (shapes, glow, minimal, large) |
 | `.InstallStatusReceiver` | Not exported: the PackageInstaller session's result; shows the system confirm dialog |
 

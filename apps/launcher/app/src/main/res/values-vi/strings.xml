@@ -456,4 +456,11 @@
     <string name="agent_search_nothing">Không tìm thấy kết quả nào.</string>
     <string name="agent_search_loading">Đang tìm…</string>
     <string name="agent_search_empty_tab">Không có kết quả</string>
+    <string name="player_servers">Server</string>
+    <string name="player_episodes">Tập</string>
+    <string name="player_hint">◀ ▶ tua  ·  OK tạm dừng  ·  ▼ tập &amp; server</string>
+    <string name="player_failed">Không phát được luồng này trên server nào</string>
+    <string name="player_loading_title">Đang tải…</string>
+    <string name="catalog_load_failed">Không tải được phim từ máy chủ</string>
+    <string name="catalog_no_episodes">Chưa có tập nào phát được</string>
 </resources>

@@ -176,6 +176,7 @@ class AgentRequestRunner(context: Context, private val callbacks: Callbacks) {
             actions.add(CardAction("plex", plexApp.label.ifBlank { "Mở trong Plex" },
                 CardAction.KIND_CLIENT, "plex.open", mapOf("uri" to plexApp.url)))
         }
+        val catalog = item.actions.any { it.type == "catalog_detail" }
         for (action in if (plexApp == null) item.actions else emptyList()) {
             when (action.type) {
                 "catalog_detail" -> {
@@ -187,6 +188,7 @@ class AgentRequestRunner(context: Context, private val callbacks: Callbacks) {
                     actions.add(CardAction("play", action.label.ifBlank { "Phát ngay" }, CardAction.KIND_CLIENT, "catalog_playback", params))
                 }
                 else -> {
+                    if (catalog) continue
                     val url = action.url.ifBlank { item.url }
                     if (url.isNotBlank()) {
                         actions.add(CardAction("open", action.label.ifBlank { "Mở" }, CardAction.KIND_CLIENT, "web.open", mapOf("url" to url)))

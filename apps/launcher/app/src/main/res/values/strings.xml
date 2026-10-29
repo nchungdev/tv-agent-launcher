@@ -479,4 +479,11 @@
     <string name="agent_search_nothing">No results found.</string>
     <string name="agent_search_loading">Searching…</string>
     <string name="agent_search_empty_tab">Nothing here</string>
+    <string name="player_servers">Servers</string>
+    <string name="player_episodes">Episodes</string>
+    <string name="player_hint">◀ ▶ seek  ·  OK pause  ·  ▼ episodes &amp; servers</string>
+    <string name="player_failed">Cannot play this stream on any server</string>
+    <string name="player_loading_title">Loading…</string>
+    <string name="catalog_load_failed">Could not load this title from the server</string>
+    <string name="catalog_no_episodes">No playable episodes yet</string>
 </resources>
