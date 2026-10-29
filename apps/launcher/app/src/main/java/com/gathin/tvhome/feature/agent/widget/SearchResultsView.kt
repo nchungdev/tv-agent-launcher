@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.drawable.GradientDrawable
 import android.util.TypedValue
 import android.view.Gravity
+import android.view.KeyEvent
 import android.view.View
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
@@ -85,7 +86,13 @@ class SearchResultsView(context: Context) : LinearLayout(context) {
         }
         status.visibility = View.GONE
         for (card in tab.cards) {
-            posters.addView(SearchPosterCard(context, card), LayoutParams(
+            val poster = SearchPosterCard(context, card)
+            poster.setOnKeyListener { _, keyCode, event ->
+                val up = keyCode == KeyEvent.KEYCODE_DPAD_UP
+                if (up && event.action == KeyEvent.ACTION_DOWN) focusSelected()
+                up
+            }
+            posters.addView(poster, LayoutParams(
                 LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply { marginEnd = dp(18) })
         }
     }
@@ -103,9 +110,18 @@ class SearchResultsView(context: Context) : LinearLayout(context) {
         isClickable = true
         paint(this, tab.source == selected, false)
         setOnKeyListener { _, keyCode, event ->
-            val up = keyCode == android.view.KeyEvent.KEYCODE_DPAD_UP
-            if (up && event.action == android.view.KeyEvent.ACTION_DOWN) onLeaveTop()
-            up
+            val down = event.action == KeyEvent.ACTION_DOWN
+            when (keyCode) {
+                KeyEvent.KEYCODE_DPAD_UP -> {
+                    if (down) onLeaveTop()
+                    true
+                }
+                KeyEvent.KEYCODE_DPAD_DOWN -> {
+                    if (down) posters.getChildAt(0)?.requestFocus()
+                    posters.childCount > 0
+                }
+                else -> false
+            }
         }
         setOnFocusChangeListener { view, focused ->
             if (focused && selected != tab.source) {
