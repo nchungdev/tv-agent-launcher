@@ -52,7 +52,7 @@ class AgentPanel(private val activity: Activity, private val host: Host) :
 
     fun restart() {
         resetState()
-        startListening()
+        showIdle(DuinchBrain.agentGreeting(activity))
     }
 
     fun pause() {
@@ -100,7 +100,7 @@ class AgentPanel(private val activity: Activity, private val host: Host) :
         views.resetLine()
         views.answer.clear()
         views.hideInput()
-        views.chips.visibility = View.VISIBLE
+        views.chips.visibility = VISIBLE
         setState(IDLE)
     }
 
@@ -295,6 +295,6 @@ class AgentPanel(private val activity: Activity, private val host: Host) :
         private const val LISTENING = 1
         private const val THINKING = 2
         private const val SPEAKING = 3
-        private const val MATCH = ViewGroup.LayoutParams.MATCH_PARENT
+        private const val MATCH = LayoutParams.MATCH_PARENT
     }
 }
