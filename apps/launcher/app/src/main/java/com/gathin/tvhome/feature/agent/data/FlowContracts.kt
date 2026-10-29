@@ -193,6 +193,17 @@ object FlowParser {
                 }
             }
         }
+        var rawPoster = json.optString("poster", "")
+            .ifBlank { json.optString("poster_url", "") }
+            .ifBlank { json.optString("poster_path", "") }
+            .ifBlank { json.optString("thumbnail", "") }
+            .ifBlank { json.optString("image", "") }
+            .ifBlank { json.optString("cover", "") }
+        if (rawPoster.startsWith("/")) {
+            rawPoster = "https://image.tmdb.org/t/p/w500$rawPoster"
+        } else if (rawPoster.startsWith("//")) {
+            rawPoster = "https:$rawPoster"
+        }
         return FlowItem(
             id = json.optString("id", ""),
             kind = json.optString("kind", ""),
@@ -200,7 +211,7 @@ object FlowParser {
             url = json.optString("url", ""),
             content = json.optString("content", ""),
             actions = actions,
-            poster = json.optString("poster"),
+            poster = rawPoster,
             year = json.optInt("year"),
             season = json.optInt("season"),
             episode = json.optInt("episode")

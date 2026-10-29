@@ -48,6 +48,7 @@ object ImageLoader {
         targets.remove(targetView)?.cancel()
         var cleanUrl = url?.trim().orEmpty()
         if (cleanUrl.startsWith("//")) cleanUrl = "https:$cleanUrl"
+        else if (cleanUrl.startsWith("/")) cleanUrl = "https://image.tmdb.org/t/p/w500$cleanUrl"
         targetView.tag = cleanUrl
         targetView.setImageDrawable(null)
         if (!cleanUrl.startsWith("http://") && !cleanUrl.startsWith("https://")) return
