@@ -359,9 +359,9 @@
                     android:id="@+id/contCount"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:fontFamily="sans-serif-medium"
-                    android:textColor="#B0B3BD"
-                    android:textSize="12sp" />
+                    android:letterSpacing="0.1"
+                    android:textColor="#FFFFFFFF"
+                    android:textSize="8sp" />
             </LinearLayout>
 
             <FrameLayout
@@ -400,7 +400,7 @@
                     android:id="@+id/contProgress"
                     style="?android:attr/progressBarStyleHorizontal"
                     android:layout_width="match_parent"
-                    android:layout_height="3dp"
+                    android:layout_height="4dp"
                     android:layout_gravity="bottom"
                     android:max="1000" />
             </FrameLayout>

@@ -350,6 +350,17 @@ class WidgetShelf(
         cards[2].setOnFocusChangeListener { _, focused ->
             if (!focused) paintContinue()
         }
+        cards[2].setOnKeyListener { _, code, event ->
+            val step = when (code) {
+                KeyEvent.KEYCODE_DPAD_RIGHT -> 1
+                KeyEvent.KEYCODE_DPAD_LEFT -> if (watchIndex > 0) -1 else 0
+                else -> 0
+            }
+            val count = watching.items.size
+            if (step == 0 || count < 2 || !expandedHub) return@setOnKeyListener false
+            if (event.action == KeyEvent.ACTION_DOWN) stepWatching(step, count)
+            true
+        }
         cards[3].setOnClickListener {
             cards[3].turn {
                 airTomorrow = !airTomorrow
@@ -442,6 +453,13 @@ class WidgetShelf(
         if (force) watching.refresh() else watching.tick()
     }
 
+    private fun stepWatching(step: Int, count: Int) {
+        watchIndex = (watchIndex + step + count) % count
+        watchRotatedAt = System.currentTimeMillis()
+        paintedWatchItem = null
+        paintContinue()
+    }
+
     private fun rotateWatching() {
         if (continueDock != null) return
 
@@ -465,7 +483,7 @@ class WidgetShelf(
         contTitle.setTextColor(0xFFFFFFFF.toInt())
         contLabel.setTextColor(darkP.onSurfaceVariant)
         contSubtitle.setTextColor(darkP.onSurfaceVariant)
-        contCount.setTextColor(darkP.onSurfaceVariant)
+        contCount.setTextColor(0xFFFFFFFF.toInt())
         contRemaining.setTextColor(0xFFFFFFFF.toInt())
         cards[2].findViewById<View>(R.id.contPosterFrame)?.let { frame ->
             (frame.background as? GradientDrawable)?.setColor(
@@ -474,7 +492,7 @@ class WidgetShelf(
         }
         contProgress.progressTintList = ColorStateList.valueOf(darkP.primary)
         contProgress.progressBackgroundTintList =
-            ColorStateList.valueOf(Palette.alpha(darkP.onSurfaceVariant, 0x40))
+            ColorStateList.valueOf(PROGRESS_TRACK)
         if ((item != null) != continueShown) {
             continueShown = item != null
             lastGrid?.let { align(it, lastColumns, lastDockTop) }
@@ -485,7 +503,7 @@ class WidgetShelf(
         val appIcon = WatchFormat.appIcon(activity, item.packageName)
         contAppIcon.setImageDrawable(appIcon)
         contAppIcon.visibility = if (appIcon == null) View.GONE else View.VISIBLE
-        contCount.text = if (items.size > 1) "${watchIndex + 1}/${items.size}" else ""
+        contCount.text = WatchFormat.pageDots(watchIndex, items.size)
         contTitle.text = item.title
         val subtitle = WatchFormat.subtitle(activity, item)
         val cleanSubtitle = if (subtitle.contains("<")) {
@@ -497,7 +515,8 @@ class WidgetShelf(
         val remaining = WatchFormat.remaining(activity, item.remainingMs)
         contRemaining.text = remaining
         contRemaining.visibility = if (remaining == null) View.GONE else View.VISIBLE
-        contProgress.visibility = if (item.progress > 0f) View.VISIBLE else View.INVISIBLE
+        val known = item.progress > 0f || item.durationMs > 0 || item.remainingMs > 0
+        contProgress.visibility = if (known) View.VISIBLE else View.INVISIBLE
         contProgress.progress = Math.round(item.progress * 1000)
     }
 
@@ -1405,6 +1424,7 @@ class WidgetShelf(
     }
 
     companion object {
+        private const val PROGRESS_TRACK = 0x99000000.toInt()
         private const val TILE_VALUE_SP = 18f
         private const val MODE_TITLE_SP = 13f
         const val PREF_KEY = "widgets"

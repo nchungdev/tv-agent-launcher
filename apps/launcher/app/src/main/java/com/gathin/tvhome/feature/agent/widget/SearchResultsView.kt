@@ -121,14 +121,13 @@ class SearchResultsView(context: Context) : LinearLayout(context) {
     }
 
     private fun paint(chip: TextView, active: Boolean, focused: Boolean) {
-        val fill = when {
-            focused -> FOCUSED
-            active -> ACTIVE
-            else -> RESTING
-        }
         chip.background = GradientDrawable().apply {
             cornerRadius = dp(20).toFloat()
-            setColor(fill)
+            when {
+                focused -> setColor(FOCUSED)
+                active -> setColor(SELECTED)
+                else -> setColor(RESTING)
+            }
         }
         chip.setTextColor(if (focused) 0xFF1C1B1F.toInt() else 0xFFFFFFFF.toInt())
     }
@@ -148,8 +147,8 @@ class SearchResultsView(context: Context) : LinearLayout(context) {
         const val FOCUS_ROOM = 16
         const val TABS_GAP = 12
         const val RESTING = 0xFF262B33.toInt()
-        const val ACTIVE = 0xFF3D4555.toInt()
         const val FOCUSED = 0xFFE6E1EC.toInt()
+        const val SELECTED = 0xFFD32F2F.toInt()
         val LABELS = mapOf(
             "plex" to "Plex", "jellyfin" to "Jellyfin", "phimapi" to "PhimAPI",
             "radarr" to "Radarr", "sonarr" to "Sonarr", "tmdb" to "TMDb", "internet" to "Internet"

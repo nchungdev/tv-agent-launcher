@@ -47,7 +47,11 @@ object WatchMerge {
         val other = if (newer === first) second else first
         val artwork = listOf(first, second).sortedBy { it.source.ordinal }
             .flatMap { it.posterCandidates() }.distinct()
+        val watched = if (newer.progress <= 0f && other.progress > 0f) other else newer
         return newer.copy(
+            progress = watched.progress,
+            remainingMs = watched.remainingMs,
+            durationMs = maxOf(newer.durationMs, other.durationMs),
             deepLink = newer.deepLink.ifBlank { other.deepLink },
             posterUri = artwork.firstOrNull(),
             posterAlternatives = artwork.drop(1),

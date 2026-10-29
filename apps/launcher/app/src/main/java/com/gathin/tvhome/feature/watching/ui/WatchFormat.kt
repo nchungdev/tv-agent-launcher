@@ -3,6 +3,9 @@ package com.gathin.tvhome.feature.watching.ui
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.drawable.Drawable
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
 import com.gathin.tvhome.R
 import com.gathin.tvhome.feature.watching.data.WatchDetails
 import com.gathin.tvhome.feature.watching.data.WatchItem
@@ -11,6 +14,9 @@ object WatchFormat {
     private const val MINUTE_MS = 60_000L
     private const val MINUTES_PER_HOUR = 60L
     private const val SEPARATOR = " · "
+    private const val DOT = "●"
+    private const val MAX_DOTS = 8
+    private const val DIM_DOT = 0x59FFFFFF
     private val CO_AUTHORS = Regex("""\s+(và \d+ người khác|and \d+ (more|others?))\s*$""",
         RegexOption.IGNORE_CASE)
 
@@ -43,6 +49,23 @@ object WatchFormat {
             else -> listOf(channel(item.subtitle))
         }
         return parts.filter { it.isNotBlank() }.joinToString(SEPARATOR)
+    }
+
+    fun pageDots(index: Int, count: Int): CharSequence {
+        if (count < 2) return ""
+        val shown = minOf(count, MAX_DOTS)
+        val current = index.coerceIn(0, shown - 1)
+        val dots = SpannableStringBuilder()
+        for (dot in 0 until shown) {
+            val start = dots.length
+            dots.append(DOT)
+            if (dot != current) {
+                dots.setSpan(ForegroundColorSpan(DIM_DOT), start, dots.length,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            }
+            if (dot < shown - 1) dots.append(' ')
+        }
+        return dots
     }
 
     fun channel(text: String): String = text.replace(CO_AUTHORS, "").trim()
