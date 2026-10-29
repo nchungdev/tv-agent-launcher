@@ -5,6 +5,7 @@ import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.text.TextUtils
 import android.view.Gravity
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -40,8 +41,7 @@ class SearchPosterCard(context: Context, private val card: AgentCardData) :
         layoutParams = LayoutParams(dp(posterWidth + 12), LayoutParams.WRAP_CONTENT)
         contentDescription = card.type
 
-        val imageFrame = LinearLayout(context).apply {
-            gravity = Gravity.CENTER
+        val imageFrame = FrameLayout(context).apply {
             clipChildren = true
             background = GradientDrawable().apply {
                 setColor(0xFF20252E.toInt())
@@ -55,11 +55,17 @@ class SearchPosterCard(context: Context, private val card: AgentCardData) :
             gravity = Gravity.CENTER
         }
         imageFrame.addView(
-            fallback, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+            fallback, FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
         )
         poster.scaleType = ImageView.ScaleType.CENTER_CROP
         imageFrame.addView(
-            poster, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+            poster, FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
         )
         addView(imageFrame, LayoutParams(LayoutParams.MATCH_PARENT, dp(posterHeight)))
 
