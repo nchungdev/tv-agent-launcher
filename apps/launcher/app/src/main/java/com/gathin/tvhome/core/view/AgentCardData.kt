@@ -24,10 +24,16 @@ data class AgentCardData(
     val link: String,
     val posterUrl: String = "",
     val id: String = "",
-    val actions: List<CardAction> = emptyList()
+    val actions: List<CardAction> = emptyList(),
+    val sourceId: String = "",
+    val automaticActions: Boolean = true,
+    val summary: String = "",
+    val season: Int = 0,
+    val episode: Int = 0
 ) {
     fun resolvedActions(): List<CardAction> {
         if (actions.isNotEmpty()) return actions
+        if (!automaticActions) return emptyList()
         return when {
             isPlex() -> listOf(openInPlex())
             status.equals(STATUS_DOWNLOADING, ignoreCase = true) -> emptyList()

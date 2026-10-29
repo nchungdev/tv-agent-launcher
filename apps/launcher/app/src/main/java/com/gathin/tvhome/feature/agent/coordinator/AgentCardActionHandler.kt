@@ -18,9 +18,16 @@ object AgentCardActionHandler {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     fun handleCardAction(context: Context, card: AgentCardData) {
+        if (card.sourceId.isNotBlank() && card.type in setOf("movie", "show", "series")) {
+            com.gathin.tvhome.feature.agent.data.SearchSelection(context).title(card.title)
+        }
+        if (card.sourceId.isNotBlank() && card.type !in setOf("web_link", "answer", "status")) {
+            MediaDetailSheet.show(context, card)
+            return
+        }
         val actions = card.resolvedActions()
         when {
-            actions.isEmpty() -> showStatus(context, card)
+            actions.isEmpty() -> if (card.automaticActions) showStatus(context, card)
             actions.size == 1 -> perform(context, card, actions[0])
             else -> chooseAction(context, card, actions)
         }
@@ -45,7 +52,7 @@ object AgentCardActionHandler {
         return listOf(card.year, card.type).filter { it.isNotEmpty() }.joinToString(" · ")
     }
 
-    private fun perform(context: Context, card: AgentCardData, action: CardAction) {
+    fun perform(context: Context, card: AgentCardData, action: CardAction) {
         if (action.confirm.isEmpty()) {
             execute(context, card, action)
             return

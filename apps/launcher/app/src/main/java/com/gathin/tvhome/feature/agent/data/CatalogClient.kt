@@ -2,6 +2,8 @@ package com.gathin.tvhome.feature.agent.data
 
 import android.content.Context
 import org.json.JSONObject
+import com.gathin.tvhome.feature.playback.PlaybackUrls
+import com.gathin.tvhome.feature.watching.data.readBytesBounded
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
@@ -15,7 +17,8 @@ object CatalogClient {
 
     @JvmStatic
     @Throws(Exception::class)
-    fun getTitle(context: Context, titleId: String): CatalogTitle {
+    fun getTitle(context: Context, titleId: String,
+        request: AgentClient.Request = AgentClient.Request()): CatalogTitle {
         val base = AgentClient.baseUrl(context)
         if (base.isEmpty()) throw IOException("Chưa cấu hình máy chủ Agent")
         val token = AgentClient.token(context) ?: throw IOException("Thiếu token xác thực")
@@ -30,13 +33,13 @@ object CatalogClient {
             setRequestProperty("Accept", "application/json")
         }
 
+        request.attach(connection)
         try {
             val code = connection.responseCode
             if (code != 200) {
-                val err = connection.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
-                throw IOException("Lỗi tải thông tin phim ($code): $err")
+                throw IOException("Catalog HTTP $code")
             }
-            val text = connection.inputStream.bufferedReader(StandardCharsets.UTF_8).use { it.readText() }
+            val text = connection.inputStream.use { it.readBytesBounded(2 * 1024 * 1024).toString(Charsets.UTF_8) }
             val json = JSONObject(text)
             return CatalogParser.parseTitleResponse(json)
         } finally {
@@ -46,7 +49,8 @@ object CatalogClient {
 
     @JvmStatic
     @Throws(Exception::class)
-    fun resolvePlayback(context: Context, episodeId: String): CatalogPlaybackResponse {
+    fun resolvePlayback(context: Context, episodeId: String,
+        request: AgentClient.Request = AgentClient.Request()): CatalogPlaybackResponse {
         val base = AgentClient.baseUrl(context)
         if (base.isEmpty()) throw IOException("Chưa cấu hình máy chủ Agent")
         val token = AgentClient.token(context) ?: throw IOException("Thiếu token xác thực")
@@ -62,6 +66,7 @@ object CatalogClient {
             setRequestProperty("Content-Type", "application/json; charset=utf-8")
         }
 
+        request.attach(connection)
         try {
             connection.outputStream.use { out ->
                 out.write("{}".toByteArray(StandardCharsets.UTF_8))
@@ -69,14 +74,12 @@ object CatalogClient {
 
             val code = connection.responseCode
             if (code != 200) {
-                val err = connection.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
-                throw IOException("Lỗi trích xuất phát video ($code): $err")
+                throw IOException("Playback HTTP $code")
             }
-            val text = connection.inputStream.bufferedReader(StandardCharsets.UTF_8).use { it.readText() }
+            val text = connection.inputStream.use { it.readBytesBounded(2 * 1024 * 1024).toString(Charsets.UTF_8) }
             val json = JSONObject(text)
             val response = CatalogParser.parsePlaybackResponse(json)
 
-            // Resolve relative stream URL against server base URL
             val resolvedUrl = resolveStreamUrl(base, response.playback.url)
             val resolvedDescriptor = response.playback.copy(url = resolvedUrl)
             return response.copy(playback = resolvedDescriptor)
@@ -88,11 +91,6 @@ object CatalogClient {
     @JvmStatic
     fun resolveStreamUrl(baseUrl: String, streamUrl: String): String {
         if (streamUrl.isBlank()) return ""
-        val cleanBase = if (baseUrl.endsWith("/")) baseUrl.dropLast(1) else baseUrl
-        return when {
-            streamUrl.startsWith("http://") || streamUrl.startsWith("https://") -> streamUrl
-            streamUrl.startsWith("/") -> cleanBase + streamUrl
-            else -> "$cleanBase/$streamUrl"
-        }
+        return PlaybackUrls.resolve(baseUrl, streamUrl)
     }
 }

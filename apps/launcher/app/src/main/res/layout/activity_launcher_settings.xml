@@ -89,6 +89,9 @@
                         style="@style/SettingsListItem" />
                     <TextView android:id="@+id/watchSourcesChoice"
                         style="@style/SettingsListItem" />
+
+                    <TextView android:id="@+id/playbackChoice"
+                        style="@style/SettingsListItem" />
                 </LinearLayout>
 
                 <TextView style="@style/SettingsSheetLabel" android:text="@string/settings_group_screensaver" />

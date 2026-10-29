@@ -23,6 +23,9 @@ can be built against it without the launcher source. The launcher implements it 
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/health` | `200` when up. The launcher shows online/offline from it |
+| POST | `/v2/flow` | Search tasks and source results (see 10) |
+| GET | `/v2/catalog/titles/{id}` | Title metadata and episode identities |
+| POST | `/v2/catalog/episodes/{id}/playback` | Fresh media descriptor after explicit Play |
 | POST | `/v2/ask` | The user asked something (voice or typed). Streams events |
 | POST | `/v2/action` | The user pressed a card button that needs the server. Streams events |
 | WS | `/ws/duinch` | Server pushes notifications, greetings and actions |
@@ -294,3 +297,46 @@ The same `package_name` + `title` is one entry: the newest event replaces the ol
 
 Newest first, at most 8. Entries between 3 % and 95 % watched (or without a duration) are kept for
 14 days. `action` is a client action (see 5); the launcher falls back to opening `package_name`.
+
+
+## 10. Flow search and catalog playback
+
+Launcher sends `POST /v2/flow` with `{text, context: {title, sources}}` using the configured
+Agent bearer. Context fields are optional. The response is NDJSON with top-level `version`,
+`request_id`, `sequence`, `type` and the event-specific `plan`, `task` or `result`.
+Events are `plan_ready`, `task_started`, `task_result`, `response_completed`.
+The client rejects duplicate/out-of-order events and unexpected request IDs. EOF before a
+terminal event is an error. Only 404/405 or JSON `status: legacy_route` invokes `/v2/ask`.
+
+Results preserve source/task/item identity, original kind, poster, year, season/episode and
+explicit actions. Search projects those results into All/Movie/Series/Other, each grouped by
+source. No fallback Play/download action is inferred for metadata or unknown actions.
+Opening media shows detail before resolving playback; web links remain links.
+
+`GET /v2/catalog/titles/{encoded id}` returns `{title: {id, source_id, name, kind, year,
+seasons, episodes}}`. Episode fields are `id`, `title_id`, `label`, `group`, `order`,
+`season_id`, `playable`. IDs are opaque. The client pages 25 episodes and can select a season.
+Poster/synopsis can come from the selected search result; absent metadata is omitted.
+
+Only explicit Play calls `POST /v2/catalog/episodes/{encoded id}/playback` with `{}`.
+The response has `episode` and `playback: {url, mime_type, title, preferred_handler,
+preferred_players, expires_at}`. Resolve relative URLs against the configured server;
+accept HTTP(S) without embedded credentials. Media proxy capability URLs must be usable
+without passing the administrative Agent bearer to another application. Stream URLs are
+not persisted as the identity of a catalog history entry.
+
+Per-source player preference routes to Launcher Player or an external application.
+App-only actions without a resolvable episode stream remain app actions; choosing the native
+player cannot synthesize a stream. Unsupported playback offers an explicit alternate route
+without changing the saved preference. Local native progress is available to Watch Next
+without Notification Access and resolves a fresh URL when reopened.
+
+`/api/media/search` has a different event envelope (`source_results`, etc.); its JSON form
+wraps `content_types` inside `result`. Launcher does not call this endpoint in the current
+implementation. `Snapshot` in the Go media event is internal (`json:"-"`), not a wire field.
+The schemas above were compared with checkout `f088227` plus uncommitted search changes;
+production-provider compatibility still requires a pinned backend/server E2E run.
+
+New catalog progress is local only. Section 9 remains the legacy external-media reporting
+contract; its package+title deduplication is not sufficient for catalog episode sync.
+See `docs/player-architecture.md` and `docs/testing/launcher-media-validation.md`.

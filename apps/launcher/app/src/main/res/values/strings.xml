@@ -463,4 +463,27 @@
     <string name="watch_hide">Hide this item</string>
     <string name="watch_open_failed">Cannot open this content or app</string>
     <string name="watch_filter_hint" formatted="false">Hidden and completed items (95% or more) are excluded. TV history lasts 14 days and starts at 3% when duration is known.</string>
+    <string name="playback_settings">Playback</string>
+    <string name="playback_launcher">Launcher Player</string>
+    <string name="playback_app">Corresponding app</string>
+    <string name="playback_ask">Ask each time</string>
+    <string name="playback_remember">Remember for this source</string>
+    <string name="playback_no_sources">Sources appear here after a search.</string>
+    <string name="playback_loading">Loading playback…</string>
+    <string name="playback_error">Playback unavailable. Check the connection or try again.</string>
+    <string name="playback_no_app">No compatible app is available.</string>
+    <string name="playback_stream_required">This action only provides an app link. Open the app instead?</string>
+    <string name="playback_tracks">Audio / Subtitles</string>
+    <string name="playback_subtitles">Subtitles</string>
+    <string name="playback_subtitles_off">Subtitles off</string>
+    <string name="playback_retry">Retry</string>
+    <string name="playback_close">Close</string>
+    <string name="playback_episodes">Episodes</string>
+    <string name="search_sources">Sources for the next search</string>
+    <string name="search_sources_auto">Automatic</string>
+    <string name="media_seasons">Seasons</string>
+    <string name="media_all_episodes">All episodes</string>
+    <string name="media_play">Play</string>
+    <string name="media_loading_detail">Loading details…</string>
+    <string name="media_versions">Versions &amp; sources</string>
 </resources>

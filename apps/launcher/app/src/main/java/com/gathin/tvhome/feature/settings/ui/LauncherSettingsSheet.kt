@@ -101,6 +101,10 @@ class LauncherSettingsSheet(
         agentSection.bind(view)
 
         initLookAndScreensaver(view)
+        view.findViewById<TextView>(R.id.playbackChoice).setText(R.string.playback_settings)
+        view.findViewById<TextView>(R.id.playbackChoice).setOnClickListener {
+            com.gathin.tvhome.feature.playback.PlaybackChoices.settings(activity)
+        }
         val watchSources = view.findViewById<TextView>(R.id.watchSourcesChoice)
         watchSources.setText(R.string.watch_sources)
         watchSources.setCompoundDrawablesRelativeWithIntrinsicBounds(

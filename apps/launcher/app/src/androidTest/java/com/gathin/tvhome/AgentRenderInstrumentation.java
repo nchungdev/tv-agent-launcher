@@ -32,6 +32,7 @@ public final class AgentRenderInstrumentation extends Instrumentation {
         }
     }
 
+    private boolean mediaScenario;
     private boolean dockScenario;
     private boolean weatherScenario;
     private boolean hubScenario;
@@ -45,6 +46,7 @@ public final class AgentRenderInstrumentation extends Instrumentation {
     @Override
     public void onCreate(Bundle arguments) {
         super.onCreate(arguments);
+        mediaScenario = arguments != null && "media".equals(arguments.getString("scenario"));
         dockScenario = arguments != null && "dock".equals(arguments.getString("scenario"));
         weatherScenario = arguments != null && "weather".equals(arguments.getString("scenario"));
         hubScenario = arguments != null && "hub".equals(arguments.getString("scenario"));
@@ -55,6 +57,11 @@ public final class AgentRenderInstrumentation extends Instrumentation {
     public void onStart() {
         Bundle result = new Bundle();
         try {
+            if (mediaScenario) {
+                result.putString("result", new MediaRenderChecks(this).run());
+                finish(Activity.RESULT_OK, result);
+                return;
+            }
             if (weatherScenario || hubScenario) {
                 result.putString("result", new WeatherRenderChecks(this).run(hubScenario));
                 finish(Activity.RESULT_OK, result);

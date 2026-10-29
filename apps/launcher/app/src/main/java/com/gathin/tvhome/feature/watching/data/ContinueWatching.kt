@@ -27,6 +27,10 @@ class ContinueWatching(context: Context) {
     private val posters = object : LruCache<String, Bitmap>(16 * 1024) {
         override fun sizeOf(key: String, value: Bitmap) = maxOf(1, value.byteCount / 1024)
     }
+    private val playbackPreferences = app.getSharedPreferences("launcher_playback", 0)
+    private val playbackChanged = android.content.SharedPreferences.OnSharedPreferenceChangeListener {
+        _, key -> if (key == "history") main.post { refresh() }
+    }
     private var active = false
     private var changed: (() -> Unit)? = null
     private val listeners = LinkedHashSet<() -> Unit>()
@@ -73,6 +77,7 @@ class ContinueWatching(context: Context) {
         changed = onChanged
         if (active) return
         active = true
+        playbackPreferences.registerOnSharedPreferenceChangeListener(playbackChanged)
         generation++
         observe()
         refreshedAt = SystemClock.elapsedRealtime()
@@ -81,6 +86,7 @@ class ContinueWatching(context: Context) {
 
     fun stop() {
         active = false
+        playbackPreferences.unregisterOnSharedPreferenceChangeListener(playbackChanged)
         generation++
         changed = null
         main.removeCallbacks(debounce)
@@ -133,9 +139,13 @@ class ContinueWatching(context: Context) {
                     override fun fetch(): WatchResult = when (source) {
                         WatchSource.TV -> tv.load(request)
                         WatchSource.SERVER -> ServerContinueSource(app).load(request)
-                        WatchSource.LOCAL -> if (WatchAccess.mediaSessions(app)) {
-                            WatchResult.loaded(LocalWatchHistory(app).continueItems())
-                        } else WatchResult(WatchAvailability.PERMISSION_REQUIRED)
+                        WatchSource.LOCAL -> {
+                            val own = com.gathin.tvhome.feature.playback.PlaybackStore(app).items()
+                            if (WatchAccess.mediaSessions(app)) {
+                                WatchResult.loaded(own + LocalWatchHistory(app).continueItems())
+                            } else if (own.isNotEmpty()) WatchResult.loaded(own)
+                            else WatchResult(WatchAvailability.PERMISSION_REQUIRED)
+                        }
                     }
                     override fun cancel() = request.close()
                 }

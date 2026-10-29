@@ -440,4 +440,27 @@
     <string name="watch_hide">Ẩn mục này</string>
     <string name="watch_open_failed">Không mở được nội dung hoặc ứng dụng</string>
     <string name="watch_filter_hint" formatted="false">Mục đã ẩn hoặc xem từ 95% sẽ không hiện. Lịch sử trên TV giữ 14 ngày, từ 3% nếu biết thời lượng.</string>
+    <string name="playback_settings">Phát video</string>
+    <string name="playback_launcher">Launcher Player</string>
+    <string name="playback_app">Ứng dụng tương ứng</string>
+    <string name="playback_ask">Hỏi mỗi lần</string>
+    <string name="playback_remember">Ghi nhớ cho nguồn này</string>
+    <string name="playback_no_sources">Các nguồn xuất hiện sau khi tìm kiếm.</string>
+    <string name="playback_loading">Đang tải…</string>
+    <string name="playback_error">Không phát được. Kiểm tra kết nối hoặc thử lại.</string>
+    <string name="playback_no_app">Không có ứng dụng phù hợp.</string>
+    <string name="playback_stream_required">Nguồn này chỉ cung cấp liên kết ứng dụng. Mở bằng ứng dụng?</string>
+    <string name="playback_tracks">Audio / Phụ đề</string>
+    <string name="playback_subtitles">Phụ đề</string>
+    <string name="playback_subtitles_off">Tắt phụ đề</string>
+    <string name="playback_retry">Thử lại</string>
+    <string name="playback_close">Đóng</string>
+    <string name="playback_episodes">Danh sách tập</string>
+    <string name="search_sources">Nguồn cho lần tìm tiếp theo</string>
+    <string name="search_sources_auto">Tự động</string>
+    <string name="media_seasons">Mùa phim</string>
+    <string name="media_all_episodes">Tất cả tập</string>
+    <string name="media_play">Phát</string>
+    <string name="media_loading_detail">Đang tải thông tin…</string>
+    <string name="media_versions">Phiên bản &amp; nguồn phát</string>
 </resources>

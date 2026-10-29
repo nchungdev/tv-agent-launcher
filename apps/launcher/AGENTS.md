@@ -2,7 +2,8 @@
 
 Android TV home screen, package `com.gathin.tvhome`, minSdk 26, target 34. Kotlin and Java with AndroidX
 RecyclerView and DynamicAnimation plus `app/libs/material-color-utilities` (no Compose).
-Built for 1 GB TVs: no blur, no video, no polling, no background work beyond what is listed here.
+Built for 1 GB TVs: no blur or background video; Launcher Player runs only during an explicit
+playback session. No polling or background work beyond what is listed here.
 Release APK: `app/build/outputs/apk/release/tv-launcher.apk`, R8 on, debug-signed, CI fails over 700 KB. A `v*` tag publishes it to a GitHub release (`.github/workflows/release.yml`), signed with the key in the `TV_KEYSTORE_BASE64` secret and the `TV_KEYSTORE_PASSWORD`, `TV_KEY_ALIAS`, `TV_KEY_PASSWORD` secrets; `-PtvVersion` sets versionName from the tag.
 Locales: English and Vietnamese only.
 
@@ -31,6 +32,11 @@ Locales: English and Vietnamese only.
   media sessions via `PlaybackTracker`/`LocalWatchHistory`. In dock mode, the latest item appears after the apps as a
   thumbnail with progress and a tooltip; `DockWatchNextView` keeps the current action while focused and hides when no
   item is available. Hold OK on the thumbnail to choose another item or open source status (`WatchNextMenu`, `WatchNextSourceSheet`).
+- Media playback: `feature/playback` routes source preferences to native Launcher Player or
+  external apps. `MediaDetailSheet` shows metadata before playback; `CatalogEpisodesView` provides
+  season selection and 25-item pages. Native playback uses platform VideoView/MediaPlayer,
+  releases on Home/stop and stores episode progress locally for Watch Next. See
+  `docs/player-architecture.md` and `docs/testing/launcher-media-validation.md` for boundaries.
 - Network pill: `SpeedTest` (Cloudflare `speed.cloudflare.com`, only when asked from the Wi-Fi menu).
 - Google account: `feature/account` shows an account made visible through Android's account chooser.
   The header opens a panel to choose an account or manage TV accounts in system settings. The selected

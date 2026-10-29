@@ -10,6 +10,15 @@ import com.gathin.tvhome.feature.watching.data.WatchMerge
 
 object WatchLauncher {
     fun open(context: Context, item: WatchItem): Boolean {
+        if (item.actionType == "catalog.resume") {
+            com.gathin.tvhome.feature.playback.PlaybackRouter.open(context,
+                com.gathin.tvhome.feature.playback.PlaybackIdentity(
+                    item.parameters["source_id"]?.toString().orEmpty(),
+                    item.parameters["episode_id"]?.toString().orEmpty(), item.title,
+                    item.posterUri.orEmpty(), item.parameters["title_id"]?.toString().orEmpty(),
+                    item.parameters["kind"]?.toString().orEmpty()))
+            return true
+        }
         if (!WatchMerge.validPackage(item.packageName)) return false
         val resume = resumeIntent(item.packageName, link(item))
         if (resume != null && start(context, resume)) return true

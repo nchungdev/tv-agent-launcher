@@ -117,7 +117,7 @@ class AgentCardView(context: Context, private val card: AgentCardData) : LinearL
             isPlex -> "PLEX"
             downloading -> "ĐANG TẢI"
             requested -> "ĐÃ YÊU CẦU"
-            else -> "THƯ VIỆN"
+            else -> card.sourceId.ifBlank { "THƯ VIỆN" }
         }
         val badgeColor = when {
             isPlex -> 0xFFE5A00D.toInt()

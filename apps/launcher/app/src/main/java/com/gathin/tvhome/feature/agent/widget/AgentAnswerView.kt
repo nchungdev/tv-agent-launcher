@@ -25,6 +25,7 @@ class AgentAnswerView(context: Context) : FrameLayout(context) {
     private var destroyed = false
     private var structuredCards: List<AgentCardData> = emptyList()
     private var lastText = ""
+    private val searchResults = SearchResultsView(context)
 
     init {
         setBackgroundColor(Color.rgb(8, 11, 16))
@@ -56,6 +57,7 @@ class AgentAnswerView(context: Context) : FrameLayout(context) {
             }
         }
         contentContainer.addView(cardsContainer)
+        contentContainer.addView(searchResults)
 
         scroll = ScrollView(context).apply {
             isFillViewport = true
@@ -67,7 +69,10 @@ class AgentAnswerView(context: Context) : FrameLayout(context) {
     fun setCards(cards: List<AgentCardData>) {
         if (destroyed) return
         structuredCards = cards
-        render()
+        if (cards.any { it.sourceId.isNotBlank() }) {
+            searchResults.submit(cards)
+            cardsContainer.removeAllViews()
+        } else render()
     }
 
     fun setText(text: String) {
@@ -79,6 +84,7 @@ class AgentAnswerView(context: Context) : FrameLayout(context) {
     fun clear() {
         if (destroyed) return
         lastText = ""
+        searchResults.clear()
         structuredCards = emptyList()
         render()
     }
@@ -94,7 +100,7 @@ class AgentAnswerView(context: Context) : FrameLayout(context) {
         plainText.text = result.formattedText
 
         val density = context.resources.displayMetrics.density
-        for (card in result.cards + structuredCards) {
+        for (card in result.cards + structuredCards.filter { it.sourceId.isBlank() }) {
             val cardView = AgentCardView(context, card).apply {
                 layoutParams = LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,

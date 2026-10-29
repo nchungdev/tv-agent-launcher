@@ -457,6 +457,13 @@ class MainActivity : Activity(), AppAdapter.TileListener {
         }
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        com.gathin.tvhome.feature.playback.PlaybackRouter.onHome(this)
+        com.gathin.tvhome.feature.agent.coordinator.CatalogEpisodeSheet.close(this)
+    }
+
     override fun onPause() {
         super.onPause()
         headerCoordinator.stop()

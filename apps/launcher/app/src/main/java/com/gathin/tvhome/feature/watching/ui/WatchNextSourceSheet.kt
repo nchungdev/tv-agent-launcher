@@ -126,7 +126,8 @@ class WatchNextSourceSheet(
     }
 
     private fun configure(source: WatchSource) {
-        if (feed.state(source) != WatchAvailability.PERMISSION_REQUIRED) return
+        if (source != WatchSource.LOCAL &&
+            feed.state(source) != WatchAvailability.PERMISSION_REQUIRED) return
         dialog.dismiss()
         if (source == WatchSource.TV) {
             activity.requestPermissions(arrayOf("android.permission.READ_TV_LISTINGS"), REQUEST_CODE)

@@ -77,26 +77,37 @@ object AgentActionExecutor {
             "catalog_detail", "catalog.detail" -> {
                 val titleId = parameters["title_id"]?.toString() ?: parameters["id"]?.toString() ?: ""
                 if (titleId.isNotBlank()) {
-                    CatalogEpisodeSheet.show(context, titleId)
+                    CatalogEpisodeSheet.show(context, titleId,
+                        parameters["source_id"]?.toString().orEmpty(),
+                        parameters["poster"]?.toString().orEmpty())
                     succeeded(stepId, "title_id" to titleId)
                 } else failed(stepId, "NO_TITLE_ID", "Thiếu ID phim")
             }
             "catalog_playback", "catalog.playback" -> {
-                val streamUrl = parameters["url"]?.toString() ?: ""
-                if (streamUrl.isNotBlank()) {
-                    val playback = PlaybackDescriptor(
-                        url = streamUrl,
-                        mimeType = parameters["mime_type"]?.toString().orEmpty(),
-                        title = parameters["title"]?.toString().orEmpty()
-                    )
-                    CatalogPlayerLauncher.play(context, playback, parameters["title"]?.toString().orEmpty())
-                    succeeded(stepId, "url" to streamUrl)
-                } else failed(stepId, "NO_STREAM_URL", "Thiếu URL luồng phát")
+                val episode = parameters["episode_id"]?.toString().orEmpty()
+                val source = parameters["source_id"]?.toString().orEmpty()
+                if (episode.isBlank() || source.isBlank()) {
+                    failed(stepId, "NO_EPISODE_ID", "Missing playback identity")
+                } else {
+                    com.gathin.tvhome.feature.playback.PlaybackRouter.open(context,
+                        com.gathin.tvhome.feature.playback.PlaybackIdentity(source, episode,
+                            parameters["title"]?.toString().orEmpty(),
+                            parameters["poster"]?.toString().orEmpty()))
+                    succeeded(stepId, "episode_id" to episode)
+                }
+            }
+            "source.open" -> {
+                com.gathin.tvhome.feature.playback.PlaybackRouter.source(context,
+                    parameters["source_id"]?.toString().orEmpty(), resolveUri(parameters).orEmpty())
+                succeeded(stepId, "source" to parameters["source_id"].toString())
             }
             "web.open", "web_link", "url.open" -> {
                 val url = resolveUri(parameters)
                 if (!url.isNullOrBlank()) {
                     try {
+                        val target = java.net.URI(url)
+                        require(target.scheme in setOf("http", "https") &&
+                            target.rawUserInfo == null && !target.host.isNullOrBlank())
                         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         }

@@ -52,7 +52,9 @@ data class FlowAction(
     val label: String = "",
     val url: String = "",
     val sourceId: String = "",
-    val itemId: String = ""
+    val itemId: String = "",
+    val enabled: Boolean = true,
+    val reason: String = ""
 )
 
 data class FlowItem(
@@ -61,7 +63,11 @@ data class FlowItem(
     val title: String = "",
     val url: String = "",
     val content: String = "",
-    val actions: List<FlowAction> = emptyList()
+    val actions: List<FlowAction> = emptyList(),
+    val poster: String = "",
+    val year: Int = 0,
+    val season: Int = 0,
+    val episode: Int = 0
 )
 
 data class FlowResult(
@@ -180,7 +186,9 @@ object FlowParser {
                         label = a.optString("label", ""),
                         url = a.optString("url", ""),
                         sourceId = a.optString("source_id", ""),
-                        itemId = a.optString("item_id", "")
+                        itemId = a.optString("item_id", ""),
+                        enabled = a.optBoolean("enabled", true),
+                        reason = a.optString("reason")
                     ))
                 }
             }
@@ -191,7 +199,11 @@ object FlowParser {
             title = json.optString("title", ""),
             url = json.optString("url", ""),
             content = json.optString("content", ""),
-            actions = actions
+            actions = actions,
+            poster = json.optString("poster"),
+            year = json.optInt("year"),
+            season = json.optInt("season"),
+            episode = json.optInt("episode")
         )
     }
 }
