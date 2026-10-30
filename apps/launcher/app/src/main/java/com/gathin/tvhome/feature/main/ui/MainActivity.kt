@@ -493,6 +493,7 @@ class MainActivity : Activity(), AppAdapter.TileListener {
     }
 
     override fun onDestroy() {
+        agentOverlay.onDestroy()
         Palette.removeListener(paletteListener)
         NotificationRepositoryImpl.getInstance().removeListener(unreadListener)
         super.onDestroy()

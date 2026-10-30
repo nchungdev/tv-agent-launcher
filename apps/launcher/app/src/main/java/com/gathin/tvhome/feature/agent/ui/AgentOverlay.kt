@@ -13,6 +13,7 @@ class AgentOverlay(private val activity: Activity, private val container: ViewGr
 
     private var panel: AgentPanel? = null
     private var previousFocus: View? = null
+    private var panelFocus: View? = null
 
     val isOpen: Boolean get() = panel != null
 
@@ -33,6 +34,7 @@ class AgentOverlay(private val activity: Activity, private val container: ViewGr
     override fun closePanel() {
         val closing = panel ?: return
         panel = null
+        panelFocus = null
         closing.release()
         container.removeView(closing)
         showHomeHeader(true)
@@ -53,8 +55,14 @@ class AgentOverlay(private val activity: Activity, private val container: ViewGr
 
     fun onResume() {
         current = this
-        if (openWhenResumed) {
-            openWhenResumed = false
+        val pendingOpen = openWhenResumed
+        openWhenResumed = false
+        val retained = panel
+        if (retained != null) {
+            retained.resume()
+            panelFocus?.takeIf { it.isAttachedToWindow && it.isShown }?.requestFocus()
+            panelFocus = null
+        } else if (pendingOpen) {
             open()
         }
     }
@@ -62,6 +70,12 @@ class AgentOverlay(private val activity: Activity, private val container: ViewGr
     fun onPause() {
         if (current === this) current = null
         pausedAt = SystemClock.uptimeMillis()
+        panelFocus = panel?.findFocus()
+        panel?.pause()
+    }
+
+    fun onDestroy() {
+        if (current === this) current = null
         closePanel()
     }
 

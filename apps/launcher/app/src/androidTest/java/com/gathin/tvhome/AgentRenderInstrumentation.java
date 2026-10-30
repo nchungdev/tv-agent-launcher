@@ -32,6 +32,7 @@ public final class AgentRenderInstrumentation extends Instrumentation {
         }
     }
 
+    private boolean agentReturnScenario;
     private boolean mediaScenario;
     private boolean voiceScenario;
     private boolean riskScenario;
@@ -48,6 +49,8 @@ public final class AgentRenderInstrumentation extends Instrumentation {
     @Override
     public void onCreate(Bundle arguments) {
         super.onCreate(arguments);
+        agentReturnScenario = arguments != null
+                && "agent-return".equals(arguments.getString("scenario"));
         voiceScenario = arguments != null && "voice".equals(arguments.getString("scenario"));
         mediaScenario = arguments != null && "media".equals(arguments.getString("scenario"));
         riskScenario = arguments != null && "risk".equals(arguments.getString("scenario"));
@@ -61,6 +64,11 @@ public final class AgentRenderInstrumentation extends Instrumentation {
     public void onStart() {
         Bundle result = new Bundle();
         try {
+            if (agentReturnScenario) {
+                result.putString("result", new AgentReturnChecks(this).run());
+                finish(Activity.RESULT_OK, result);
+                return;
+            }
             if (voiceScenario) {
                 if (!SpeechRecognizer.isRecognitionAvailable(getTargetContext())) {
                     throw new IllegalStateException(

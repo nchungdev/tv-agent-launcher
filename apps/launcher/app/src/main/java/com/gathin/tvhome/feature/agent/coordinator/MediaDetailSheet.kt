@@ -5,12 +5,17 @@ import android.app.Application
 import android.app.Dialog
 import android.content.Context
 import android.os.Bundle
+import android.view.Gravity
+import android.widget.LinearLayout
+import android.widget.TextView
 import com.gathin.tvhome.R
+import com.gathin.tvhome.core.design.Fonts
 import com.gathin.tvhome.core.design.Palette
 import com.gathin.tvhome.core.motion.FocusScrollView
 import com.gathin.tvhome.core.view.AgentCardData
 import com.gathin.tvhome.feature.agent.data.AgentClient
 import com.gathin.tvhome.feature.agent.data.CatalogClient
+import com.gathin.tvhome.feature.agent.data.TmdbMediaDetailResponse
 import com.gathin.tvhome.feature.playback.PlaybackIdentity
 import com.gathin.tvhome.feature.playback.PlaybackRouter
 import com.gathin.tvhome.feature.playback.PlaybackStore
@@ -75,6 +80,30 @@ object MediaDetailSheet {
         dialog.show()
         dialog.window?.setLayout(-1, -1)
         view.focusInitial()
+
+        val isTmdb = card.sourceId.equals("tmdb", true) || card.id.contains("tmdb")
+        if (isTmdb) {
+            val status = view.status(activity.getString(R.string.media_loading_detail))
+            scope.launch {
+                val tmdbDetail = withContext(Dispatchers.IO) {
+                    runCatching {
+                        CatalogClient.getTmdbMediaDetail(activity, card.type, card.id, request)
+                    }.getOrNull()
+                }
+                if (!dialog.isShowing) return@launch
+                view.content.removeView(status)
+                if (tmdbDetail == null) {
+                    view.status(activity.getString(R.string.playback_error))
+                    view.content.addView(MediaActionView(activity,
+                        activity.getString(R.string.playback_retry)).apply {
+                        setOnClickListener { show(activity, card) }
+                    })
+                    return@launch
+                }
+                renderTmdbDetail(activity, view, card, tmdbDetail)
+            }
+            return
+        }
 
         val rawId = detail?.parameters?.get("title_id")?.toString().orEmpty()
             .ifBlank { card.id }
@@ -141,6 +170,70 @@ object MediaDetailSheet {
                 view.content.addView(CatalogEpisodesView(activity, title, source, card.posterUrl) {
                     PlaybackRouter.open(activity, it)
                 })
+            }
+        }
+    }
+
+    private fun renderTmdbDetail(
+        activity: Activity,
+        view: MediaDetailView,
+        card: AgentCardData,
+        detail: TmdbMediaDetailResponse
+    ) {
+        val title = detail.title
+        view.configureKind(title.kind.ifBlank { card.type })
+        if (title.name.isNotBlank()) view.title.text = title.name
+        if (title.overview.isNotBlank()) view.synopsis.text = title.overview
+        val density = activity.resources.displayMetrics.density
+        val kind = (title.kind.ifBlank { card.type })
+            .replace('_', ' ').replaceFirstChar { it.uppercase() }
+        view.metadata.text = listOf(
+            (if (title.year > 0) title.year else card.year).toString().takeIf { it != "0" }.orEmpty(),
+            kind, "tmdb"
+        ).filter { it.isNotBlank() }.joinToString(" · ")
+
+        for (group in detail.sources) {
+            if (group.items.isEmpty()) continue
+            val heading = TextView(activity).apply {
+                text = group.sourceId.uppercase()
+                textSize = 15f
+                typeface = Fonts.MEDIUM
+                setTextColor(Palette.currentOrBaseline().primary)
+                setPadding(0, (16 * density).toInt(), 0, (6 * density).toInt())
+            }
+            view.content.addView(heading)
+            for (item in group.items) {
+                val row = LinearLayout(activity).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                }
+                val labelView = TextView(activity).apply {
+                    text = item.title.ifBlank { title.name }
+                    textSize = 14f
+                    setTextColor(Palette.currentOrBaseline().onSurface)
+                }
+                row.addView(labelView, LinearLayout.LayoutParams(0, -2, 1f))
+                for (action in item.actions) {
+                    val seasonNum = action.parameters["season"]?.toString()
+                        ?: (action.parameters["seasons"] as? List<*>)?.firstOrNull()?.toString()
+                        ?: action.parameters["season_number"]?.toString()
+                    val displayLabel = if (seasonNum != null && action.label.contains("mùa này", true)) {
+                        action.label.replace("mùa này", "Mùa $seasonNum", true)
+                    } else action.label
+
+                    val btn = MediaActionView(activity, displayLabel)
+                    btn.setOnClickListener {
+                        if (action.name == "catalog_detail" || action.id == "catalog_detail") {
+                            val itemId = action.parameters["item_id"]?.toString()
+                                ?: action.parameters["title_id"]?.toString().orEmpty()
+                            CatalogEpisodeSheet.show(activity, itemId, group.sourceId, card.posterUrl)
+                        } else {
+                            AgentCardActionHandler.perform(activity, card, action)
+                        }
+                    }
+                    row.addView(btn)
+                }
+                view.content.addView(row)
             }
         }
     }

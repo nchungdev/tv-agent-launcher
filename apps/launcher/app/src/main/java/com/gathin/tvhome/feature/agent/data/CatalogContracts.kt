@@ -1,5 +1,6 @@
 package com.gathin.tvhome.feature.agent.data
 
+import com.gathin.tvhome.core.view.CardAction
 import org.json.JSONObject
 
 data class CatalogTitle(
@@ -8,6 +9,8 @@ data class CatalogTitle(
     val name: String = "",
     val kind: String = "",
     val year: Int = 0,
+    val overview: String = "",
+    val poster: String = "",
     val seasons: List<CatalogSeason> = emptyList(),
     val episodes: List<CatalogEpisode> = emptyList()
 )
@@ -40,6 +43,28 @@ data class PlaybackDescriptor(
 data class CatalogPlaybackResponse(
     val episode: CatalogEpisode = CatalogEpisode(),
     val playback: PlaybackDescriptor = PlaybackDescriptor()
+)
+
+data class TmdbMediaDetailResponse(
+    val title: CatalogTitle = CatalogTitle(),
+    val sources: List<MediaSourceGroup> = emptyList()
+)
+
+data class MediaSourceGroup(
+    val sourceId: String = "",
+    val status: String = "",
+    val items: List<MediaSourceItem> = emptyList()
+)
+
+data class MediaSourceItem(
+    val id: String = "",
+    val title: String = "",
+    val kind: String = "",
+    val year: Int = 0,
+    val summary: String = "",
+    val poster: String = "",
+    val availability: String = "",
+    val actions: List<CardAction> = emptyList()
 )
 
 object CatalogParser {
@@ -81,6 +106,8 @@ object CatalogParser {
             name = json.optString("name", json.optString("title", "")),
             kind = json.optString("kind", json.optString("type", "")),
             year = json.optInt("year", 0),
+            overview = json.optString("overview", json.optString("summary", "")),
+            poster = json.optString("poster", json.optString("poster_url", "")),
             seasons = seasons,
             episodes = episodes
         )
@@ -99,6 +126,66 @@ object CatalogParser {
             order = json.optInt("order", 0),
             seasonId = json.optString("season_id", ""),
             playable = json.optBoolean("playable", true)
+        )
+    }
+
+    fun parseTmdbMediaDetail(json: JSONObject): TmdbMediaDetailResponse {
+        val titleObj = json.optJSONObject("title")
+        val title = if (titleObj != null) parseTitle(titleObj) else CatalogTitle()
+
+        val sourcesArray = json.optJSONArray("sources")
+        val sources = ArrayList<MediaSourceGroup>()
+        if (sourcesArray != null) {
+            for (i in 0 until sourcesArray.length()) {
+                sourcesArray.optJSONObject(i)?.let { s ->
+                    val sourceId = s.optString("source_id", "")
+                    val status = s.optString("status", "")
+                    val itemsArray = s.optJSONArray("items")
+                    val items = ArrayList<MediaSourceItem>()
+                    if (itemsArray != null) {
+                        for (j in 0 until itemsArray.length()) {
+                            itemsArray.optJSONObject(j)?.let { itemObj ->
+                                items.add(parseMediaSourceItem(sourceId, itemObj))
+                            }
+                        }
+                    }
+                    sources.add(MediaSourceGroup(sourceId, status, items))
+                }
+            }
+        }
+        return TmdbMediaDetailResponse(title, sources)
+    }
+
+    fun parseMediaSourceItem(sourceId: String, json: JSONObject): MediaSourceItem {
+        val actionsArray = json.optJSONArray("actions")
+        val actions = ArrayList<CardAction>()
+        if (actionsArray != null) {
+            for (i in 0 until actionsArray.length()) {
+                actionsArray.optJSONObject(i)?.let { a ->
+                    val type = a.optString("type", "")
+                    val label = a.optString("label", "")
+                    val url = a.optString("url", "")
+                    val itemSource = a.optString("source_id", sourceId)
+                    val itemId = a.optString("item_id", json.optString("id", ""))
+                    val params = mutableMapOf<String, Any?>(
+                        "source_id" to itemSource,
+                        "title_id" to itemId,
+                        "episode_id" to itemId,
+                        "url" to url
+                    )
+                    actions.add(CardAction(type, label, CardAction.KIND_CLIENT, type, params))
+                }
+            }
+        }
+        return MediaSourceItem(
+            id = json.optString("id", ""),
+            title = json.optString("title", ""),
+            kind = json.optString("kind", ""),
+            year = json.optInt("year", 0),
+            summary = json.optString("summary", ""),
+            poster = json.optString("poster", ""),
+            availability = json.optString("availability", ""),
+            actions = actions
         )
     }
 

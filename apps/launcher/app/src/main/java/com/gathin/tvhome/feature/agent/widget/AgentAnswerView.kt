@@ -154,7 +154,7 @@ class AgentAnswerView(context: Context) : FrameLayout(context) {
     }
 
     fun onPause() {
-        // Native views require no webview pause
+        spinner.visibility = GONE
     }
 
     fun onResume() {
