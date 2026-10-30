@@ -20,7 +20,14 @@ import com.gathin.tvhome.core.design.Shapes
 
 object PlaybackChoices {
 
-    fun choose(activity: Activity, source: String, selected: (String) -> Unit) {
+    fun choose(
+        activity: Activity,
+        source: String,
+        providerUrl: String = "",
+        directAvailable: Boolean = true,
+        rememberSelection: Boolean = true,
+        selected: (String) -> Unit
+    ) {
         val store = PlaybackStore(activity)
         store.remember(source)
         val density = activity.resources.displayMetrics.density
@@ -66,24 +73,41 @@ object PlaybackChoices {
         }
 
         val launcherBtn = optionCard(activity, density,
-            activity.getString(R.string.playback_launcher), "Trình phát tích hợp") {
+            activity.getString(R.string.playback_launcher),
+            activity.getString(R.string.playback_launcher_description)) {
             if (rememberBox.isChecked) store.prefer(source, "launcher")
             dialog.dismiss()
             selected("launcher")
         }
 
         val appBtn = optionCard(activity, density,
-            activity.getString(R.string.playback_app), "Mở qua ứng dụng phát video ngoài") {
+            activity.getString(R.string.playback_external_player),
+            activity.getString(R.string.playback_external_description)) {
             if (rememberBox.isChecked) store.prefer(source, "app")
             dialog.dismiss()
             selected("app")
         }
 
-        panel.addView(launcherBtn)
-        panel.addView(appBtn, LinearLayout.LayoutParams(-1, -2).apply {
-            topMargin = (10 * density).toInt()
-        })
+        if (directAvailable) {
+            panel.addView(launcherBtn)
+            panel.addView(appBtn, LinearLayout.LayoutParams(-1, -2).apply {
+                topMargin = (10 * density).toInt()
+            })
+        }
+        val providerBtn = if (providerUrl.isNotBlank()) {
+            optionCard(activity, density, activity.getString(R.string.media_open_provider),
+                activity.getString(R.string.playback_provider_description)) {
+                dialog.dismiss()
+                selected("provider")
+            }.also {
+                panel.addView(it, LinearLayout.LayoutParams(-1, -2).apply {
+                    topMargin = (10 * density).toInt()
+                })
+            }
+        } else null
 
+        rememberBox.visibility = if (rememberSelection && directAvailable)
+            android.view.View.VISIBLE else android.view.View.GONE
         panel.addView(rememberBox, LinearLayout.LayoutParams(-1, -2).apply {
             topMargin = (16 * density).toInt()
             bottomMargin = (12 * density).toInt()
@@ -123,7 +147,7 @@ object PlaybackChoices {
             window.setDimAmount(0.6f)
         }
         PlaybackPrompts.showDialog(activity, dialog)
-        launcherBtn.requestFocus()
+        (if (directAvailable) launcherBtn else providerBtn)?.requestFocus()
     }
 
     private fun optionCard(

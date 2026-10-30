@@ -21,9 +21,12 @@ class MediaEpisodeGridChecks(private val runner: AgentRenderInstrumentation) {
             val first = location(cards[0])
             val second = location(cards[1])
             val third = location(cards[2])
+            val fourth = location(cards[3])
             val density = root.resources.displayMetrics.density
-            check(cards[0].width < grid.width * 0.55f) { "Episode still fills screen width" }
-            check(first[1] == second[1] && third[1] > first[1]) { "Expected two-column grid" }
+            check(cards[0].width < grid.width * 0.36f) { "Episode still fills screen width" }
+            check(first[1] == second[1] && third[1] == first[1] && fourth[1] > first[1]) {
+                "Expected three-column grid"
+            }
             check(second[0] - first[0] - cards[0].width >= 15 * density)
             val seasons = descendants(grid).filterIsInstance<HorizontalScrollView>().single()
             val gap = first[1] - location(seasons)[1] - seasons.height
@@ -33,9 +36,9 @@ class MediaEpisodeGridChecks(private val runner: AgentRenderInstrumentation) {
         key(KeyEvent.KEYCODE_DPAD_RIGHT)
         main { check(cards[1].hasFocus()) { "Right should select episode 2" } }
         key(KeyEvent.KEYCODE_DPAD_DOWN)
-        main { check(cards[3].hasFocus()) { "Down should keep the same column" } }
+        main { check(cards[4].hasFocus()) { "Down should keep the same column" } }
         key(KeyEvent.KEYCODE_DPAD_LEFT)
-        main { check(cards[2].hasFocus()) { "Left should select episode 3" } }
+        main { check(cards[3].hasFocus()) { "Left should select episode 4" } }
         key(KeyEvent.KEYCODE_DPAD_UP)
         main { check(cards[0].hasFocus()) { "Up should return to episode 1" } }
         var originalWidth = 0

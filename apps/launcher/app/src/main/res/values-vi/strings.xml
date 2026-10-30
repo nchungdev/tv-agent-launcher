@@ -486,4 +486,14 @@
     <string name="player_loading_title">Đang tải…</string>
     <string name="catalog_load_failed">Không tải được phim từ máy chủ</string>
     <string name="catalog_no_episodes">Chưa có tập nào phát được</string>
+    <string name="media_open_provider">Mở ứng dụng hoặc trang nguồn</string>
+    <string name="media_season_tab">Phần %1$d</string>
+    <string name="media_server_tab">Máy chủ %1$d</string>
+    <string name="playback_external_player">Trình phát video ngoài</string>
+    <string name="playback_launcher_description">Xem bằng trình phát tích hợp</string>
+    <string name="playback_external_description">Phát luồng video bằng ứng dụng khác</string>
+    <string name="playback_provider_description">Mở phim trong ứng dụng hoặc trang web của nhà cung cấp</string>
+    <string name="media_back">Quay lại</string>
+    <string name="media_provider_expand">Mở %1$s</string>
+    <string name="media_request_desc">Gửi yêu cầu tải vào thư viện</string>
 </resources>

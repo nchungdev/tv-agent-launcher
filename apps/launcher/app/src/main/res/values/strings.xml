@@ -509,4 +509,14 @@
     <string name="player_loading_title">Loading…</string>
     <string name="catalog_load_failed">Could not load this title from the server</string>
     <string name="catalog_no_episodes">No playable episodes yet</string>
+    <string name="media_open_provider">Open provider app or page</string>
+    <string name="media_season_tab">Season %1$d</string>
+    <string name="media_server_tab">Server %1$d</string>
+    <string name="playback_external_player">External video player</string>
+    <string name="playback_launcher_description">Play in the built-in player</string>
+    <string name="playback_external_description">Play this stream in another video player</string>
+    <string name="playback_provider_description">Open this title in its provider app or website</string>
+    <string name="media_back">Back</string>
+    <string name="media_provider_expand">Show %1$s</string>
+    <string name="media_request_desc">Send request to media library</string>
 </resources>

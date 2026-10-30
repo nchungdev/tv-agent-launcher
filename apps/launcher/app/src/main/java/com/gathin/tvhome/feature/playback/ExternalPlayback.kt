@@ -31,7 +31,9 @@ object ExternalPlayback {
         val uri = runCatching { Uri.parse(url) }.getOrNull() ?: return false
         if (uri.scheme !in setOf("http", "https", "plex", "jellyfin")) return false
         val intent = Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        packages[source]?.let { intent.setPackage(it) }
+        val provider = packages[source]
+        if (provider != null && start(context, Intent(intent).setPackage(provider))) return true
+
         return start(context, intent)
     }
 

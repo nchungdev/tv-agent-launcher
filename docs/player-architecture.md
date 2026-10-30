@@ -54,7 +54,13 @@ Watch Next: source + episode identity → same router → fresh resolve → resu
 Unknown metadata is omitted. Web links remain links. Metadata-only results have no fabricated
 Play/download action. Opening detail does not resolve a stream or start a video. Seasons appear as an inline
 horizontal selector above the paged episode list; changing season filters that list in place.
-Series use two columns when the content area is at least 720dp wide, otherwise one column.
+TMDb media detail initially shows provider entries. Selecting a provider opens a separate detail page
+with season tabs and compact server chips; selecting a server replaces the episode list with its entries.
+The header's left back button returns from provider detail to media detail, then to the search results.
+Selecting a movie or episode opens a playback popup. Direct sources offer Launcher Player and an
+external video player; provider-capable sources also offer opening the selected title's app or page.
+Provider-only results open this popup from the title link and do not offer direct playback.
+Series use three columns when the content area is at least 720dp wide, otherwise one column.
 Cards are 64dp high with a 16dp column gap, 12dp row gap and 20dp below season tabs.
 Remote navigation follows reading order; resizing preserves the focused episode identity.
 Movies use a larger hero and Play/Resume. A single movie version has no episode/season list;

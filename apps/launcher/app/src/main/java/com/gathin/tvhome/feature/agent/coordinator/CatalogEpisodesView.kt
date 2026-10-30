@@ -86,7 +86,7 @@ class CatalogEpisodesView(
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val width = MeasureSpec.getSize(widthMeasureSpec)
         val nextColumns = if (MediaDetailsPolicy.isSeries(title.kind) &&
-            width / density >= 720) 2 else 1
+            width / density >= 720) 3 else 1
         if (nextColumns != columns) {
             val focused = list.findFocus()?.tag
             columns = nextColumns
@@ -114,16 +114,19 @@ class CatalogEpisodesView(
                     isEnabled = episode.playable && source.isNotBlank()
                     setOnClickListener { play(PlaybackIdentity(source, episode.id,
                         MediaDetailsPolicy.playbackTitle(title, episode),
-                        poster, title.id, title.kind)) }
+                        poster, episode.titleId.ifBlank { title.id }, title.kind, episode.url)) }
                 }
                 if (firstEntry == null) firstEntry = card
                 val cardHeight = ((if (series) 64 else 48) * density).toInt()
                 row.addView(card, LayoutParams(0, cardHeight, 1f).apply {
-                    if (columns == 2 && row.childCount == 0) marginEnd = (16 * density).toInt()
+                    if (row.childCount > 0) marginStart = (16 * density).toInt()
                 })
             }
-            if (entries.size < columns) row.addView(android.view.View(context),
-                LayoutParams(0, 1, 1f))
+            repeat(columns - entries.size) {
+                row.addView(android.view.View(context), LayoutParams(0, 1, 1f).apply {
+                    marginStart = (16 * density).toInt()
+                })
+            }
             list.addView(row, LayoutParams(-1, -2).apply {
                 bottomMargin = ((if (series) 12 else 6) * density).toInt()
             })

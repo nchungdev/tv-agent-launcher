@@ -28,7 +28,8 @@ data class CatalogEpisode(
     val group: String = "",
     val order: Int = 0,
     val seasonId: String = "",
-    val playable: Boolean = true
+    val playable: Boolean = true,
+    val url: String = ""
 )
 
 data class PlaybackDescriptor(
@@ -53,7 +54,8 @@ data class TmdbMediaDetailResponse(
 data class MediaSourceGroup(
     val sourceId: String = "",
     val status: String = "",
-    val items: List<MediaSourceItem> = emptyList()
+    val items: List<MediaSourceItem> = emptyList(),
+    val playbackMode: Int = -1
 )
 
 data class MediaSourceItem(
@@ -64,7 +66,15 @@ data class MediaSourceItem(
     val summary: String = "",
     val poster: String = "",
     val availability: String = "",
-    val actions: List<CardAction> = emptyList()
+    val actions: List<CardAction> = emptyList(),
+    val url: String = "",
+    val season: Int = 0,
+    val servers: List<MediaServer> = emptyList()
+)
+
+data class MediaServer(
+    val name: String,
+    val episodes: List<CatalogEpisode>
 )
 
 object CatalogParser {
@@ -125,36 +135,13 @@ object CatalogParser {
             group = rawGroup,
             order = json.optInt("order", 0),
             seasonId = json.optString("season_id", ""),
-            playable = json.optBoolean("playable", true)
+            playable = json.optBoolean("playable", true),
+            url = json.optString("url", "")
         )
     }
 
-    fun parseTmdbMediaDetail(json: JSONObject): TmdbMediaDetailResponse {
-        val titleObj = json.optJSONObject("title")
-        val title = if (titleObj != null) parseTitle(titleObj) else CatalogTitle()
-
-        val sourcesArray = json.optJSONArray("sources")
-        val sources = ArrayList<MediaSourceGroup>()
-        if (sourcesArray != null) {
-            for (i in 0 until sourcesArray.length()) {
-                sourcesArray.optJSONObject(i)?.let { s ->
-                    val sourceId = s.optString("source_id", "")
-                    val status = s.optString("status", "")
-                    val itemsArray = s.optJSONArray("items")
-                    val items = ArrayList<MediaSourceItem>()
-                    if (itemsArray != null) {
-                        for (j in 0 until itemsArray.length()) {
-                            itemsArray.optJSONObject(j)?.let { itemObj ->
-                                items.add(parseMediaSourceItem(sourceId, itemObj))
-                            }
-                        }
-                    }
-                    sources.add(MediaSourceGroup(sourceId, status, items))
-                }
-            }
-        }
-        return TmdbMediaDetailResponse(title, sources)
-    }
+    fun parseTmdbMediaDetail(json: JSONObject): TmdbMediaDetailResponse =
+        TmdbMediaParser.parse(json)
 
     fun parseMediaSourceItem(sourceId: String, json: JSONObject): MediaSourceItem {
         val actionsArray = json.optJSONArray("actions")

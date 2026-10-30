@@ -8,7 +8,8 @@ data class PlaybackIdentity(
     val title: String,
     val poster: String = "",
     val titleId: String = "",
-    val kind: String = ""
+    val kind: String = "",
+    val streamUrl: String = ""
 ) {
     val key: String get() = "$sourceId|$episodeId"
 }

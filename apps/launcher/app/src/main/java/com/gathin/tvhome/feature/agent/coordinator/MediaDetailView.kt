@@ -12,12 +12,24 @@ import com.gathin.tvhome.core.design.Palette
 import com.gathin.tvhome.core.util.ImageLoader
 import com.gathin.tvhome.core.view.AgentCardData
 
-class MediaDetailView(private val activity: Activity, card: AgentCardData) :
-    LinearLayout(activity) {
+class MediaDetailView(
+    private val activity: Activity,
+    card: AgentCardData,
+    val compact: Boolean = false
+) : LinearLayout(activity) {
     private val density = resources.displayMetrics.density
     private val palette = Palette.currentOrBaseline()
     private val poster: ImageView
+    private val hero: LinearLayout
     private val header = LinearLayout(activity).apply { gravity = Gravity.CENTER_VERTICAL }
+    val back = MediaActionView(activity, "").apply {
+        contentDescription = activity.getString(R.string.media_back)
+        tag = "media-detail-back"
+        setCompoundDrawablesRelativeWithIntrinsicBounds(R.drawable.ic_arrow_back, 0, 0, 0)
+        compoundDrawablesRelative[0]?.mutate()?.setTint(palette.onSurface)
+        setPadding(dp(8), dp(8), dp(8), dp(8))
+        layoutParams = LayoutParams(dp(38), dp(38)).apply { marginEnd = dp(12) }
+    }
     val actions = LinearLayout(activity).apply { gravity = Gravity.CENTER_VERTICAL }
     val content = LinearLayout(activity).apply { orientation = VERTICAL }
     val title = text(card.title, 28f).apply {
@@ -36,18 +48,34 @@ class MediaDetailView(private val activity: Activity, card: AgentCardData) :
     val synopsis = text(card.summary.take(5000), 14f)
 
     init {
+        clipChildren = false
+        clipToPadding = false
+        actions.clipChildren = false
+        actions.clipToPadding = false
+        content.clipChildren = false
+        content.clipToPadding = false
         orientation = VERTICAL
         setPadding(dp(40), dp(18), dp(40), dp(20))
         background = GradientDrawable(GradientDrawable.Orientation.TL_BR, intArrayOf(
             palette.surfaceContainerHigh, palette.surface, palette.surface))
-        val source = text(card.sourceId.uppercase(), 11f).apply {
-            letterSpacing = 0.18f
+        val headerTitle = if (compact) {
+            val sourceName = card.sourceId.uppercase()
+            if (card.title.isNotBlank()) "$sourceName  ·  ${card.title}" else sourceName
+        } else card.sourceId.uppercase()
+
+        val source = text(headerTitle, if (compact) 16f else 11f).apply {
+            if (!compact) letterSpacing = 0.18f
             typeface = Fonts.MEDIUM
-            setTextColor(palette.primary)
+            setTextColor(if (compact) palette.onSurface else palette.primary)
         }
+        header.addView(back)
         header.addView(source, LayoutParams(0, -2, 1f))
         addView(header, LayoutParams(-1, dp(40)))
-        val hero = LinearLayout(activity).apply { setPadding(0, dp(12), 0, 0) }
+
+        hero = LinearLayout(activity).apply {
+            setPadding(0, dp(12), 0, 0)
+            visibility = if (compact) GONE else VISIBLE
+        }
         poster = ImageView(activity).apply {
             scaleType = ImageView.ScaleType.CENTER_CROP
             background = GradientDrawable().apply {
@@ -59,7 +87,7 @@ class MediaDetailView(private val activity: Activity, card: AgentCardData) :
             contentDescription = card.title
         }
         hero.addView(poster, LayoutParams(dp(112), dp(168)))
-        ImageLoader.load(card.posterUrl, poster, dp(112), dp(168))
+        if (!compact) ImageLoader.load(card.posterUrl, poster, dp(112), dp(168))
         val information = LinearLayout(activity).apply {
             orientation = VERTICAL
             setPadding(dp(28), 0, dp(28), 0)
@@ -97,23 +125,39 @@ class MediaDetailView(private val activity: Activity, card: AgentCardData) :
     }
 
     fun action(label: String, click: () -> Unit): MediaActionView {
-        val close = label == activity.getString(R.string.playback_close)
-        val button = MediaActionView(activity, label, !close && actions.childCount == 0).apply {
+        val button = MediaActionView(activity, label, actions.childCount == 0).apply {
             setOnClickListener { click() }
         }
-        if (!close && label == activity.getString(R.string.media_play)) {
+        if (label == activity.getString(R.string.media_play)) {
             button.setCompoundDrawablesRelativeWithIntrinsicBounds(
                 R.drawable.ic_media_play, 0, 0, 0)
             button.compoundDrawablePadding = dp(8)
             button.compoundDrawablesRelative[0]?.mutate()?.setTint(android.graphics.Color.BLACK)
         }
-        if (close) header.addView(button) else actions.addView(button)
+        actions.addView(button)
         return button
     }
 
-    fun focusInitial() { (actions.getChildAt(0) ?: header.getChildAt(1))?.requestFocus() }
+    fun focusInitial() {
+        if (compact) {
+            (findFirstFocusable(content) ?: back).requestFocus()
+        } else {
+            (actions.getChildAt(0) ?: back).requestFocus()
+        }
+    }
+
+    private fun findFirstFocusable(view: android.view.View): android.view.View? {
+        if (view.isFocusable && view.visibility == VISIBLE) return view
+        if (view is android.view.ViewGroup) {
+            for (i in 0 until view.childCount) {
+                val child = findFirstFocusable(view.getChildAt(i))
+                if (child != null) return child
+            }
+        }
+        return null
+    }
     fun focusPrimaryIfIdle(primary: MediaActionView) {
-        if (header.getChildAt(1)?.hasFocus() == true) primary.requestFocus()
+        if (back.hasFocus()) primary.requestFocus()
     }
 
     fun status(label: String): TextView = text(label, 14f).also {

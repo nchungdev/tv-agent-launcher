@@ -10,6 +10,7 @@ import android.os.Bundle
 import com.gathin.tvhome.R
 import com.gathin.tvhome.feature.agent.data.AgentClient
 import com.gathin.tvhome.feature.agent.data.CatalogClient
+import com.gathin.tvhome.feature.agent.data.CatalogPlaybackResponse
 import com.gathin.tvhome.feature.agent.data.PlaybackDescriptor
 import com.gathin.tvhome.feature.agent.coordinator.CatalogEpisodeSheet
 import com.gathin.tvhome.feature.agent.coordinator.MediaDetailSheet
@@ -53,6 +54,20 @@ object PlaybackRouter {
         } else resolve(host, identity, preference)
     }
 
+    fun choose(context: Context, identity: PlaybackIdentity, providerUrl: String = "",
+        directAvailable: Boolean = true) {
+        val host = activity(context) ?: return
+        if (identity.sourceId.isBlank() || (directAvailable && identity.episodeId.isBlank())) return
+        PlaybackChoices.choose(host, identity.sourceId, providerUrl, directAvailable,
+            rememberSelection = false) { preference ->
+            if (preference == "provider") {
+                if (!ExternalPlayback.source(host, identity.sourceId, providerUrl)) {
+                    unavailable(host)
+                }
+            } else resolve(host, identity, preference)
+        }
+    }
+
     fun source(context: Context, source: String, url: String) {
         val host = activity(context) ?: return
         val isStream = url.contains("/media/stream/") ||
@@ -78,7 +93,7 @@ object PlaybackRouter {
         val preferred = store.preferred(source)
         if (preferred.isEmpty()) {
             if (ExternalPlayback.hasCompatibleApp(host, source)) {
-                PlaybackChoices.choose(host, source, choose)
+                PlaybackChoices.choose(host, source, selected = choose)
             } else {
                 choose("launcher")
             }
@@ -117,7 +132,16 @@ object PlaybackRouter {
         loading.show()
         scope.launch {
             val response = withContext(Dispatchers.IO) {
-                runCatching { CatalogClient.resolvePlayback(host, identity.episodeId, request) }
+                runCatching {
+                    if (identity.streamUrl.isBlank()) {
+                        CatalogClient.resolvePlayback(host, identity.episodeId, request)
+                    } else {
+                        val url = CatalogClient.resolveStreamUrl(
+                            AgentClient.baseUrl(host), identity.streamUrl)
+                        CatalogPlaybackResponse(playback = PlaybackDescriptor(
+                            url = url, title = identity.title))
+                    }
+                }
             }
             if (!loading.isShowing || pending[host] !== loading) return@launch
             val descriptor = response.getOrNull()?.playback
@@ -149,7 +173,8 @@ object PlaybackRouter {
                 val selected = identity.copy(titleId = identity.titleId.ifBlank {
                     response.getOrNull()?.episode?.titleId.orEmpty()
                 })
-                val episodes: (() -> Unit)? = if (identity.kind == "movie") null else {
+                val episodes: (() -> Unit)? = if (identity.kind == "movie") null
+                else if (identity.streamUrl.isNotBlank()) ({}) else {
                     {
                         val titleId = response.getOrNull()?.episode?.titleId.orEmpty()
                         val detail = MediaDetailSheet
