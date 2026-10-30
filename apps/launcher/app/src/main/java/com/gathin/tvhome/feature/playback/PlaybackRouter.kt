@@ -10,6 +10,7 @@ import android.os.Bundle
 import com.gathin.tvhome.R
 import com.gathin.tvhome.feature.agent.data.AgentClient
 import com.gathin.tvhome.feature.agent.data.CatalogClient
+import com.gathin.tvhome.feature.agent.data.PlaybackDescriptor
 import com.gathin.tvhome.feature.agent.coordinator.CatalogEpisodeSheet
 import com.gathin.tvhome.feature.agent.coordinator.MediaDetailSheet
 import kotlinx.coroutines.CoroutineScope
@@ -54,13 +55,23 @@ object PlaybackRouter {
 
     fun source(context: Context, source: String, url: String) {
         val host = activity(context) ?: return
+        val isStream = url.contains("/media/stream/") ||
+            url.contains(".m3u8", true) || url.contains(".mp4", true)
+        if (isStream) {
+            val descriptor = PlaybackDescriptor(url = url, title = source)
+            val identity = PlaybackIdentity(sourceId = source, episodeId = url, title = source)
+            val playback = LauncherPlayer(host, identity, descriptor, {}, null)
+            player = WeakReference(playback)
+            playback.show()
+            return
+        }
         val choose: (String) -> Unit = { preference ->
             if (preference == "launcher") {
-                PlaybackPrompts.show(host, AlertDialog.Builder(host)
-                    .setMessage(R.string.playback_stream_required)
-                    .setPositiveButton(R.string.playback_app) { _, _ ->
-                        if (!ExternalPlayback.source(host, source, url)) unavailable(host)
-                    }.setNegativeButton(android.R.string.cancel, null))
+                val descriptor = PlaybackDescriptor(url = url, title = source)
+                val identity = PlaybackIdentity(sourceId = source, episodeId = url, title = source)
+                val playback = LauncherPlayer(host, identity, descriptor, {}, null)
+                player = WeakReference(playback)
+                playback.show()
             } else if (!ExternalPlayback.source(host, source, url)) unavailable(host)
         }
         val store = PlaybackStore(host)
