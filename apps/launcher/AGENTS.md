@@ -105,8 +105,9 @@ android:resource="@xml/...">` whose root is `<card spec="1" label="..." caption=
   a changed key or label asks again. An invalid file moves to `cards.json.bad`.
 - Any failure disables cards for the session; rejections log under tag `TvHomeCards`.
 
-## Verifying on a TV
+## Verifying UI & TV
 
+- Always use `local/ui-preview/render.sh` to capture UI preview screenshots instead of running the app on device/emulator when checking UI changes.
 - Inject keys and `screencap`; Live TV/HDMI/Netflix capture as empty images, press Home first.
 - Key services: enabled ≠ bound. Check `settings --user current get secure enabled_accessibility_services`
   and the Bound services section of `dumpsys accessibility`; `input keyevent` bypasses accessibility

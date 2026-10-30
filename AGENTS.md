@@ -90,6 +90,7 @@ Build env (macOS): JDK 21 (`/usr/libexec/java_home -v 21`, else `/opt/homebrew/o
   their types and ranges) lives only in `packages/contract/contract.json`. Edit it, run
   `make generate`, never edit the generated files; CI fails when they drift.
 - Manifest component names in `com.gathin.tvhome` are stored on TVs; never rename or move them.
+- Use `local/ui-preview/render.sh` to capture preview screenshots instead of running the app when inspecting or verifying UI changes.
 - `local/` (gitignored) holds notes about the owner's own TV; never commit it.
 
 <!-- ai-memory:start -->
